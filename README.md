@@ -41,7 +41,7 @@ Desenvolver um sistema capaz de gerenciar operações de armazém e utilizar alg
 | Sérgio José de Araújo Júnior        |  01590694 |
 | Thiago de Morais Gonçalves          |  01609695 |
 
-> **Turma:** a definir
+> **Turma:** 8MA - Manha
 
 ---
 
