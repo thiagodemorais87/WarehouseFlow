@@ -257,15 +257,31 @@ A primeira versão do algoritmo terá como objetivo minimizar deslocamentos e or
 warehouseflow/
 │
 ├── backend/
+│   ├── app/                 # FastAPI (API, schemas, services)
+│   └── optimization/        # Motor puro (NN + 2-opt), sem DB
 ├── frontend/
 ├── database/
 ├── docs/
+│   └── optimization.md
 ├── tests/
 ├── .gitignore
 ├── requirements.txt
+├── pytest.ini
 ├── docker-compose.yml
 └── README.md
 ```
+
+### Motor de otimização (Sprint atual)
+
+```bash
+pip install -r requirements.txt
+pytest -q
+uvicorn app.main:app --app-dir backend --reload
+```
+
+Documentação: [docs/optimization.md](docs/optimization.md) · uso isolado: [backend/optimization/README.md](backend/optimization/README.md)
+
+Endpoint principal: `POST /optimization/route` (lista de localizações no body; sem PostgreSQL nesta etapa).
 
 ---
 
