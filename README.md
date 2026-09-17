@@ -2,6 +2,11 @@
 
 Sistema inteligente para gerenciamento e otimização de operações em armazéns e estoques.
 
+## Figma Prototiopo
+
+https://www.figma.com/design/uGceagehdqafcFckYSlWZY/Sem-t%C3%ADtulo?node-id=5-569&t=kWlwVzC0cuJRlaCp-1
+
+
 ## 📦 Sobre o projeto
 
 O **WarehouseFlow** é um sistema desenvolvido para auxiliar no gerenciamento de operações dentro de armazéns e estoques.
