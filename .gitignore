@@ -1,0 +1,42 @@
+# Ambientes Virtuais
+.venv/
+venv/
+env/
+ENV/
+
+# Variáveis de Ambiente e Segredos
+.env
+.env.*
+!.env.example
+
+# Bytecode e Cache do Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Logs (Uvicorn e Aplicação)
+*.log
+logs/
+
+# Bancos de Dados Locais / Dumps (caso use SQLite local em testes)
+*.sqlite
+*.sqlite3
+*.db
+
+# Configurações de IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Cobertura de Testes e Builds
+htmlcov/
+.coverage
+.coverage.*
+dist/
+build/
+*.egg-info/
