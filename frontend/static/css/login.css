@@ -1,0 +1,198 @@
+.login-page {
+    min-height: 100vh;
+
+    display:flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 24px;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 385px;
+}
+
+/*logo*/
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    margin-bottom: 32px;
+
+    font-size: 18px;
+    font-weight: 700;
+    color: #12335d;
+}
+
+.brand-icon {
+    width: 40px;
+    height: 40px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background-color: #24466f;
+    border-radius: 8px;
+}
+
+/*header*/
+
+.login-header {
+    margin-bottom: 34px;
+}
+
+.login-header h1 {
+    font-size: 25px;
+    line-height: 1.2;
+
+    margin-bottom: 7px;
+
+    font-weight: 700;
+}
+
+.login-header p {
+    font-size: 15px;
+    color: #64748b;
+}
+
+/*Formulário*/
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    display: block;
+
+    font-size: 14px;
+    font-weight: 500;
+
+    margin-bottom: 8px;
+}
+
+.form-group input {
+    width: 100%;
+    height: 42px;
+
+    padding: 0 13px;
+
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+
+    background-color: #ffffff;
+
+    font-size: 14px;
+
+    outline: none;
+}
+
+.form-group input::placeholder {
+    color: #94a3b8;
+}
+
+.form-group input:focus {
+    border-color: #24466f;
+    box-shadow: 0 0 0 2px rgba(36, 70, 111, 0.1);
+}
+
+/*senha*/
+
+.password-field {
+    position: relative;
+    width: 100%;
+}
+
+.password-field input {
+    width: 100%;
+    padding-right: 45px;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    border: none;
+    background: transparent;
+
+    color: #64748b;
+
+    cursor: pointer;
+}
+
+.password-toggle:hover {
+    color: #24466f;
+}
+
+.hidden {
+    display: none;
+}
+
+/*opções*/
+
+.login-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin: 4px 0 18px;
+
+    font-size: 14px;
+}
+
+.remember {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    color: #64748b;
+}
+
+.remember input {
+    width: 16px;
+    height: 16px;
+}
+
+.login-options a {
+    color: #155dfc;
+    text-decoration: none;
+}
+
+.login-options a:hover {
+    text-decoration: underline;
+}
+
+/* Botão */
+
+.login-button {
+    width: 100%;
+    height: 41px;
+
+    border: none;
+    border-radius: 6px;
+
+    background-color: #24466f;
+    color: white;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: background-color 0.2s ease;
+}
+
+.login-button:hover {
+    background-color: #193654;
+}
