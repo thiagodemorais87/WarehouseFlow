@@ -1,21 +1,25 @@
-from fastapi import FastAPI, Depends, HTTPException
-from sqlalchemy.orm import Session
-from . import models, schemas, database
+from fastapi import FastAPI
+from .database import engine, Base
+from .routers import products, tasks, optimization, orders, stock, users, locations
 
-# Cria as tabelas no banco caso não utilize Alembic no início
-models.Base.metadata.create_all(bind=database.engine)
+# Inicializa as tabelas no PostgreSQL
+Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="WarehouseFlow API")
+app = FastAPI(
+    title="WarehouseFlow API",
+    description="API inteligente para gerenciamento e otimização de operações em armazéns.",
+    version="1.0.0"
+)
 
-@app.post("/products/", response_model=schemas.ProductResponse, tags=["Products"])
-def create_product(product: schemas.ProductCreate, db: Session = Depends(database.get_db)):
-    db_product = models.Product(**product.dict())
-    db.add(db_product)
-    db.commit()
-    db.refresh(db_product)
-    return db_product
+# Registro de todas as rotas modularizadas
+app.include_router(products.router)
+app.include_router(tasks.router)
+app.include_router(optimization.router)
+app.include_router(orders.router)
+app.include_router(stock.router)
+app.include_router(users.router)
+app.include_router(locations.router)
 
-@app.get("/products/", response_model=list[schemas.ProductResponse], tags=["Products"])
-def read_products(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
-    products = db.query(models.Product).offset(skip).limit(limit).all()
-    return products
+@app.get("/", tags=["Healthcheck"])
+def healthcheck():
+    return {"status": "ok", "message": "WarehouseFlow API operando normalmente!"}
