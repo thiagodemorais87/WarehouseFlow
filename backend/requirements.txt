@@ -1,0 +1,2 @@
+# Dependências do backend — manter sincronizado com o requirements.txt da raiz.
+-r ../requirements.txt

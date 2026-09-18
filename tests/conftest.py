@@ -1,5 +1,10 @@
 """Fixtures determinísticas compartilhadas."""
 
+import os
+
+# Deve rodar antes de qualquer import de app.main / database
+os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
+
 import pytest
 
 from optimization.types import Location

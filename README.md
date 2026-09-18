@@ -229,30 +229,17 @@ A primeira versão do algoritmo terá como objetivo minimizar deslocamentos e or
 
 ## 📊 Status do projeto
 
-**Em desenvolvimento — Sprint 01**
+**Em desenvolvimento — Sprint 02 (integração)**
 
-### Sprint 01
+### Entregas
 
-* [x] Definição inicial do projeto
-* [x] Definição da equipe
-* [ ] Requisitos funcionais
-* [ ] Requisitos não funcionais
-* [ ] Casos de uso
-* [ ] Product Backlog
-* [ ] Cronograma
-* [ ] Repositório GitHub
-
-### Próximas etapas
-
-* [ ] Modelagem do banco
-* [ ] Criação do PostgreSQL
-* [ ] Desenvolvimento do backend
-* [ ] Desenvolvimento do motor de otimização
-* [ ] Desenvolvimento do front-end
-* [ ] Testes
-* [ ] Integração
-* [ ] Documentação
-* [ ] Deploy
+* [x] Banco de dados conectado (PostgreSQL + SQLAlchemy)
+* [ ] Login funcional (branch `feature/auth-users` — outro integrante)
+* [x] Cadastro de usuários via API (`/users` — hash definitivo na sprint de auth)
+* [ ] Controle de perfis com enforcement (auth)
+* [x] CRUD principal (`/products`, estoque, pedidos, tarefas, posições)
+* [x] Deploy local (Docker Compose + instruções abaixo)
+* [x] Motor de otimização (`POST /optimization/route`)
 
 ---
 
@@ -262,13 +249,14 @@ A primeira versão do algoritmo terá como objetivo minimizar deslocamentos e or
 warehouseflow/
 │
 ├── backend/
-│   ├── app/                 # FastAPI (API, schemas, services)
+│   ├── app/                 # FastAPI (API, routers CRUD, schemas, services)
+│   ├── database/            # schema.sql + seed.sql
 │   └── optimization/        # Motor puro (NN + 2-opt), sem DB
-├── frontend/
-├── database/
+├── frontend/                # Templates Jinja + static (shell de login)
 ├── docs/
 │   └── optimization.md
 ├── tests/
+├── .env.example
 ├── .gitignore
 ├── requirements.txt
 ├── pytest.ini
@@ -276,17 +264,69 @@ warehouseflow/
 └── README.md
 ```
 
-### Motor de otimização (Sprint atual)
+---
+
+## 🚀 Deploy local
+
+### 1. Pré-requisitos
+
+* Python 3.11+
+* Docker Desktop (para o PostgreSQL)
+
+### 2. Banco de dados
 
 ```bash
+docker compose up -d
+```
+
+Isso sobe o Postgres na porta `5432` e aplica `backend/database/schema.sql` + `seed.sql` na primeira inicialização.
+
+### 3. Variáveis de ambiente
+
+```bash
+cp .env.example .env
+```
+
+O valor padrão já aponta para o container:
+
+`postgresql+psycopg2://warehouse:warehouse@localhost:5432/warehouseflow`
+
+### 4. Dependências e API
+
+```bash
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# Linux/macOS: source .venv/bin/activate
 pip install -r requirements.txt
-pytest -q
 uvicorn app.main:app --app-dir backend --reload
 ```
 
-Documentação: [docs/optimization.md](docs/optimization.md) · uso isolado: [backend/optimization/README.md](backend/optimization/README.md)
+* API / Swagger: http://127.0.0.1:8000/docs
+* Health: http://127.0.0.1:8000/health
+* Shell de login (UI estática): http://127.0.0.1:8000/login
 
-Endpoint principal: `POST /optimization/route` (lista de localizações no body; sem PostgreSQL nesta etapa).
+### 5. Testes do motor
+
+```bash
+pytest -q
+```
+
+### 6. Endpoints principais
+
+| Área | Endpoint |
+|------|----------|
+| Produtos (CRUD) | `/products` |
+| Estoque | `/stock` |
+| Pedidos | `/orders` |
+| Tarefas | `/tasks` |
+| Posições | `/locations` |
+| Usuários | `/users` |
+| Resultados salvos | `/optimization-results` |
+| Motor de rota | `POST /optimization/route` |
+
+Documentação do motor: [docs/optimization.md](docs/optimization.md) · [backend/optimization/README.md](backend/optimization/README.md)
+
+> **Auth:** login JWT, hash bcrypt e enforcement de perfis serão entregues em `feature/auth-users`.
 
 ---
 
