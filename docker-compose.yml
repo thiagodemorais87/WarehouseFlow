@@ -19,5 +19,20 @@ services:
       timeout: 5s
       retries: 10
 
+  api:
+    build: .
+    container_name: warehouseflow-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://warehouse:warehouse@db:5432/warehouseflow
+    volumes:
+      - ./backend:/app/backend
+      - ./frontend:/app/frontend
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   warehouseflow_pgdata:
