@@ -6,7 +6,7 @@ Sistema inteligente para gerenciamento e otimização de operações em armazén
 
 https://www.figma.com/design/uGceagehdqafcFckYSlWZY/Sem-t%C3%ADtulo?node-id=5-569&t=kWlwVzC0cuJRlaCp-1
 
-### Documentação oficial (feedback acadêmico + sprints)
+### Documentação oficial (sprints)
 
 * [Proposta — problema → solução + métricas](docs/proposta.md)
 * [Cronograma oficial — 12 sprints, datas e funcionalidades](docs/cronograma.md)
