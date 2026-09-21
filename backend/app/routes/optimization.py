@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from app.deps import get_current_user
+from app.models import User
 from app.schemas.optimization import RouteOptimizeRequest, RouteOptimizeResponse
 from app.services.optimization_service import optimize_from_request
 
@@ -9,10 +11,14 @@ router = APIRouter(prefix="/optimization", tags=["optimization"])
 
 
 @router.post("/route", response_model=RouteOptimizeResponse)
-def optimize_route_endpoint(request: RouteOptimizeRequest) -> RouteOptimizeResponse:
+def optimize_route_endpoint(
+    request: RouteOptimizeRequest,
+    _: User = Depends(get_current_user),
+) -> RouteOptimizeResponse:
     """Otimiza a sequência de picking a partir de localizações explícitas.
 
     Endpoint principal da 1ª versão — não depende de PostgreSQL.
+    Requer autenticação JWT.
     """
     result = optimize_from_request(request)
     return RouteOptimizeResponse(

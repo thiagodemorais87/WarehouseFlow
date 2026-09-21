@@ -1,6 +1,28 @@
+"""Testes do endpoint de otimização — app mínimo com auth mockada."""
+
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app.deps import get_current_user
+from app.routes.optimization import router as optimization_router
+
+
+class _FakeUser:
+    id = 1
+    email = "test@warehouseflow.com"
+    is_active = True
+    role_name = "ADMIN"
+
+
+app = FastAPI()
+app.include_router(optimization_router)
+app.dependency_overrides[get_current_user] = lambda: _FakeUser()
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
 
 client = TestClient(app)
 

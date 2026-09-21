@@ -127,7 +127,7 @@ class StockResponse(StockBase):
 # USER & ROLE SCHEMAS
 
 class RoleBase(BaseModel):
-    name: str = Field(..., max_length=50, examples=["ADMIN", "OPERATOR"])
+    name: str = Field(..., max_length=50, examples=["ADMIN", "GESTOR", "OPERADOR"])
 
 class RoleCreate(RoleBase):
     pass
@@ -151,9 +151,11 @@ class UserUpdate(BaseModel):
     email: Optional[str] = None
     role_id: Optional[int] = None
     password: Optional[str] = None
+    is_active: Optional[bool] = None
 
 class UserResponse(UserBase):
     id: int
+    is_active: bool = True
     created_at: datetime
     role: Optional[RoleResponse] = None
 
