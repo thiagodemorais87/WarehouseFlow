@@ -10,31 +10,35 @@
 
     <nav class="sidebar-nav">
 
-        <a href="/dashboard" class="sidebar-link active">
+        <a href="/dashboard" class="sidebar-link {% if active_page == 'dashboard' %}active{% endif %}">
             Dashboard
         </a>
 
-        <a href="#" class="sidebar-link">
+        <a href="/produtos" class="sidebar-link {% if active_page == 'products' %}active{% endif %}">
             Produtos
         </a>
 
-        <a href="#" class="sidebar-link">
+        <a href="#" class="sidebar-link {% if active_page == 'stock' %}active{% endif %}">
             Estoque
         </a>
 
-        <a href="#" class="sidebar-link">
+        <a href="#" class="sidebar-link {% if active_page == 'locations' %}active{% endif %}">
+            Posições
+        </a>
+
+        <a href="#" class="sidebar-link {% if active_page == 'orders' %}active{% endif %}">
             Pedidos
         </a>
 
-        <a href="#" class="sidebar-link">
+        <a href="#" class="sidebar-link {% if active_page == 'tasks' %}active{% endif %}">
             Tarefas
         </a>
 
-        <a href="#" class="sidebar-link">
+        <a href="#" class="sidebar-link {% if active_page == 'optimization' %}active{% endif %}">
             Otimização
         </a>
 
-        <a href="#" class="sidebar-link">
+        <a href="#" class="sidebar-link {% if active_page == 'users' %}active{% endif %}">
             Usuários
         </a>
 

@@ -82,6 +82,28 @@ if FRONTEND_DIR.exists():
             name="dashboard/dashboard.html",
             context={
                 "user": user,
+                "active_page": "dashboard",
+            },
+        )
+
+    @app.get(
+        "/produtos",
+        response_class=HTMLResponse,
+        tags=["Frontend"],
+    )
+    def products_page(request: Request):
+        user = {
+            "name": "Usuário Teste",
+            "initials": "UT",
+            "role": "Administrador",
+        }
+
+        return templates.TemplateResponse(
+            request=request,
+            name="products/products.html",
+            context={
+                "user": user,
+                "active_page": "products",
             },
         )
 
