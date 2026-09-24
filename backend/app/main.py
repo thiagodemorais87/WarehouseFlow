@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from .database import engine, Base
-from .routers import products, tasks, optimization, orders, stock, users, locations
+from .routers import auth, products, tasks, optimization, orders, stock, users, locations
 from .routes.optimization import router as optimization_engine_router
 
 
@@ -28,6 +28,7 @@ app = FastAPI(
 
 
 # Registro de todas as rotas modularizadas (CRUD + persistência)
+app.include_router(auth.router)
 app.include_router(products.router)
 app.include_router(tasks.router)
 app.include_router(optimization.router)
@@ -39,7 +40,6 @@ app.include_router(locations.router)
 
 # Motor de otimização de picking (desacoplado do PostgreSQL nesta versão)
 app.include_router(optimization_engine_router)
-
 
 # Frontend (shell de login — autenticação real fica para feature/auth-users)
 if FRONTEND_DIR.exists():

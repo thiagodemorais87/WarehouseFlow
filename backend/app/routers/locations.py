@@ -4,16 +4,26 @@ from typing import List, Optional
 
 from ..database import get_db
 from .. import models, schemas
+from ..deps import get_current_user, require_role
+from ..models.user import UserRole
 
 router = APIRouter(
     prefix="/locations",
-    tags=["Warehouses & Locations"]
+    tags=["Warehouses & Locations"],
+    dependencies=[Depends(get_current_user)],
 )
+
+_write = Depends(require_role(UserRole.ADMIN, UserRole.GESTOR))
+
 
 #  WAREHOUSES 
 
 @router.post("/warehouses/", response_model=schemas.WarehouseResponse, status_code=status.HTTP_201_CREATED)
-def create_warehouse(warehouse: schemas.WarehouseCreate, db: Session = Depends(get_db)):
+def create_warehouse(
+    warehouse: schemas.WarehouseCreate,
+    db: Session = Depends(get_db),
+    _: models.User = _write,
+):
     new_warehouse = models.Warehouse(**warehouse.model_dump())
     db.add(new_warehouse)
     db.commit()
@@ -27,7 +37,11 @@ def list_warehouses(db: Session = Depends(get_db)):
 #  LOCATIONS 
 
 @router.post("/", response_model=schemas.LocationResponse, status_code=status.HTTP_201_CREATED)
-def create_location(location: schemas.LocationCreate, db: Session = Depends(get_db)):
+def create_location(
+    location: schemas.LocationCreate,
+    db: Session = Depends(get_db),
+    _: models.User = _write,
+):
     warehouse = db.query(models.Warehouse).filter(models.Warehouse.id == location.warehouse_id).first()
     if not warehouse:
         raise HTTPException(status_code=404, detail="Armazém não encontrado.")
@@ -69,7 +83,12 @@ def get_location(location_id: int, db: Session = Depends(get_db)):
     return location
 
 @router.put("/{location_id}", response_model=schemas.LocationResponse)
-def update_location(location_id: int, location_update: schemas.LocationUpdate, db: Session = Depends(get_db)):
+def update_location(
+    location_id: int,
+    location_update: schemas.LocationUpdate,
+    db: Session = Depends(get_db),
+    _: models.User = _write,
+):
     db_location = db.query(models.Location).filter(models.Location.id == location_id).first()
     if not db_location:
         raise HTTPException(status_code=404, detail="Posição não encontrada.")
@@ -89,7 +108,11 @@ def update_location(location_id: int, location_update: schemas.LocationUpdate, d
     return db_location
 
 @router.delete("/{location_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_location(location_id: int, db: Session = Depends(get_db)):
+def delete_location(
+    location_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = _write,
+):
     db_location = db.query(models.Location).filter(models.Location.id == location_id).first()
     if not db_location:
         raise HTTPException(status_code=404, detail="Posição não encontrada.")

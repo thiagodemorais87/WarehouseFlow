@@ -1,19 +1,30 @@
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
 
 from ..database import get_db
 from .. import models, schemas
+from ..security import hash_password
+from ..deps import get_current_user, require_role
+from ..models.user import UserRole
 
 router = APIRouter(
     prefix="/users",
-    tags=["Users & Roles"]
+    tags=["Users & Roles"],
+    dependencies=[Depends(get_current_user)],
 )
 
-#  ROLES 
+_admin = Depends(require_role(UserRole.ADMIN))
+
+
+# --- ROLES ---
 
 @router.post("/roles/", response_model=schemas.RoleResponse, status_code=status.HTTP_201_CREATED)
-def create_role(role: schemas.RoleCreate, db: Session = Depends(get_db)):
+def create_role(
+    role: schemas.RoleCreate,
+    db: Session = Depends(get_db),
+    _: models.User = _admin,
+):
     db_role = db.query(models.Role).filter(models.Role.name == role.name.upper()).first()
     if db_role:
         raise HTTPException(status_code=400, detail="Cargo já cadastrado.")
@@ -24,14 +35,20 @@ def create_role(role: schemas.RoleCreate, db: Session = Depends(get_db)):
     db.refresh(new_role)
     return new_role
 
+
 @router.get("/roles/", response_model=List[schemas.RoleResponse])
 def list_roles(db: Session = Depends(get_db)):
     return db.query(models.Role).all()
 
-# USERS 
+
+# --- USERS ---
 
 @router.post("/", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+def create_user(
+    user: schemas.UserCreate,
+    db: Session = Depends(get_db),
+    _: models.User = _admin,
+):
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="E-mail já está em uso.")
@@ -41,8 +58,8 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         if not role:
             raise HTTPException(status_code=404, detail="Role não encontrada.")
 
-    # Simulação de hash de senha (substituir por passlib/bcrypt na Sprint de Auth)
-    hashed_password = f"hash_{user.password}"
+    # Criptografia real usando passlib/bcrypt
+    hashed_password = hash_password(user.password)
 
     user_data = user.model_dump(exclude={"password"})
     new_user = models.User(**user_data, password_hash=hashed_password)
@@ -51,6 +68,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     return new_user
+
 
 @router.get("/", response_model=List[schemas.UserResponse])
 def list_users(
@@ -64,6 +82,7 @@ def list_users(
         query = query.filter(models.User.role_id == role_id)
     return query.offset(skip).limit(limit).all()
 
+
 @router.get("/{user_id}", response_model=schemas.UserResponse)
 def get_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.id == user_id).first()
@@ -71,8 +90,14 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
     return user
 
+
 @router.put("/{user_id}", response_model=schemas.UserResponse)
-def update_user(user_id: int, user_update: schemas.UserUpdate, db: Session = Depends(get_db)):
+def update_user(
+    user_id: int,
+    user_update: schemas.UserUpdate,
+    db: Session = Depends(get_db),
+    _: models.User = _admin,
+):
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
@@ -80,7 +105,8 @@ def update_user(user_id: int, user_update: schemas.UserUpdate, db: Session = Dep
     update_data = user_update.model_dump(exclude_unset=True)
 
     if "password" in update_data:
-        update_data["password_hash"] = f"hash_{update_data.pop('password')}"
+        # Atualização com criptografia real
+        update_data["password_hash"] = hash_password(update_data.pop("password"))
 
     for key, value in update_data.items():
         setattr(db_user, key, value)
@@ -89,8 +115,13 @@ def update_user(user_id: int, user_update: schemas.UserUpdate, db: Session = Dep
     db.refresh(db_user)
     return db_user
 
+
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(user_id: int, db: Session = Depends(get_db)):
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = _admin,
+):
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")

@@ -156,11 +156,115 @@ pytest -q
 | `POST /optimization/route/by-order` | Integração futura (não bloqueia esta sprint) |
 | `GET /health` | Implementado |
 
-## 15. Integração (Pessoa 1 — banco/backend)
+---
+
+## 15. Contrato da API para o frontend (Sprint 05/06)
+
+Documento de referência para a Pessoa 4 (front) consumir o motor sem adivinhar campos.  
+Schemas: `backend/app/schemas/optimization.py` · Rota: `backend/app/routes/optimization.py` · Swagger: `/docs`.
+
+### 15.1 Método e URL
+
+```http
+POST /optimization/route
+Content-Type: application/json
+Authorization: Bearer <access_token>
+```
+
+Requer autenticação JWT (`POST /auth/login`). Não depende do PostgreSQL para o cálculo da rota.
+
+### 15.2 Request (body)
+
+| Campo | Tipo | Obrigatório | Descrição |
+|-------|------|-------------|-----------|
+| `locations` | `array` | sim (pode ser `[]`) | Posições a visitar, **na ordem original** do pedido/itens |
+| `locations[].id` | `string` | sim | Identificador da posição (ex.: `A01`) |
+| `locations[].x` | `number` | sim | Coordenada X (grade do armazém) |
+| `locations[].y` | `number` | sim | Coordenada Y |
+| `start` | `object` | não | Ponto de partida; default `{ "id": "START", "x": 0, "y": 0 }` |
+| `start.id` | `string` | se enviar `start` | Id do ponto inicial |
+| `start.x` / `start.y` | `number` | se enviar `start` | Coordenadas do ponto inicial |
+
+### 15.3 Response (JSON)
+
+| Campo | Tipo | Significado para a UI |
+|-------|------|------------------------|
+| `original_route` | `string[]` | Ordem de visita **antes** da otimização (`START` + ids na ordem de entrada) |
+| `nearest_neighbor_route` | `string[]` | Rota após heurística Nearest Neighbor |
+| `two_opt_route` | `string[]` | Rota **sugerida** após 2-opt — **usar esta como rota principal na tela** |
+| `distance_before` | `number` | Distância Manhattan da rota original |
+| `nearest_neighbor_distance` | `number` | Distância após NN |
+| `two_opt_distance` | `number` | Distância após 2-opt |
+| `distance_after` | `number` | Sempre igual a `two_opt_distance` (alias para a UI) |
+| `distance_reduction` | `number` | `distance_before - distance_after` (pode ser ≤ 0 em casos ruins) |
+| `reduction_percent` | `number` | Redução percentual; `0` se `distance_before == 0` |
+| `execution_time_ms` | `number` | Tempo de execução do algoritmo em milissegundos |
+| `locations_count` | `integer` | Quantidade de posições em `locations` (sem contar `START`) |
+
+### 15.4 Regras de UI recomendadas
+
+1. Exibir como rota sugerida: `two_opt_route` (não a NN isolada).
+2. Comparar “antes × depois” com `original_route` vs `two_opt_route` e `distance_before` vs `distance_after`.
+3. Mostrar ganho com `distance_reduction` e `reduction_percent` (formatar `%` com 1–2 casas).
+4. Se `distance_reduction < 0`, avisar que a heurística não melhorou a ordem original (comportamento válido).
+5. Garantia do backend: `two_opt_distance <= nearest_neighbor_distance`.
+6. Garantia do backend: `distance_after === two_opt_distance`.
+
+### 15.5 Exemplo de request
+
+```json
+{
+  "locations": [
+    {"id": "FAR1", "x": 10, "y": 0},
+    {"id": "NEAR1", "x": 1, "y": 0},
+    {"id": "FAR2", "x": 11, "y": 0},
+    {"id": "NEAR2", "x": 2, "y": 0}
+  ],
+  "start": {"id": "START", "x": 0, "y": 0}
+}
+```
+
+### 15.6 Exemplo de response (formato)
+
+```json
+{
+  "original_route": ["START", "FAR1", "NEAR1", "FAR2", "NEAR2"],
+  "nearest_neighbor_route": ["START", "NEAR1", "NEAR2", "FAR1", "FAR2"],
+  "two_opt_route": ["START", "NEAR1", "NEAR2", "FAR1", "FAR2"],
+  "distance_before": 34.0,
+  "nearest_neighbor_distance": 14.0,
+  "two_opt_distance": 14.0,
+  "distance_after": 14.0,
+  "distance_reduction": 20.0,
+  "reduction_percent": 58.82352941176471,
+  "execution_time_ms": 0.12,
+  "locations_count": 4
+}
+```
+
+> Os números exatos de distância/tempo vêm do algoritmo; o front não deve hardcodar métricas.
+
+### 15.7 Smoke com curl
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/optimization/route \
+  -H "Content-Type: application/json" \
+  -d "{\"locations\":[{\"id\":\"A01\",\"x\":1,\"y\":1},{\"id\":\"C03\",\"x\":5,\"y\":5}],\"start\":{\"id\":\"START\",\"x\":0,\"y\":0}}"
+```
+
+### 15.8 Limitações atuais (contrato)
+
+- **Não** existe `order_id` neste endpoint — o front envia coordenadas explícitas.
+- Integração `pedido → posições (x,y) → motor` fica para Sprint 05/06 (`POST /optimization/route/by-order` ou provider no backend).
+- Distância é **Manhattan**; não é km reais de GPS.
+
+---
+
+## 16. Integração (Pessoa 1 — banco/backend)
 
 1. Modelar `Position(x, y, code)`, `Order`, `OrderItem`, estoque.
 2. Implementar `OrderRouteProvider.get_pick_locations(order_id)` com SQLAlchemy.
 3. No service, se vier `order_id`, obter `list[Location]` e chamar `optimize_route`.
-4. Frontend chama `POST /optimization/route` (ou futuro by-order) e exibe rotas/métricas.
+4. Frontend chama `POST /optimization/route` (ou futuro by-order) e exibe rotas/métricas conforme a seção 15.
 
 O núcleo em `backend/optimization/` permanece inalterado.
