@@ -15,13 +15,17 @@
             <p>Consulte e gerencie o saldo de produtos por posição.</p>
         </div>
 
-        <button type="button" class="button-primary" id="newStockButton">
+        <button
+        type="button"
+        class="button-primary"
+        id="newStockButton"
+        >
             <span>+</span>
             Ajustar estoque
         </button>
     </div>
 
-    <div class="stock-tollbar">
+    <div class="stock-toolbar">
         <div class="stock-search">
             <input type="search"
             id="stockSearch"
@@ -47,14 +51,14 @@
             <tbody id="stockTableBody"></tbody>
         </table>
 
-        <div class="stck-message" id="stockMessage">
+        <div class="stock-message" id="stockMessage">
             Carregando estoque...
         </div>
     </div>
 
 </section>
 
-<div class="modal-overlay" id="stockModal">
+<div class="stock-modal-overlay" id="stockModal">
     <div class="stock-modal">
 
         <div class="modal-header">
@@ -75,30 +79,40 @@
         
         <form id="stockForm">
             <div class="form-group">
-                <label for="stockProduct">Produto *</label>
+    <label for="stockProduct">Produto *</label>
 
-                <select id="stockLocation" required>
-                    <option value="">Selecione uma posição</option>
-                </select>
-            </div>
+    <select id="stockProduct" required>
+        <option value="">Selecione um produto</option>
+    </select>
+</div>
 
-            <div class="form-group">
-                <small class="form-hint">
-                    A quantidade informada será adicionada ao estoque atual.
-                </small>
+        <div class="form-group">
+            <label for="stockLocation">Posição *</label>
 
-                <input
-                type="number"
-                id="stockQuantity"
-                min="0"
-                step="1"
-                required
-                >
+            <select id="stockLocation" required>
+                <option value="">Selecione uma posição</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="stockQuantity" id="stockQuantityLabel">Quantidade a adicionar *</label>
+
+        <input
+            type="number"
+            id="stockQuantity"
+            min="0"
+            step="1"
+            required
+        >
+
+            <small class="form-hint" id="stockQuantityHint">
+                A quantidade informada será adicionada ao estoque atual.
+            </small>
             </div>
 
             <div class="form-message" id="stockFormMessage"></div>
 
-            <div class="modalactions">
+            <div class="modal-actions">
                 <button
                 type="button"
                 class="button-secondary"
