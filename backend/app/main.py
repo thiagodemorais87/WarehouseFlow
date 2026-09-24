@@ -107,6 +107,27 @@ if FRONTEND_DIR.exists():
             },
         )
 
+    @app.get(
+        "/estoque",
+        response_class=HTMLResponse,
+        tags=["Frontend"],
+    )
+    def stock_page(request: Request):
+        user = {
+            "name": "Usuário Teste",
+            "initials": "UT",
+            "role": "Administrador",
+        }
+
+        return templates.TemplateResponse(
+            request=request,
+            name="inventory/stock.html",
+            context={
+                "user": user,
+                "active_page": "stock",
+        },
+    )
+
 
 @app.get("/", tags=["Healthcheck"])
 def healthcheck():

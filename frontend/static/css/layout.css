@@ -251,8 +251,22 @@
     background-color: #ef4444;
 }
 
-
 /* Usuário */
+
+.button-primary {
+    border: none;
+    border-radius: 8px;
+    padding: 11px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    background: #0f2747;
+    color: #ffffff;
+
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 
 .user-menu-button {
     height: 40px;
