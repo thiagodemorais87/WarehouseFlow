@@ -18,6 +18,8 @@ const cancelDeleteButton = document.getElementById("cancelDeleteButton");
 const confirmDeleteButton = document.getElementById("confirmDeleteButton");
 const deleteProductMessage = document.getElementById("deleteProductMessage");
 
+const token = localStorage.getItem("access_token");
+
 let productToDelete = null;
 let editingProductId = null;
 
@@ -33,7 +35,11 @@ async function loadProducts(search = "") {
             url += `?search=${encodeURIComponent(search)}`;
         }
 
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            headers: {
+        "Authorization": `Bearer ${token}`
+    }
+});
 
         if (!response.ok) {
             const data = await response.json();
@@ -164,8 +170,11 @@ confirmDeleteButton.addEventListener("click", async function () {
         confirmDeleteButton.textContent = "Excluindo...";
 
         const response = await fetch(`/products/${productToDelete.id}`, {
-            method: "DELETE"
-        });
+            method: "DELETE",
+            headers: {
+        "Authorization": `Bearer ${token}`
+    }
+});
 
         if (!response.ok) {
             let message = "Não foi possível excluir o produto.";
@@ -294,7 +303,8 @@ const method = editingProductId
 const response = await fetch(url, {
     method: method,
     headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
     },
     body: JSON.stringify(product)
 });

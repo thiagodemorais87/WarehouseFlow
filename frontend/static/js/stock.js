@@ -1,3 +1,5 @@
+const token = localStorage.getItem("access_token");
+
 const stockTableBody = document.getElementById("stockTableBody");
 const stockMessage = document.getElementById("stockMessage");
 const stockSearch = document.getElementById("stockSearch");
@@ -32,11 +34,25 @@ async function loadStock() {
 
     try {
         const [stockResponse, productsResponse, locationsResponse] =
-            await Promise.all([
-                fetch("/stock/"),
-                fetch("/products/"),
-                fetch("/locations/")
-            ]);
+    await Promise.all([
+        fetch("/stock/", {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        }),
+
+        fetch("/products/", {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        }),
+
+        fetch("/locations/", {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        })
+    ]);
 
         if (!stockResponse.ok) {
             throw new Error("Não foi possível carregar o estoque.");
@@ -307,7 +323,8 @@ stockForm.addEventListener("submit", async function (event) {
         const response = await fetch(url, {
             method: method,
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
             },
             body: JSON.stringify(requestData)
         });
