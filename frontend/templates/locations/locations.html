@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Posições | WarehouseFlow{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/locations.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<div class="locations-page">
+
+    <div class="locations-header">
+        <div>
+            <h1>Posições</h1>
+            <p>Gerencie as posições de armazenamento do armazém.</p>
+        </div>
+
+        <button class="btn-primary" id="newLocationBtn">
+            + Nova posição
+        </button>
+    </div>
+
+    <div class="locations-toolbar">
+        <input
+            type="text"
+            id="locationSearch"
+            placeholder="Buscar por código, corredor, rack..."
+        >
+
+        <select id="warehouseFilter">
+            <option value="">Todos os armazéns</option>
+        </select>
+    </div>
+
+    <div id="locationMessage" class="location-message"></div>
+
+    <div class="locations-table-container">
+        <table class="locations-table">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Armazém</th>
+                    <th>Corredor</th>
+                    <th>Rack</th>
+                    <th>Prateleira</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+
+            <tbody id="locationsTableBody">
+                <tr>
+                    <td colspan="7" class="empty-table">
+                        Carregando posições...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+
+<!-- Modal criar/editar posição -->
+<div class="modal" id="locationModal">
+    <div class="modal-content">
+
+        <div class="modal-header">
+            <h2 id="locationModalTitle">Nova posição</h2>
+            <button type="button" class="modal-close" id="closeLocationModal">
+                &times;
+            </button>
+        </div>
+
+        <form id="locationForm">
+
+            <div class="form-group">
+                <label for="locationWarehouse">Armazém</label>
+                <select id="locationWarehouse" required>
+                    <option value="">Selecione um armazém</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="locationCode">Código</label>
+                <input
+                    type="text"
+                    id="locationCode"
+                    maxlength="20"
+                    placeholder="Ex.: A1-01-A"
+                    required
+                >
+            </div>
+
+            <div class="form-row">
+
+                <div class="form-group">
+                    <label for="locationAisle">Corredor</label>
+                    <input
+                        type="text"
+                        id="locationAisle"
+                        maxlength="10"
+                        placeholder="Ex.: A1"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="locationRack">Rack</label>
+                    <input
+                        type="text"
+                        id="locationRack"
+                        maxlength="10"
+                        placeholder="Ex.: 01"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="locationShelf">Prateleira</label>
+                    <input
+                        type="text"
+                        id="locationShelf"
+                        maxlength="10"
+                        placeholder="Ex.: A"
+                    >
+                </div>
+
+            </div>
+
+            <div class="form-group checkbox-group">
+                <input type="checkbox" id="locationActive" checked>
+                <label for="locationActive">Posição ativa</label>
+            </div>
+
+            <div id="locationFormMessage" class="location-message"></div>
+
+            <div class="modal-actions">
+                <button
+                    type="button"
+                    class="btn-secondary"
+                    id="cancelLocationBtn"
+                >
+                    Cancelar
+                </button>
+
+                <button type="submit" class="btn-primary">
+                    Salvar
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/locations.js') }}"></script>
+{% endblock %}

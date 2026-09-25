@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Produtos | WarehouseFlow{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/products.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="products-page">
+
+    <div class="products-header">
+        <div>
+            <h1>Produtos</h1>
+            <p>Gerencie os produtos cadastrados no armazém.</p>
+        </div>
+
+        <button type="button" class="button-primary" id="newProductButton">
+            <span>+</span>
+            Novo produto
+        </button>
+    </div>
+
+    <div class="products-toolbar">
+        <div class="products-search">
+            <input
+                type="search"
+                id="productSearch"
+                placeholder="Buscar por nome ou SKU..."
+                aria-label="Buscar produtos"
+            >
+        </div>
+    </div>
+
+    <div class="products-table-container">
+        <table class="products-table">
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Nome</th>
+                    <th>Descrição</th>
+                    <th>Peso</th>
+                    <th>Volume</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+
+            <tbody id="productsTableBody">
+                <!-- Produtos carregados pela API -->
+            </tbody>
+        </table>
+
+        <div class="products-message" id="productsMessage">
+            Carregando produtos...
+        </div>
+    </div>
+
+</section>
+
+<div class="modal-overlay" id="productModal">
+    <div class="product-modal">
+        <div class="modal-header">
+            <div>
+                <h2 id="productModalTitle">Novo produto</h2>
+                <p>Preencha os dados do produto.</p>
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                id="closeProductModal"
+                aria-label="Fechar"
+            >
+                ×
+            </button>
+        </div>
+
+        <form id="productForm">
+            <div class="form-group">
+                <label for="sku">SKU *</label>
+                <input
+                    type="text"
+                    id="sku"
+                    maxlength="50"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="name">Nome *</label>
+                <input
+                    type="text"
+                    id="name"
+                    maxlength="150"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="description">Descrição</label>
+                <textarea
+                    id="description"
+                    rows="3"
+                ></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="weight">Peso (kg)</label>
+                    <input
+                        type="number"
+                        id="weight"
+                        min="0"
+                        step="0.01"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="volume">Volume (m³)</label>
+                    <input
+                        type="number"
+                        id="volume"
+                        min="0"
+                        step="0.001"
+                    >
+                </div>
+            </div>
+
+            <div class="form-message" id="productFormMessage"></div>
+
+            <div class="modal-actions">
+                <button
+                    type="button"
+                    class="button-secondary"
+                    id="cancelProductButton"
+                >
+                    Cancelar
+                </button>
+
+                <button
+                    type="submit"
+                    class="button-primary"
+                    id="saveProductButton"
+                >
+                    Cadastrar produto
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="deleteProductModal">
+    <div class="delete-modal">
+        <div class="modal-header">
+            <div>
+                <h2>Excluir produto</h2>
+                <p>Confirme a exclusão do produto.</p>
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                id="closeDeleteModal"
+                aria-label="Fechar"
+            >
+                ×
+            </button>
+        </div>
+
+        <div class="delete-modal-content">
+            <p>
+                Tem certeza que deseja excluir
+                <strong id="deleteProductName"></strong>?
+            </p>
+
+            <span class="delete-warning">
+                Essa ação não poderá ser desfeita.
+            </span>
+        </div>
+
+        <div class="modal-actions">
+            <button
+                type="button"
+                class="button-secondary"
+                id="cancelDeleteButton"
+            >
+                Cancelar
+            </button>
+
+            <button
+                type="button"
+                class="button-danger"
+                id="confirmDeleteButton"
+            >
+                Excluir
+            </button>
+        </div>
+
+        <div
+            class="form-message"
+            id="deleteProductMessage"
+        ></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/products.js') }}"></script>
+{% endblock %}

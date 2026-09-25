@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}
+Dashboard | WarehouseFlow
+{% endblock %}
+
+{% block styles %}
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', path='css/dashboard.css') }}"
+>
+{% endblock %}
+
+{% block content %}
+
+<section class="dashboard">
+
+    <div class="dashboard-header">
+
+        <div>
+            <h1>Dashboard</h1>
+
+            <p>Visão geral do armazém — <span id="currentDate"></span></p>
+        </div>
+
+        <div class="dashboard-actions">
+
+            <a href="/estoque" class="button-secondary">
+                Ver estoque
+            </a>
+
+            <a href="produtos" class="button-primary">
+                <span>+</span>
+                Novo produto
+            </a>
+
+        </div>
+
+    </div>
+
+    <!-- Dados temporários para desenvolvimento da interface. Serão substituídos pelos dados da API.-->
+
+    <section class="stats-grid">
+
+        <article class="stat-card">
+            <div class="stat-icon-blue">
+                ◇
+            </div>
+
+            <div class="stat-content">
+                <span class="stat-abel">Total de produtos</span>
+                <strong class="stat-value" id="totalProducts">2.418</strong>
+                <span class="stat-detail">+12 neste mês</span>
+            </div>
+        </article>
+
+        <article class="stat-card">
+            <div class="stat-icon stat-icon-green">
+                ▣
+            </div>
+
+            <div class="stat-content">
+                <span class="stat-label">Estoque total</span>
+                <strong class="stat-value" id="totalStock">48.320</strong>
+                <span class="stat-detail">Unidades em estoque</span>
+            </div>
+        </article>
+
+        <article class="stat-card">
+            <div class="stat-icon stat-icon-orange">
+                ◫
+            </div>
+
+            <div class="stat-content">
+                <span class="stat-label">Pedidos pendentes</span>
+                <strong class="stat-value" id="pendingOrders">7</strong>
+                <span class="stat-detail">3 urgentes</span>
+            </div>
+        </article>
+
+        <article class="stat-card">
+            <div class="stat-icon stat-icon-red">
+                ✓
+            </div>
+
+            <div class="stat-content">
+                <span class="stat-label">Tarefas em andamento</span>
+                <strong class="stat-value" id="activeTasks">14</strong>
+                <span class="stat-detail">5 com prazo hoje</span>
+            </div>
+        </article>
+
+    </section>
+
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/dashboard.js') }}"></script>
+{% endblock %}

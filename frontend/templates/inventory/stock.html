@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Estoque | WarehouseFlow{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', path='css/stock.css') }}">
+{% endblock %}
+
+{% block content  %}
+<section class="stock-page">
+
+    <div class="stock-header">
+        <div>
+            <h1>Estoque</h1>
+            <p>Consulte e gerencie o saldo de produtos por posição.</p>
+        </div>
+
+        <button
+        type="button"
+        class="button-primary"
+        id="newStockButton"
+        >
+            <span>+</span>
+            Ajustar estoque
+        </button>
+    </div>
+
+    <div class="stock-toolbar">
+        <div class="stock-search">
+            <input type="search"
+            id="stockSearch"
+            placeholder="Buscar por produto, SKU ou posição..."
+            aria-label="Buscar no estoque"
+            >
+        </div>
+    </div>
+
+    <div class="stock-table-container">
+        <table class="stock-table">
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Produto</th>
+                    <th>Posição</th>
+                    <th>Quantidade</th>
+                    <th>Última atualização</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+
+            <tbody id="stockTableBody"></tbody>
+        </table>
+
+        <div class="stock-message" id="stockMessage">
+            Carregando estoque...
+        </div>
+    </div>
+
+</section>
+
+<div class="stock-modal-overlay" id="stockModal">
+    <div class="stock-modal">
+
+        <div class="modal-header">
+            <div>
+                <h2 id="stockModalTitle">Ajustar estoque</h2>
+                <p>Informe o produto, a posição e a quantidade.</p>
+            </div>
+
+            <button 
+            type="button"
+            class="modal-close"
+            id="closeStockModal"
+            aria-label="Fechar"
+            >
+            ×
+            </button>
+        </div>
+        
+        <form id="stockForm">
+            <div class="form-group">
+    <label for="stockProduct">Produto *</label>
+
+    <select id="stockProduct" required>
+        <option value="">Selecione um produto</option>
+    </select>
+</div>
+
+        <div class="form-group">
+            <label for="stockLocation">Posição *</label>
+
+            <select id="stockLocation" required>
+                <option value="">Selecione uma posição</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="stockQuantity" id="stockQuantityLabel">Quantidade a adicionar *</label>
+
+        <input
+            type="number"
+            id="stockQuantity"
+            min="0"
+            step="1"
+            required
+        >
+
+            <small class="form-hint" id="stockQuantityHint">
+                A quantidade informada será adicionada ao estoque atual.
+            </small>
+            </div>
+
+            <div class="form-message" id="stockFormMessage"></div>
+
+            <div class="modal-actions">
+                <button
+                type="button"
+                class="button-secondary"
+                id="cancelStockButton"
+                >
+                    Cancelar
+                </button>
+
+                <button
+                type="submit"
+                class="button-primary"
+                id="saveStockButton"
+                >
+                    Salvar
+                </button>
+            </div>
+            
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='js/stock.js') }}"></script>
+{% endblock %}
