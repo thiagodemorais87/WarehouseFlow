@@ -107,6 +107,8 @@ class OrderResponse(OrderBase):
 
 # STOCK SCHEMAS
 
+MAX_QUANTITY = 1_000_000
+
 class StockBase(BaseModel):
     product_id: int
     location_id: int
@@ -118,6 +120,9 @@ class StockCreate(StockBase):
 class StockUpdate(BaseModel):
     quantity: int = Field(..., ge=0)
 
+class StockMovement(BaseModel):
+    quantity: int = Field(..., gt=0, description="Quantidade a movimentar")
+
 class StockResponse(StockBase):
     id: int
     last_updated: datetime
@@ -127,7 +132,7 @@ class StockResponse(StockBase):
 # USER & ROLE SCHEMAS
 
 class RoleBase(BaseModel):
-    name: str = Field(..., max_length=50, examples=["ADMIN", "OPERATOR"])
+    name: str = Field(..., max_length=50, examples=["ADMIN", "GESTOR", "OPERADOR"])
 
 class RoleCreate(RoleBase):
     pass
@@ -151,9 +156,11 @@ class UserUpdate(BaseModel):
     email: Optional[str] = None
     role_id: Optional[int] = None
     password: Optional[str] = None
+    is_active: Optional[bool] = None
 
 class UserResponse(UserBase):
     id: int
+    is_active: bool = True
     created_at: datetime
     role: Optional[RoleResponse] = None
 
@@ -167,6 +174,10 @@ class WarehouseBase(BaseModel):
 
 class WarehouseCreate(WarehouseBase):
     pass
+
+class WarehouseUpdate(BaseModel):
+    name: Optional[str] = Field(None, max_length=100)
+    address: Optional[str] = None
 
 class WarehouseResponse(WarehouseBase):
     id: int

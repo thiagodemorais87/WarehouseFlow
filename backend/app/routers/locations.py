@@ -6,11 +6,16 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
+from ..deps import get_current_user, require_role
+from ..models.user import UserRole
 
 router = APIRouter(
     prefix="/locations",
-    tags=["Warehouses & Locations"]
+    tags=["Warehouses & Locations"],
+    dependencies=[Depends(get_current_user)],
 )
+
+_write = Depends(require_role(UserRole.ADMIN, UserRole.GESTOR))
 
 
 #  helpers
@@ -38,7 +43,11 @@ def _codigo_em_uso(db: Session, code: str, ignorar_id: Optional[int] = None) -> 
 
 @router.post("/warehouses", response_model=schemas.WarehouseResponse, status_code=status.HTTP_201_CREATED)
 @router.post("/warehouses/", response_model=schemas.WarehouseResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
-def create_warehouse(warehouse: schemas.WarehouseCreate, db: Session = Depends(get_db)):
+def create_warehouse(
+    warehouse: schemas.WarehouseCreate,
+    db: Session = Depends(get_db),
+    _: models.User = _write,
+):
     new_warehouse = models.Warehouse(**warehouse.model_dump())
     db.add(new_warehouse)
     db.commit()
@@ -62,7 +71,12 @@ def get_warehouse(warehouse_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/warehouses/{warehouse_id}", response_model=schemas.WarehouseResponse)
-def update_warehouse(warehouse_id: int, warehouse_update: schemas.WarehouseUpdate, db: Session = Depends(get_db)):
+def update_warehouse(
+    warehouse_id: int,
+    warehouse_update: schemas.WarehouseUpdate,
+    db: Session = Depends(get_db),
+    _: models.User = _write,
+):
     db_warehouse = _get_warehouse_or_404(db, warehouse_id)
 
     update_data = warehouse_update.model_dump(exclude_unset=True)
@@ -78,7 +92,11 @@ def update_warehouse(warehouse_id: int, warehouse_update: schemas.WarehouseUpdat
 
 
 @router.delete("/warehouses/{warehouse_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_warehouse(warehouse_id: int, db: Session = Depends(get_db)):
+def delete_warehouse(
+    warehouse_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = _write,
+):
     db_warehouse = _get_warehouse_or_404(db, warehouse_id)
 
     # ON DELETE CASCADE apagaria posições e estoque em silêncio; exige esvaziar antes.
@@ -99,7 +117,11 @@ def delete_warehouse(warehouse_id: int, db: Session = Depends(get_db)):
 
 @router.post("", response_model=schemas.LocationResponse, status_code=status.HTTP_201_CREATED)
 @router.post("/", response_model=schemas.LocationResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
-def create_location(location: schemas.LocationCreate, db: Session = Depends(get_db)):
+def create_location(
+    location: schemas.LocationCreate,
+    db: Session = Depends(get_db),
+    _: models.User = _write,
+):
     _get_warehouse_or_404(db, location.warehouse_id)
 
     if _codigo_em_uso(db, location.code):
@@ -142,7 +164,12 @@ def get_location(location_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{location_id:int}", response_model=schemas.LocationResponse)
-def update_location(location_id: int, location_update: schemas.LocationUpdate, db: Session = Depends(get_db)):
+def update_location(
+    location_id: int,
+    location_update: schemas.LocationUpdate,
+    db: Session = Depends(get_db),
+    _: models.User = _write,
+):
     db_location = _get_location_or_404(db, location_id)
 
     update_data = location_update.model_dump(exclude_unset=True)
@@ -168,7 +195,11 @@ def update_location(location_id: int, location_update: schemas.LocationUpdate, d
 
 
 @router.delete("/{location_id:int}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_location(location_id: int, db: Session = Depends(get_db)):
+def delete_location(
+    location_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = _write,
+):
     db_location = _get_location_or_404(db, location_id)
 
     unidades = (

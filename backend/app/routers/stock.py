@@ -5,11 +5,18 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
+from ..deps import get_current_user, require_role
+from ..models.user import UserRole
 
 router = APIRouter(
     prefix="/stock",
-    tags=["Stock"]
+    tags=["Stock"],
+    dependencies=[Depends(get_current_user)],
 )
+
+# OPERADOR pode movimentar estoque; exclusão restrita
+_manage = Depends(require_role(UserRole.ADMIN, UserRole.GESTOR, UserRole.OPERADOR))
+_admin_gestor = Depends(require_role(UserRole.ADMIN, UserRole.GESTOR))
 
 
 #  helpers
@@ -54,14 +61,18 @@ def _exigir_limite(quantidade: int) -> None:
 
 @router.post("", response_model=schemas.StockResponse, status_code=status.HTTP_201_CREATED)
 @router.post("/", response_model=schemas.StockResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
-def create_stock(stock_data: schemas.StockCreate, db: Session = Depends(get_db)):
+def create_stock(
+    stock_data: schemas.StockCreate,
+    db: Session = Depends(get_db),
+    _: models.User = _manage,
+):
     """Cria o saldo de um produto em uma posição. Para alterar um saldo existente use PUT ou /inbound."""
     location = _validar_produto_e_posicao(db, stock_data.product_id, stock_data.location_id)
     _exigir_posicao_ativa(location)
 
     existente = db.query(models.Stock).filter(
         models.Stock.product_id == stock_data.product_id,
-        models.Stock.location_id == stock_data.location_id
+        models.Stock.location_id == stock_data.location_id,
     ).first()
     if existente:
         raise HTTPException(
@@ -101,7 +112,12 @@ def get_stock_by_id(stock_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{stock_id}", response_model=schemas.StockResponse)
-def update_stock_quantity(stock_id: int, stock_update: schemas.StockUpdate, db: Session = Depends(get_db)):
+def update_stock_quantity(
+    stock_id: int,
+    stock_update: schemas.StockUpdate,
+    db: Session = Depends(get_db),
+    _: models.User = _manage,
+):
     """Define a quantidade total (ajuste/inventário). Não altera produto nem posição."""
     db_stock = _get_stock_or_404(db, stock_id, for_update=True)
     db_stock.quantity = stock_update.quantity
@@ -111,7 +127,11 @@ def update_stock_quantity(stock_id: int, stock_update: schemas.StockUpdate, db: 
 
 
 @router.delete("/{stock_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_stock(stock_id: int, db: Session = Depends(get_db)):
+def delete_stock(
+    stock_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = _admin_gestor,
+):
     db_stock = _get_stock_or_404(db, stock_id)
     db.delete(db_stock)
     db.commit()
@@ -121,7 +141,12 @@ def delete_stock(stock_id: int, db: Session = Depends(get_db)):
 # ENTRADAS E SAÍDAS
 
 @router.post("/{stock_id}/inbound", response_model=schemas.StockResponse)
-def stock_inbound(stock_id: int, movement: schemas.StockMovement, db: Session = Depends(get_db)):
+def stock_inbound(
+    stock_id: int,
+    movement: schemas.StockMovement,
+    db: Session = Depends(get_db),
+    _: models.User = _manage,
+):
     """Entrada: soma a quantidade ao saldo existente."""
     db_stock = _get_stock_or_404(db, stock_id, for_update=True)
     _exigir_posicao_ativa(db_stock.location)
@@ -136,7 +161,12 @@ def stock_inbound(stock_id: int, movement: schemas.StockMovement, db: Session = 
 
 
 @router.post("/{stock_id}/outbound", response_model=schemas.StockResponse)
-def stock_outbound(stock_id: int, movement: schemas.StockMovement, db: Session = Depends(get_db)):
+def stock_outbound(
+    stock_id: int,
+    movement: schemas.StockMovement,
+    db: Session = Depends(get_db),
+    _: models.User = _manage,
+):
     """Saída: subtrai do saldo. Nunca permite quantidade negativa."""
     db_stock = _get_stock_or_404(db, stock_id, for_update=True)
 
