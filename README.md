@@ -252,11 +252,11 @@ Documentação completa: [docs/optimization.md](docs/optimization.md).
 ### Situação técnica atual no repositório
 
 * [x] Banco de dados conectado (PostgreSQL + SQLAlchemy)
-* [ ] Login funcional JWT (necessário para Sprint 03 — `feature/auth-users`)
-* [x] Cadastro de usuários via API (`/users` — hash definitivo na auth)
-* [ ] Controle de perfis com enforcement (Sprint 03/08)
-* [x] CRUD principal API (`/products` e demais entidades)
-* [x] Deploy local (Docker Compose API + banco)
+* [x] Login funcional JWT (`POST /auth/login` + tela `/login`)
+* [x] Cadastro de usuários via API (`/users`)
+* [x] Controle de perfis com enforcement RBAC nas rotas de escrita
+* [x] CRUD principal API (`/products`, `/stock`, `/locations`, etc.)
+* [x] Deploy local (Docker Compose: db 5433 + API 8000 + frontend 8080)
 * [x] Motor de otimização com métricas (`POST /optimization/route`)
 * [x] Proposta + cronograma oficiais ([docs/proposta.md](docs/proposta.md), [docs/cronograma.md](docs/cronograma.md))
 
@@ -268,17 +268,27 @@ Documentação completa: [docs/optimization.md](docs/optimization.md).
 warehouseflow/
 │
 ├── backend/
-│   ├── app/                 # FastAPI (API, routers CRUD, schemas, services)
-│   ├── database/            # schema.sql + seed.sql
+│   ├── app/
+│   │   ├── routers/         # HTTP: CRUD + auth + motor (/optimization/route)
+│   │   ├── models/          # SQLAlchemy
+│   │   ├── schemas/         # Pydantic
+│   │   ├── services/        # Orquestração (ex.: optimization_service)
+│   │   ├── deps.py          # JWT / RBAC
+│   │   ├── security.py      # Hash e tokens
+│   │   ├── database.py      # Engine SQLAlchemy
+│   │   └── main.py          # App FastAPI + páginas Jinja
+│   ├── database/            # schema.sql + seed.sql (único local de SQL)
 │   └── optimization/        # Motor puro (NN + 2-opt), sem DB
-├── frontend/                # Templates Jinja + static (shell de login)
+├── frontend/                # Templates Jinja + static (CSS/JS)
 ├── docs/
-│   ├── proposta.md          # Proposta oficial (problema → solução + métricas)
-│   ├── cronograma.md        # 12 sprints oficiais + funcionalidades por sprint
-│   └── optimization.md      # Detalhe técnico do motor
+│   ├── proposta.md
+│   ├── cronograma.md
+│   └── optimization.md
 ├── tests/
-├── Dockerfile               # Imagem da API (serviço api no Compose)
-├── docker-compose.yml       # Postgres + API
+├── deploy/
+│   └── nginx.conf           # Proxy UI :8080 → api:8000
+├── Dockerfile
+├── docker-compose.yml       # Postgres + API + nginx
 ├── .env.example
 ├── .gitignore
 ├── requirements.txt
@@ -295,25 +305,29 @@ warehouseflow/
 Pré-requisito: Docker Desktop.
 
 ```bash
+cp .env.example .env
 docker compose up --build
 ```
 
-Sobe **PostgreSQL** + **API** (CRUD, motor de otimização e shell de login) juntos.
+Sobe **PostgreSQL** (5433), **API/otimizador** (8000) e **frontend** via nginx (8080) juntos.
 
-* API / Swagger: http://127.0.0.1:8000/docs
+* Frontend (UI): http://127.0.0.1:8080/ (redireciona para `/login`)
+* Login / Dashboard / Produtos / Estoque / Posições: http://127.0.0.1:8080/login , `/dashboard`, `/produtos`, `/estoque`, `/posicoes`
+* API / Swagger / otimizador: http://127.0.0.1:8000/docs
 * Health: http://127.0.0.1:8000/health
-* Shell de login (UI estática): http://127.0.0.1:8000/login
+* Postgres (host): `localhost:5433` (user/senha/db: `warehouse` / `warehouse` / `warehouseflow`)
+
+Login de demo (seed): `admin@warehouseflow.com` / `admin123`.
 
 O Postgres aplica `backend/database/schema.sql` + `seed.sql` na primeira inicialização.
-Volumes montam `backend/` e `frontend/` com hot-reload (`--reload`).
-
-> **Telas:** hoje só existe a página `/login` (sem auth real). CRUD e otimização testam-se em `/docs` e `POST /optimization/route`.
+Volumes montam `backend/` e `frontend/` com hot-reload (`--reload`) no serviço `api`.
+O serviço `frontend` (nginx) faz proxy de tudo em `:8080` para a API, mantendo as URLs relativas do JS.
 
 ### Opção B — API no host + banco no Docker
 
 ```bash
-docker compose up -d db
 cp .env.example .env
+docker compose up -d db
 python -m venv .venv
 # Windows: .venv\Scripts\activate
 # Linux/macOS: source .venv/bin/activate
@@ -321,7 +335,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --app-dir backend --reload
 ```
 
-No `.env`, use `localhost` (não `db`) na `DATABASE_URL`.
+No `.env`, use `localhost:5433` (não `db`) na `DATABASE_URL`. A UI fica em http://127.0.0.1:8000/ (redirect para `/login`, mesmo processo da API).
 
 ### Testes do motor
 

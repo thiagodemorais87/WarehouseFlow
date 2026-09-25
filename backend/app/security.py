@@ -1,12 +1,12 @@
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from jose import jwt
 import bcrypt
 
-# Configurações do JWT
-# Dica: Em produção, o ideal é carregar SECRET_KEY a partir de um arquivo .env
-SECRET_KEY = "sua_chave_secreta_super_segura_aqui"
+# Configurações do JWT (SECRET_KEY via .env / Compose; fallback para desenvolvimento local)
+SECRET_KEY = os.getenv("SECRET_KEY", "sua_chave_secreta_super_segura_aqui")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 horas de validade
 

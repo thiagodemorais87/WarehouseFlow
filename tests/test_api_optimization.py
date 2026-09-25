@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.deps import get_current_user
-from app.routes.optimization import router as optimization_router
+from app.routers.optimization_engine import router as optimization_router
 
 
 class _FakeUser:

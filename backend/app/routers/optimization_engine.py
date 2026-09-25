@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from app.deps import get_current_user
-from app.models import User
-from app.schemas.optimization import RouteOptimizeRequest, RouteOptimizeResponse
-from app.services.optimization_service import optimize_from_request
+from ..deps import get_current_user
+from ..models import User
+from ..schemas.optimization import RouteOptimizeRequest, RouteOptimizeResponse
+from ..services.optimization_service import optimize_from_request
 
 router = APIRouter(prefix="/optimization", tags=["optimization"])
 

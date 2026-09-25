@@ -3,7 +3,7 @@ from __future__ import annotations
 from optimization.engine import optimize_route
 from optimization.types import Location, OptimizationResult
 
-from app.schemas.optimization import LocationSchema, RouteOptimizeRequest
+from ..schemas.optimization import LocationSchema, RouteOptimizeRequest
 
 
 def _to_location(schema: LocationSchema) -> Location:

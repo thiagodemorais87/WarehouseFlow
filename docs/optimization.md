@@ -161,7 +161,7 @@ pytest -q
 ## 15. Contrato da API para o frontend (Sprint 05/06)
 
 Documento de referência para a Pessoa 4 (front) consumir o motor sem adivinhar campos.  
-Schemas: `backend/app/schemas/optimization.py` · Rota: `backend/app/routes/optimization.py` · Swagger: `/docs`.
+Schemas: `backend/app/schemas/optimization.py` · Rota: `backend/app/routers/optimization_engine.py` · Swagger: `/docs`.
 
 ### 15.1 Método e URL
 
