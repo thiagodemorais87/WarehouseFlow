@@ -128,6 +128,27 @@ if FRONTEND_DIR.exists():
         },
     )
 
+    @app.get(
+        "/posicoes",
+        response_class=HTMLResponse,
+        tags=["Frontend"],
+    )
+    def locations_page(request: Request):
+        user = {
+            "name": "Usuário Teste",
+            "initials": "UT",
+            "role": "Administrador",
+        }
+
+        return templates.TemplateResponse(
+            request=request,
+            name="locations/locations.html",
+            context={
+                "user": user,
+                "active_page": "locations",
+            },
+        )
+
 
 @app.get("/", tags=["Healthcheck"])
 def healthcheck():
