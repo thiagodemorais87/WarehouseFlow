@@ -107,6 +107,8 @@ class OrderResponse(OrderBase):
 
 # STOCK SCHEMAS
 
+MAX_QUANTITY = 1_000_000
+
 class StockBase(BaseModel):
     product_id: int
     location_id: int
@@ -117,6 +119,9 @@ class StockCreate(StockBase):
 
 class StockUpdate(BaseModel):
     quantity: int = Field(..., ge=0)
+
+class StockMovement(BaseModel):
+    quantity: int = Field(..., gt=0, description="Quantidade a movimentar")
 
 class StockResponse(StockBase):
     id: int
@@ -169,6 +174,10 @@ class WarehouseBase(BaseModel):
 
 class WarehouseCreate(WarehouseBase):
     pass
+
+class WarehouseUpdate(BaseModel):
+    name: Optional[str] = Field(None, max_length=100)
+    address: Optional[str] = None
 
 class WarehouseResponse(WarehouseBase):
     id: int
