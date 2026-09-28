@@ -20,6 +20,24 @@ class RouteOptimizeRequest(BaseModel):
     )
 
 
+class RouteOptimizeByOrderRequest(BaseModel):
+    order_id: int = Field(
+        ...,
+        ge=1,
+        description="ID do pedido OUTBOUND cujas posições serão otimizadas.",
+    )
+    start: LocationSchema = Field(
+        default_factory=lambda: LocationSchema(id="START", x=0, y=0),
+        description="Ponto de partida do picking. Default: START em (0, 0).",
+    )
+
+
+class PickLocationResponse(BaseModel):
+    id: str = Field(..., description="Identificador da posição (ex.: A01).")
+    x: float = Field(..., description="Coordenada X na grade do armazém.")
+    y: float = Field(..., description="Coordenada Y na grade do armazém.")
+
+
 class RouteOptimizeResponse(BaseModel):
     original_route: list[str] = Field(
         ...,
