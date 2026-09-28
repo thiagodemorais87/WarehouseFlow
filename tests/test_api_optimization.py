@@ -81,3 +81,51 @@ def test_optimize_route_empty_locations():
     assert data["locations_count"] == 0
     assert data["distance_before"] == 0
     assert data["reduction_percent"] == 0.0
+
+
+def test_optimize_route_duplicate_ids_returns_400():
+    payload = {
+        "locations": [
+            {"id": "A01", "x": 1, "y": 1},
+            {"id": "A01", "x": 2, "y": 2},
+        ],
+        "start": {"id": "START", "x": 0, "y": 0},
+    }
+    response = client.post("/optimization/route", json=payload)
+    assert response.status_code == 400
+    assert "duplicado" in response.json()["detail"].lower()
+
+
+def test_optimize_route_by_order_academic_demo():
+    payload = {"order_id": 1, "start": {"id": "START", "x": 0, "y": 0}}
+    response = client.post("/optimization/route/by-order", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["original_route"] == ["START", "FAR1", "NEAR1", "FAR2", "NEAR2"]
+    assert data["locations_count"] == 4
+    assert data["distance_before"] > data["distance_after"]
+    assert data["two_opt_distance"] <= data["nearest_neighbor_distance"]
+
+
+def test_optimize_route_by_order_not_found():
+    payload = {"order_id": 999}
+    response = client.post("/optimization/route/by-order", json=payload)
+    assert response.status_code == 404
+    detail = response.json()["detail"]
+    assert "999" in detail
+    assert "não encontrado" in detail.lower()
+
+
+def test_list_pick_locations_for_order():
+    response = client.get("/optimization/orders/1/pick-locations")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 4
+    assert [item["id"] for item in data] == ["FAR1", "NEAR1", "FAR2", "NEAR2"]
+    assert data[0]["x"] == 10 and data[0]["y"] == 0
+
+
+def test_list_pick_locations_not_found():
+    response = client.get("/optimization/orders/999/pick-locations")
+    assert response.status_code == 404
+    assert "999" in response.json()["detail"]

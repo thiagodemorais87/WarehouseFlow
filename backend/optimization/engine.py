@@ -14,6 +14,17 @@ def _route_ids(start: Location, stops: list[Location]) -> list[str]:
     return [start.id, *[loc.id for loc in stops]]
 
 
+def _validate_unique_ids(locations: list[Location]) -> None:
+    seen: set[str] = set()
+    for loc in locations:
+        if loc.id in seen:
+            raise ValueError(
+                f"Posição com id duplicado: '{loc.id}'. "
+                "Cada posição deve aparecer apenas uma vez na rota."
+            )
+        seen.add(loc.id)
+
+
 def optimize_route(
     locations: list[Location],
     start: Location | None = None,
@@ -26,6 +37,7 @@ def optimize_route(
     """
     t0 = time.perf_counter()
     start_loc = start if start is not None else DEFAULT_START
+    _validate_unique_ids(locations)
     stops = list(locations)
 
     original_stops = stops
