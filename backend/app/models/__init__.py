@@ -14,13 +14,19 @@ class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
-    email = Column(String(100), unique=True, nullable=False)
+    email = Column(String(100), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     role_id = Column(Integer, ForeignKey("roles.id", ondelete="SET NULL"), nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=func.now())
 
     role = relationship("Role", back_populates="users")
     tasks = relationship("Task", back_populates="assigned_user")
+
+    @property
+    def role_name(self) -> str | None:
+        """Nome do perfil (ADMIN, GESTOR, OPERADOR) para JWT/RBAC."""
+        return self.role.name if self.role else None
 
 class Product(Base):
     __tablename__ = "products"

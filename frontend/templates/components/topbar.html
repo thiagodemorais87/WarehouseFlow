@@ -1,0 +1,73 @@
+<header class="topbar">
+
+    <div class="topbar-left">
+
+        <button
+            type="button"
+            class="sidebar-toggle"
+            aria-label="Fechar menu"
+        >
+            ×
+        </button>
+
+        <div class="search-box">
+
+            <span class="search-icon">
+                &#128269;
+            </span>
+
+            <input
+                type="search"
+                placeholder="Buscar..."
+                aria-label="Buscar"
+            >
+
+        </div>
+
+    </div>
+
+    <div class="topbar-right">
+
+        <button
+            type="button"
+            class="notification-button"
+            aria-label="Notificações"
+        >
+            ♧
+            <span class="notification-dot"></span>
+        </button>
+
+        <button
+            type="button"
+            class="user-menu-button"
+            id="userMenuButton"
+        >
+            <span class="user-avatar">
+                {{ user.initials }}
+            </span>
+
+            <span class="user-name">
+                {{ user.name }}
+            </span>
+
+            <span class="user-arrow">⌄</span>
+        </button>
+
+    <div
+        class="user-dropdown"
+        id="userDropdown"
+    >
+    
+    <div class="user-dropdown-info">
+        <strong>{{ user.name }}</strong>
+        <span>{{ user.role }}</span>
+    </div>
+
+    <a href="#" class="logout-link">
+        Sair
+    </a>
+        </div>
+
+    </div>
+
+</header>

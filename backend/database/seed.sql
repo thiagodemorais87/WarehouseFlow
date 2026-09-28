@@ -3,14 +3,14 @@
 -- 1. Roles
 INSERT INTO roles (id, name) VALUES
 (1, 'ADMIN'),
-(2, 'OPERATOR'),
-(3, 'MANAGER')
+(2, 'OPERADOR'),
+(3, 'GESTOR')
 ON CONFLICT (id) DO NOTHING;
 
--- 2. Users (Senhas em hash simulado)
-INSERT INTO users (id, name, email, password_hash, role_id) VALUES
-(1, 'Carlos Admin', 'admin@warehouseflow.com', '$2b$12$eImiTXuWVxfM37uY4JANjO5E.86.Qj357', 1),
-(2, 'João Operador', 'joao.operador@warehouseflow.com', '$2b$12$eImiTXuWVxfM37uY4JANjO5E.86.Qj357', 2)
+-- 2. Users (senha de demo: admin123)
+INSERT INTO users (id, name, email, password_hash, role_id, is_active) VALUES
+(1, 'Carlos Admin', 'admin@warehouseflow.com', '$2b$12$eWAsC4gL.YE8gu.DHlg.O.ns6du9JLtQURAkHIPwWtyflXCTEU66m', 1, TRUE),
+(2, 'João Operador', 'joao.operador@warehouseflow.com', '$2b$12$eWAsC4gL.YE8gu.DHlg.O.ns6du9JLtQURAkHIPwWtyflXCTEU66m', 2, TRUE)
 ON CONFLICT (id) DO NOTHING;
 
 -- 3. Warehouses
