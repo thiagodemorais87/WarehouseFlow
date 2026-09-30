@@ -113,19 +113,19 @@ function renderStock(items) {
         const row = document.createElement("tr");
 
         row.innerHTML = `
-            <td>${item.productSku}</td>
-            <td>${item.productName}</td>
-            <td>${item.locationCode}</td>
+            <td data-label="SKU">${item.productSku}</td>
+            <td data-label="Produto">${item.productName}</td>
+            <td data-label="Posição">${item.locationCode}</td>
 
-            <td>
+            <td data-label="Quantidade">
                 <span class="stock-quantity">
                     ${item.quantity}
                 </span>
             </td>
 
-            <td>${formatDate(item.last_updated)}</td>
+            <td data-label="Última atualização">${formatDate(item.last_updated)}</td>
 
-            <td>
+            <td data-label="Ações">
                 <div class="stock-actions">
                     <button
                         type="button"
