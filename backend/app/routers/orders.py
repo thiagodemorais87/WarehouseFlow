@@ -96,3 +96,91 @@ def delete_order(
     db.delete(db_order)
     db.commit()
     return None
+
+# POST /orders/{id}/items
+@router.post("/{order_id}/items", response_model=schemas.OrderResponse, status_code=status.HTTP_201_CREATED)
+def add_item_to_order(
+    order_id: int,
+    item_data: schemas.OrderItemCreate,
+    db: Session = Depends(get_db),
+    _: models.User = _write,
+):
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado.")
+    
+    product = db.query(models.Product).filter(models.Product.id == item_data.product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail=f"Produto ID {item_data.product_id} não encontrado.")
+
+    # Se o item já existir no pedido, incrementa a quantidade, caso contrário cria um novo
+    existing_item = db.query(models.OrderItem).filter(
+        models.OrderItem.order_id == order_id,
+        models.OrderItem.product_id == item_data.product_id
+    ).first()
+
+    if existing_item:
+        existing_item.quantity += item_data.quantity
+    else:
+        new_item = models.OrderItem(
+            order_id=order_id,
+            product_id=item_data.product_id,
+            quantity=item_data.quantity
+        )
+        db.add(new_item)
+
+    db.commit()
+    db.refresh(order)
+    return order
+
+
+# PUT /orders/{id}/items/{product_id}
+@router.put("/{order_id}/items/{product_id}", response_model=schemas.OrderResponse)
+def update_order_item(
+    order_id: int,
+    product_id: int,
+    item_update: schemas.OrderItemUpdate,
+    db: Session = Depends(get_db),
+    _: models.User = _write,
+):
+    item = db.query(models.OrderItem).filter(
+        models.OrderItem.order_id == order_id,
+        models.OrderItem.product_id == product_id
+    ).first()
+
+    if not item:
+        raise HTTPException(status_code=404, detail="Item do pedido não encontrado.")
+
+    item.quantity = item_update.quantity
+    db.commit()
+
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    db.refresh(order)
+    return order
+
+
+# DELETE /orders/{id}/items/{product_id}
+@router.delete("/{order_id}/items/{product_id}", response_model=schemas.OrderResponse)
+def remove_order_item(
+    order_id: int,
+    product_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = _write,
+):
+    item = db.query(models.OrderItem).filter(
+        models.OrderItem.order_id == order_id,
+        models.OrderItem.product_id == product_id
+    ).first()
+
+    if not item:
+        raise HTTPException(status_code=404, detail="Item do pedido não encontrado.")
+
+    # Garante que o pedido não fique sem itens se for regra de negócio
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if len(order.items) <= 1:
+        raise HTTPException(status_code=400, detail="O pedido deve conter pelo menos um item.")
+
+    db.delete(item)
+    db.commit()
+    db.refresh(order)
+    return order
