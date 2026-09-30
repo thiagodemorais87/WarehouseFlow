@@ -242,12 +242,25 @@
     border: 1px solid #d1d5db;
     border-radius: 7px;
     font-size: 14px;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 .form-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
+}
+
+.form-row .form-group {
+    min-width: 0;
+}
+
+.form-row .form-group input,
+.form-row .form-group select {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .checkbox-group {
