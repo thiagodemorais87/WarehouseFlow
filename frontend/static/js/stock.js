@@ -22,6 +22,17 @@ const stockQuantityHint = document.getElementById("stockQuantityHint");
 const stockFormMessage = document.getElementById("stockFormMessage");
 const saveStockButton = document.getElementById("saveStockButton");
 
+const movementModal = document.getElementById("movementModal");
+const movementModalTitle = document.getElementById("movementModalTitle");
+const movementModalDescription = document.getElementById("movementModalDescription");
+const movementForm = document.getElementById("movementForm");
+const movementQuantity = document.getElementById("movementQuantity");
+const movementFormMessage = document.getElementById("movementFormMessage");
+const closeMovementModal = document.getElementById("closeMovementModal");
+const cancelMovementButton = document.getElementById("cancelMovementButton");
+
+let selectedMovementStockId = null;
+let movementType = null;
 let stockData = [];
 let productsData = [];
 let locationsData = [];
@@ -129,13 +140,38 @@ function renderStock(items) {
                 <div class="stock-actions">
                     <button
                         type="button"
-                        class="stock-action-button"
+                        class="stock-entry-button"
                         data-id="${item.id}"
                     >
-                        Ajustar
+                        Entrada
                     </button>
-                </div>
-            </td>
+
+                <button
+                    type="button"
+                    class="stock-exit-button"
+                    data-id="${item.id}"
+                >
+                    Saída
+                </button>
+
+                <button
+                    type="button"
+                    class="stock-action-button"
+                    data-id="${item.id}"
+                >
+                    Ajustar
+                </button>
+
+                <button
+                    type="button"
+                    class="stock-delete-button"
+                    data-id="${item.id}"
+                >
+                    Excluir
+                </button>
+
+            </div>
+        </td>
         `;
 
         stockTableBody.appendChild(row);
@@ -351,6 +387,180 @@ stockForm.addEventListener("submit", async function (event) {
         saveStockButton.textContent = "Salvar";
     }
 });
+
+function openMovementModal(stockId, type) {
+    const stock = stockData.find(
+        item => Number(item.id) === Number(stockId)
+    );
+
+    if (!stock) {
+        return;
+    }
+
+    selectedMovementStockId = stockId;
+    movementType = type;
+
+    movementQuantity.value = "";
+    movementFormMessage.textContent = "";
+    movementFormMessage.className = "form-message";
+
+    if (type === "inbound") {
+        movementModalTitle.textContent = "Entrada de estoque";
+
+        movementModalDescription.textContent =
+            `${stock.productName} — ${stock.locationCode}. Saldo atual: ${stock.quantity}.`;
+    } else {
+        movementModalTitle.textContent = "Saída de estoque";
+
+        movementModalDescription.textContent =
+            `${stock.productName} — ${stock.locationCode}. Disponível: ${stock.quantity}.`;
+    }
+
+    movementModal.classList.add("open");
+}
+
+function closeMovement() {
+    movementModal.classList.remove("open");
+
+    selectedMovementStockId = null;
+    movementType = null;
+
+    movementForm.reset();
+
+    movementFormMessage.textContent = "";
+    movementFormMessage.className = "form-message";
+}
+
+stockTableBody.addEventListener("click", function (event) {
+    const deleteButton = event.target.closest(".stock-delete-button");
+    const entryButton = event.target.closest(".stock-entry-button");
+    const exitButton = event.target.closest(".stock-exit-button");
+
+    if (entryButton) {
+        openMovementModal(
+            entryButton.dataset.id,
+            "inbound"
+        );
+
+        return;
+    }
+
+    if (exitButton) {
+        openMovementModal(
+            exitButton.dataset.id,
+            "outbound"
+        );
+    }
+
+    if (deleteButton) {
+    deleteStock(deleteButton.dataset.id);
+}
+});
+
+movementForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    const quantity = Number(movementQuantity.value);
+
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+        movementFormMessage.textContent =
+            "Informe uma quantidade válida maior que zero.";
+
+        movementFormMessage.className =
+            "form-message error";
+
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `/stock/${selectedMovementStockId}/${movementType}`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+
+                body: JSON.stringify({
+                    quantity: quantity
+                })
+            }
+        );
+
+        if (!response.ok) {
+            const error = await response.json();
+
+            throw new Error(
+                error.detail || "Não foi possível movimentar o estoque."
+            );
+        }
+
+        closeMovement();
+
+        await loadStock();
+
+    } catch (error) {
+        movementFormMessage.textContent = error.message;
+        movementFormMessage.className = "form-message error";
+    }
+});
+
+closeMovementModal.addEventListener("click", closeMovement);
+cancelMovementButton.addEventListener("click", closeMovement);
+
+movementModal.addEventListener("click", function (event) {
+    if (event.target === movementModal) {
+        closeMovement();
+    }
+});
+
+async function deleteStock(stockId) {
+    const stock = stockData.find(
+        item => Number(item.id) === Number(stockId)
+    );
+
+    if (!stock) {
+        return;
+    }
+
+    const confirmed = window.confirm(
+        `Deseja remover "${stock.productName}" da posição "${stock.locationCode}"?`
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/stock/${stockId}`, {
+            method: "DELETE",
+
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            let message = "Não foi possível excluir o registro de estoque.";
+
+            try {
+                const error = await response.json();
+                message = error.detail || message;
+            } catch {
+                // mantém a mensagem padrão
+            }
+
+            throw new Error(message);
+        }
+
+        await loadStock();
+
+    } catch (error) {
+        alert(error.message);
+    }
+}
 
 
 

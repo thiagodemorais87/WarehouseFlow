@@ -96,6 +96,33 @@
 .stock-actions {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
+}
+
+.stock-entry-button,
+.stock-exit-button,
+.stock-action-button,
+.stock-delete-button {
+    padding: 6px 10px;
+    border: 1px solid #d7dee8;
+    border-radius: 6px;
+    background: #ffffff;
+    cursor: pointer;
+}
+
+.stock-entry-button:hover,
+.stock-exit-button:hover,
+.stock-action-button:hover {
+    background: #f1f5f9;
+}
+
+.stock-delete-button {
+    color: #dc2626;
+    border-color: #fecaca;
+}
+
+.stock-delete-button:hover {
+    background: #fef2f2;
 }
 
 .stock-action-button {
