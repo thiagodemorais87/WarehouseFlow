@@ -59,7 +59,17 @@ Distâncias usam Manhattan: `|Δx| + |Δy|`.
 
 O 2-opt **nunca piora** a rota NN. A rota final **pode** ser pior que a original — o motor reporta isso honestamente.
 
-## Integração futura
+## Integração com a API
 
-A API FastAPI (`POST /optimization/route`) apenas adapta JSON → `Location` e chama `optimize_route`.
-Quando houver banco, um `OrderRouteProvider` buscará as posições do pedido e reutilizará o mesmo motor.
+A API FastAPI adapta JSON → `Location` e chama `optimize_route`:
+
+| Endpoint | Descrição |
+|----------|-----------|
+| `POST /optimization/route` | Body com `locations` explícitas |
+| `POST /optimization/route/by-order` | `order_id` → provider → mesmo motor |
+| `GET /optimization/orders/{id}/pick-locations` | Lista posições do pedido (helper) |
+
+Na Sprint 05 o by-order usa `MemoryOrderRouteProvider` (catálogo acadêmico em memória).  
+Na Sprint 06: `SqlAlchemyOrderRouteProvider` (pedido OUTBOUND → itens → posições no Postgres).
+
+Contrato completo: [`docs/optimization.md`](../../docs/optimization.md) (seções 15 e 17).
