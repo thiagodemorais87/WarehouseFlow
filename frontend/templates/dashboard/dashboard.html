@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 
 {% block title %}
@@ -5,22 +6,22 @@ Dashboard | WarehouseFlow
 {% endblock %}
 
 {% block styles %}
-<link
-    rel="stylesheet"
-    href="/static/css/dashboard.css"
->
+<link rel="stylesheet" href="/static/css/dashboard.css">
 {% endblock %}
 
 {% block content %}
 
 <section class="dashboard">
 
+    <!-- Cabeçalho -->
     <div class="dashboard-header">
 
         <div>
             <h1>Dashboard</h1>
-
-            <p>Visão geral do armazém — <span id="currentDate"></span></p>
+            <p>
+                Visão geral do armazém —
+                <span id="currentDate"></span>
+            </p>
         </div>
 
         <div class="dashboard-actions">
@@ -29,7 +30,7 @@ Dashboard | WarehouseFlow
                 Ver estoque
             </a>
 
-            <a href="produtos" class="button-primary">
+            <a href="/produtos" class="button-primary">
                 <span>+</span>
                 Novo produto
             </a>
@@ -38,58 +39,148 @@ Dashboard | WarehouseFlow
 
     </div>
 
-    <!-- Dados temporários para desenvolvimento da interface. Serão substituídos pelos dados da API.-->
-
+    <!-- Indicadores com dados da API -->
     <section class="stats-grid">
 
+        <!-- Total de produtos -->
         <article class="stat-card">
-            <div class="stat-icon-blue">
+
+            <div class="stat-icon stat-icon-blue">
                 ◇
             </div>
 
             <div class="stat-content">
-                <span class="stat-abel">Total de produtos</span>
-                <strong class="stat-value" id="totalProducts">2.418</strong>
-                <span class="stat-detail">+12 neste mês</span>
+                <span class="stat-label">
+                    Total de produtos
+                </span>
+
+                <strong class="stat-value" id="totalProducts">
+                    —
+                </strong>
+
+                <span class="stat-detail">
+                    Produtos cadastrados
+                </span>
             </div>
+
         </article>
 
+        <!-- Estoque total -->
         <article class="stat-card">
+
             <div class="stat-icon stat-icon-green">
                 ▣
             </div>
 
             <div class="stat-content">
-                <span class="stat-label">Estoque total</span>
-                <strong class="stat-value" id="totalStock">48.320</strong>
-                <span class="stat-detail">Unidades em estoque</span>
+                <span class="stat-label">
+                    Estoque total
+                </span>
+
+                <strong class="stat-value" id="totalStock">
+                    —
+                </strong>
+
+                <span class="stat-detail">
+                    Unidades em estoque
+                </span>
             </div>
+
         </article>
 
+        <!-- Pedidos pendentes -->
         <article class="stat-card">
+
             <div class="stat-icon stat-icon-orange">
                 ◫
             </div>
 
             <div class="stat-content">
-                <span class="stat-label">Pedidos pendentes</span>
-                <strong class="stat-value" id="pendingOrders">7</strong>
-                <span class="stat-detail">3 urgentes</span>
+                <span class="stat-label">
+                    Pedidos pendentes
+                </span>
+
+                <strong class="stat-value" id="pendingOrders">
+                    —
+                </strong>
+
+                <span class="stat-detail">
+                    Aguardando processamento
+                </span>
             </div>
+
         </article>
 
+        <!-- Tarefas em andamento -->
         <article class="stat-card">
+
             <div class="stat-icon stat-icon-red">
                 ✓
             </div>
 
             <div class="stat-content">
-                <span class="stat-label">Tarefas em andamento</span>
-                <strong class="stat-value" id="activeTasks">14</strong>
-                <span class="stat-detail">5 com prazo hoje</span>
+                <span class="stat-label">
+                    Tarefas em andamento
+                </span>
+
+                <strong class="stat-value" id="activeTasks">
+                    —
+                </strong>
+
+                <span class="stat-detail">
+                    Tarefas em execução
+                </span>
             </div>
+
         </article>
 
+    </section>
+
+        <!-- Gráfico de pedidos por status -->
+    <section class="dashboard-chart">
+
+        <div class="dashboard-chart-header">
+            <h2>Visão geral dos pedidos</h2>
+            <p>Distribuição dos pedidos por status</p>
+        </div>
+
+        <div id="ordersStatusChart" class="orders-status-chart">
+            <p>Carregando dados...</p>
+        </div>
+
+    </section>
+    
+    <!-- Pedidos recentes -->
+    <section class="dashboard-recent">
+        <div class="dashboard-recent-header">
+            <div>
+                <h2>Pedidos recentes</h2>
+                <p>Últimos pedidos cadastrados no sistema</p>
+            </div>
+
+            <a href="/pedidos" class="button-secondary">
+                Ver todos
+            </a>
+        </div>
+
+        <div class="recent-table-wrapper">
+            <table class="recent-table">
+                <thead>
+                    <tr>
+                        <th>Pedido</th>
+                        <th>Tipo</th>
+                        <th>Data</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody id="recentOrdersBody">
+                    <tr>
+                        <td colspan="4">Carregando pedidos...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 
 </section>
