@@ -4,14 +4,24 @@ from typing import List, Optional
 
 from ..database import get_db
 from .. import models, schemas
+from ..deps import get_current_user, require_role
+from ..models.user import UserRole
 
 router = APIRouter(
     prefix="/tasks",
-    tags=["Tasks"]
+    tags=["Tasks"],
+    dependencies=[Depends(get_current_user)],
 )
 
+_write = Depends(require_role(UserRole.ADMIN, UserRole.GESTOR, UserRole.OPERADOR))
+
+
 @router.post("/", response_model=schemas.TaskResponse, status_code=status.HTTP_201_CREATED)
-def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
+def create_task(
+    task: schemas.TaskCreate,
+    db: Session = Depends(get_db),
+    _: models.User = _write,
+):
     # Valida se o pedido vinculado existe
     order = db.query(models.Order).filter(models.Order.id == task.order_id).first()
     if not order:
@@ -66,7 +76,12 @@ def get_task(task_id: int, db: Session = Depends(get_db)):
     return task
 
 @router.put("/{task_id}", response_model=schemas.TaskResponse)
-def update_task(task_id: int, task_update: schemas.TaskUpdate, db: Session = Depends(get_db)):
+def update_task(
+    task_id: int,
+    task_update: schemas.TaskUpdate,
+    db: Session = Depends(get_db),
+    _: models.User = _write,
+):
     db_task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if not db_task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tarefa não encontrada.")
@@ -89,7 +104,11 @@ def update_task(task_id: int, task_update: schemas.TaskUpdate, db: Session = Dep
     return db_task
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_task(task_id: int, db: Session = Depends(get_db)):
+def delete_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(require_role(UserRole.ADMIN, UserRole.GESTOR)),
+):
     db_task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if not db_task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tarefa não encontrada.")

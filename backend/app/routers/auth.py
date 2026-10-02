@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
-from app.database import get_db
-from app.models import User
-from app.schemas.user import LoginRequest, TokenResponse
-from app.security import verify_password, create_access_token
+from ..database import get_db
+from ..models import User
+from ..schemas.user import LoginRequest, TokenResponse
+from ..security import verify_password, create_access_token
 
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/login", response_model=TokenResponse, summary="Autenticar usuário")
@@ -15,7 +15,12 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     Realiza o login do usuário validando e-mail e senha.
     Retorna o Token JWT caso as credenciais estejam corretas.
     """
-    user = db.query(User).filter(User.email == login_data.email).first()
+    user = (
+        db.query(User)
+        .options(joinedload(User.role))
+        .filter(User.email == login_data.email)
+        .first()
+    )
 
     password_is_valid = False
     if user:
@@ -34,16 +39,12 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     if not getattr(user, "is_active", True):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Usuário inativo. Entre em contato com o administrador."
+            detail="Usuário inativo. Entre em contato com o administrador.",
         )
 
-    # Gera o token carregando o ID e o Perfil (role) no payload
+    role_name = user.role_name or "OPERADOR"
     access_token = create_access_token(
-        data={
-            "sub": str(user.id),
-            "email": user.email,
-            "role": user.role.name if user.role else "OPERATOR",
-        }
+        data={"sub": str(user.id), "email": user.email, "role": role_name}
     )
 
     return {"access_token": access_token, "token_type": "bearer"}

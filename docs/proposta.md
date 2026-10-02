@@ -56,7 +56,7 @@ Rota sugerida + métricas de desempenho
 ```
 
 Endpoint de demonstração: `POST /optimization/route`  
-Código: `backend/optimization/` · API: `backend/app/routes/optimization.py`
+Código: `backend/optimization/` · API: `backend/app/routers/optimization_engine.py`
 
 ---
 

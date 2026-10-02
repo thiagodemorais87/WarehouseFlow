@@ -112,7 +112,9 @@ Não usamos OR-Tools, NetworkX nem solvers comerciais: o diferencial acadêmico 
 - Uma visita por posição; não modela múltiplas unidades no mesmo ponto além da própria posição.
 - Heurística: não garante ótimo global.
 - Rota final pode ser pior que a original em casos patológicos (reportado honestamente).
-- Integração com pedidos reais no banco ainda é futura (`OrderRouteProvider`).
+- Integração com pedidos reais no banco ainda é futura (`SqlAlchemyOrderRouteProvider` na Sprint 06).
+  Na Sprint 05 existe ponte via `MemoryOrderRouteProvider` + `POST /optimization/route/by-order`.
+- IDs de posição duplicados são rejeitados com erro (HTTP 400 na API).
 
 ## 12. Exemplo (fixture acadêmica)
 
@@ -153,14 +155,244 @@ pytest -q
 | Endpoint | Status |
 |----------|--------|
 | `POST /optimization/route` | Implementado (locations no body) |
-| `POST /optimization/route/by-order` | Integração futura (não bloqueia esta sprint) |
+| `POST /optimization/route/by-order` | Implementado na Sprint 05 (MemoryProvider; Postgres na S06) |
+| `GET /optimization/orders/{order_id}/pick-locations` | Implementado na Sprint 05 (helper para S06) |
 | `GET /health` | Implementado |
 
-## 15. Integração (Pessoa 1 — banco/backend)
+---
 
-1. Modelar `Position(x, y, code)`, `Order`, `OrderItem`, estoque.
-2. Implementar `OrderRouteProvider.get_pick_locations(order_id)` com SQLAlchemy.
-3. No service, se vier `order_id`, obter `list[Location]` e chamar `optimize_route`.
-4. Frontend chama `POST /optimization/route` (ou futuro by-order) e exibe rotas/métricas.
+## 15. Contrato da API para o frontend (Sprint 05/06)
+
+Documento de referência para a Pessoa 4 (front) consumir o motor sem adivinhar campos.  
+Schemas: `backend/app/schemas/optimization.py` · Rota: `backend/app/routers/optimization_engine.py` · Swagger: `/docs`.
+
+### 15.1 Método e URL
+
+```http
+POST /optimization/route
+Content-Type: application/json
+Authorization: Bearer <access_token>
+```
+
+Requer autenticação JWT (`POST /auth/login`). Não depende do PostgreSQL para o cálculo da rota.
+
+### 15.2 Request (body)
+
+| Campo | Tipo | Obrigatório | Descrição |
+|-------|------|-------------|-----------|
+| `locations` | `array` | sim (pode ser `[]`) | Posições a visitar, **na ordem original** do pedido/itens |
+| `locations[].id` | `string` | sim | Identificador da posição (ex.: `A01`) |
+| `locations[].x` | `number` | sim | Coordenada X (grade do armazém) |
+| `locations[].y` | `number` | sim | Coordenada Y |
+| `start` | `object` | não | Ponto de partida; default `{ "id": "START", "x": 0, "y": 0 }` |
+| `start.id` | `string` | se enviar `start` | Id do ponto inicial |
+| `start.x` / `start.y` | `number` | se enviar `start` | Coordenadas do ponto inicial |
+
+IDs de posição devem ser **únicos** no array; duplicados retornam HTTP 400.
+
+### 15.3 Response (JSON)
+
+| Campo | Tipo | Significado para a UI |
+|-------|------|------------------------|
+| `original_route` | `string[]` | Ordem de visita **antes** da otimização (`START` + ids na ordem de entrada) |
+| `nearest_neighbor_route` | `string[]` | Rota após heurística Nearest Neighbor |
+| `two_opt_route` | `string[]` | Rota **sugerida** após 2-opt — **usar esta como rota principal na tela** |
+| `distance_before` | `number` | Distância Manhattan da rota original |
+| `nearest_neighbor_distance` | `number` | Distância após NN |
+| `two_opt_distance` | `number` | Distância após 2-opt |
+| `distance_after` | `number` | Sempre igual a `two_opt_distance` (alias para a UI) |
+| `distance_reduction` | `number` | `distance_before - distance_after` (pode ser ≤ 0 em casos ruins) |
+| `reduction_percent` | `number` | Redução percentual; `0` se `distance_before == 0` |
+| `execution_time_ms` | `number` | Tempo de execução do algoritmo em milissegundos |
+| `locations_count` | `integer` | Quantidade de posições em `locations` (sem contar `START`) |
+
+### 15.4 Regras de UI recomendadas
+
+1. Exibir como rota sugerida: `two_opt_route` (não a NN isolada).
+2. Comparar “antes × depois” com `original_route` vs `two_opt_route` e `distance_before` vs `distance_after`.
+3. Mostrar ganho com `distance_reduction` e `reduction_percent` (formatar `%` com 1–2 casas).
+4. Se `distance_reduction < 0`, avisar que a heurística não melhorou a ordem original (comportamento válido).
+5. Garantia do backend: `two_opt_distance <= nearest_neighbor_distance`.
+6. Garantia do backend: `distance_after === two_opt_distance`.
+
+### 15.5 Exemplo de request
+
+```json
+{
+  "locations": [
+    {"id": "FAR1", "x": 10, "y": 0},
+    {"id": "NEAR1", "x": 1, "y": 0},
+    {"id": "FAR2", "x": 11, "y": 0},
+    {"id": "NEAR2", "x": 2, "y": 0}
+  ],
+  "start": {"id": "START", "x": 0, "y": 0}
+}
+```
+
+### 15.6 Exemplo de response (formato)
+
+```json
+{
+  "original_route": ["START", "FAR1", "NEAR1", "FAR2", "NEAR2"],
+  "nearest_neighbor_route": ["START", "NEAR1", "NEAR2", "FAR1", "FAR2"],
+  "two_opt_route": ["START", "NEAR1", "NEAR2", "FAR1", "FAR2"],
+  "distance_before": 34.0,
+  "nearest_neighbor_distance": 14.0,
+  "two_opt_distance": 14.0,
+  "distance_after": 14.0,
+  "distance_reduction": 20.0,
+  "reduction_percent": 58.82352941176471,
+  "execution_time_ms": 0.12,
+  "locations_count": 4
+}
+```
+
+> Os números exatos de distância/tempo vêm do algoritmo; o front não deve hardcodar métricas.
+
+### 15.7 Smoke com curl
+
+```bash
+# 1) Login
+TOKEN=$(curl -s -X POST http://127.0.0.1:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d "{\"email\":\"admin@warehouseflow.com\",\"password\":\"admin123\"}" \
+  | python -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+# 2) Otimizar rota
+curl -s -X POST http://127.0.0.1:8000/optimization/route \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d "{\"locations\":[{\"id\":\"A01\",\"x\":1,\"y\":1},{\"id\":\"C03\",\"x\":5,\"y\":5}],\"start\":{\"id\":\"START\",\"x\":0,\"y\":0}}"
+```
+
+### 15.8 Limitações do endpoint `/route`
+
+- Este endpoint **não** aceita `order_id` — o front envia coordenadas explícitas.
+- Para otimizar a partir de pedido, use `POST /optimization/route/by-order` (seção 17).
+- Distância é **Manhattan**; não é km reais de GPS.
+
+---
+
+## 16. Integração (Pessoa 1 — banco/backend)
+
+Na Sprint 05 o by-order usa `MemoryOrderRouteProvider`. Para a Sprint 06:
+
+1. Adicionar colunas `x`, `y` em `locations` (migration alinhada ao CRUD de posições).
+2. Implementar `SqlAlchemyOrderRouteProvider.get_pick_locations(order_id)`:
+   - pedido `OUTBOUND` → `order_items` → produto → `stock` → `location` `(code, x, y)`;
+   - ordem das posições = ordem dos itens; deduplicar por `location.code` se o mesmo produto aparecer mais de uma vez.
+3. Substituir o provider injetado em `optimization_engine.py` (mesmo service `optimize_from_order_id`).
+4. Frontend chama `POST /optimization/route/by-order` e exibe rotas/métricas conforme a seção 15.
 
 O núcleo em `backend/optimization/` permanece inalterado.
+
+---
+
+## 17. Contrato `order_id` (preparação Sprint 06)
+
+Documento de ponte da Sprint 05: permite testar o fluxo pedido → posições → rota **sem** depender ainda de `x`/`y` no PostgreSQL.
+
+### 17.1 Fluxo alvo (S06) vs ponte atual (S05)
+
+```text
+Pedido OUTBOUND
+  → order_items (produto + quantidade)
+    → stock / location (code, x, y)
+      → list[Location]
+        → optimize_route (NN + 2-opt)
+          → RouteOptimizeResponse
+```
+
+| Etapa | Sprint 05 | Sprint 06 |
+|-------|-----------|-----------|
+| Fonte das posições | `MemoryOrderRouteProvider` (catálogo acadêmico) | `SqlAlchemyOrderRouteProvider` + Postgres |
+| Coordenadas | Fixture em memória (`order_id` 1 e 2) | Colunas `locations.x` / `locations.y` |
+| Tipo de pedido | Implícito no catálogo | Apenas **OUTBOUND** (picking); INBOUND fora do escopo |
+
+Catálogo acadêmico default:
+
+| `order_id` | Posições (ordem original) |
+|------------|---------------------------|
+| `1` | FAR1(10,0), NEAR1(1,0), FAR2(11,0), NEAR2(2,0) |
+| `2` | A01(1,1), C03(5,5), B02(2,2), D04(8,3) |
+
+### 17.2 `POST /optimization/route/by-order`
+
+```http
+POST /optimization/route/by-order
+Content-Type: application/json
+Authorization: Bearer <access_token>
+```
+
+**Request**
+
+| Campo | Tipo | Obrigatório | Descrição |
+|-------|------|-------------|-----------|
+| `order_id` | `integer` (≥ 1) | sim | ID do pedido no catálogo / banco |
+| `start` | `object` | não | Mesmo formato de `/route`; default START (0,0) |
+
+**Response:** idêntico a `RouteOptimizeResponse` (seção 15.3).
+
+**Erros**
+
+| HTTP | Quando |
+|------|--------|
+| `404` | Pedido ausente no provider (`Pedido {id} não encontrado no catálogo de picking`) |
+| `400` | IDs de posição duplicados (ou payload inválido) |
+| `401` | Sem JWT válido |
+
+**Exemplo**
+
+```json
+{ "order_id": 1, "start": { "id": "START", "x": 0, "y": 0 } }
+```
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/optimization/route/by-order \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d "{\"order_id\":1}"
+```
+
+### 17.3 `GET /optimization/orders/{order_id}/pick-locations`
+
+Helper para o front / integração S06: lista as posições **antes** de otimizar.
+
+```http
+GET /optimization/orders/1/pick-locations
+Authorization: Bearer <access_token>
+```
+
+**Response (200)**
+
+```json
+[
+  {"id": "FAR1", "x": 10.0, "y": 0.0},
+  {"id": "NEAR1", "x": 1.0, "y": 0.0},
+  {"id": "FAR2", "x": 11.0, "y": 0.0},
+  {"id": "NEAR2", "x": 2.0, "y": 0.0}
+]
+```
+
+**404** se o pedido não existir no catálogo.
+
+O front pode: (1) chamar este GET e depois `POST /optimization/route`, ou (2) chamar direto `POST /optimization/route/by-order`.
+
+### 17.4 Regras de negócio (motor / picking)
+
+1. Escopo de otimização: pedidos **OUTBOUND** (picking). INBOUND / putaway ficam fora deste contrato.
+2. Ordem original da rota = ordem dos itens / posições retornadas pelo provider.
+3. Cada posição aparece uma vez (`id` único); o motor rejeita duplicados.
+4. Métricas nunca são inventadas — sempre calculadas pelo pipeline NN + 2-opt.
+5. Na S05 o catálogo é em memória; evidências de “pedido real no banco → rota” exigem S06 + `x`/`y` em `locations`.
+
+### 17.5 Código de referência
+
+| Peça | Arquivo |
+|------|---------|
+| Protocolo | `backend/app/providers/base.py` |
+| Provider S05 | `backend/app/providers/memory.py` |
+| Service | `backend/app/services/optimization_service.py` (`optimize_from_order_id`) |
+| Router | `backend/app/routers/optimization_engine.py` |
+| Schemas | `RouteOptimizeByOrderRequest`, `PickLocationResponse` |
+| Testes | `tests/test_memory_provider.py`, `tests/test_api_optimization.py` |
