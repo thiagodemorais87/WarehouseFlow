@@ -1,7 +1,9 @@
-from pydantic import BaseModel, ConfigDict, Field
-from typing import Optional, Any, Dict, List
 from datetime import datetime
 from decimal import Decimal
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, ConfigDict, Field
+from ..enums import OrderStatus, OrderType, TaskStatus, TaskType
+
 
 # PRODUCT SCHEMAS
 
@@ -33,11 +35,13 @@ class OptimizationResultBase(BaseModel):
     task_id: int
     suggested_location_id: Optional[int] = None
     suggested_route: Optional[Dict[str, Any]] = Field(
-        None, 
+        None,
         description="Representação em JSON da rota otimizada",
-        examples=[{"steps": ["A1-01-A", "A1-01-B"], "total_distance_meters": 12.5}]
+        examples=[{"steps": ["A1-01-A", "A1-01-B"], "total_distance_meters": 12.5}],
     )
-    score: Optional[Decimal] = Field(None, description="Score/Custo calculado pelo algoritmo")
+    score: Optional[Decimal] = Field(
+        None, description="Score/Custo calculado pelo algoritmo"
+    )
 
 class OptimizationResultCreate(OptimizationResultBase):
     pass
@@ -51,8 +55,8 @@ class OptimizationResultResponse(OptimizationResultBase):
 # TASK SCHEMAS
 
 class TaskBase(BaseModel):
-    type: str = Field(..., description="Tipo da tarefa: PICKING, PUTAWAY ou REPLENISHMENT")
-    status: str = Field("PENDING", description="Status: PENDING, IN_PROGRESS, COMPLETED")
+    type: TaskType
+    status: TaskStatus = TaskStatus.PENDING
     order_id: int
     assigned_user_id: Optional[int] = None
 
@@ -60,8 +64,8 @@ class TaskCreate(TaskBase):
     pass
 
 class TaskUpdate(BaseModel):
-    type: Optional[str] = None
-    status: Optional[str] = None
+    type: Optional[TaskType] = None
+    status: Optional[TaskStatus] = None
     assigned_user_id: Optional[int] = None
 
 class TaskResponse(TaskBase):
@@ -80,23 +84,27 @@ class OrderItemBase(BaseModel):
 class OrderItemCreate(OrderItemBase):
     pass
 
+class OrderItemUpdate(BaseModel):
+    quantity: int = Field(..., gt=0, description="Nova quantidade deve ser maior que zero")
+
 class OrderItemResponse(OrderItemBase):
     id: int
     order_id: int
 
     model_config = ConfigDict(from_attributes=True)
 
-
 class OrderBase(BaseModel):
-    type: str = Field(..., description="INBOUND para recebimento, OUTBOUND para expedição")
-    status: str = Field("PENDING", description="PENDING, PROCESSING, COMPLETED, CANCELLED")
+    type: OrderType
+    status: OrderStatus = OrderStatus.PENDING
 
 class OrderCreate(OrderBase):
-    items: List[OrderItemCreate] = Field(..., min_length=1, description="O pedido deve ter ao menos 1 item")
+    items: List[OrderItemCreate] = Field(
+        ..., min_length=1, description="O pedido deve ter ao menos 1 item"
+    )
 
 class OrderUpdate(BaseModel):
-    type: Optional[str] = None
-    status: Optional[str] = None
+    type: Optional[OrderType] = None
+    status: Optional[OrderStatus] = None
 
 class OrderResponse(OrderBase):
     id: int
@@ -141,7 +149,6 @@ class RoleResponse(RoleBase):
     id: int
 
     model_config = ConfigDict(from_attributes=True)
-
 
 class UserBase(BaseModel):
     name: str = Field(..., max_length=100)
