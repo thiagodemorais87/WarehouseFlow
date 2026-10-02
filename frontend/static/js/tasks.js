@@ -20,6 +20,29 @@ let tasksData = [];
 
 let taskUsersData = [];
 
+function formatTaskDate(date, showTime = false) {
+    if (!date) return "—";
+
+    const dateWithTimezone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(date)
+        ? date
+        : `${date}Z`;
+
+    const options = {
+        timeZone: "America/Recife",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+    };
+
+    if (showTime) {
+        options.hour = "2-digit";
+        options.minute = "2-digit";
+        options.second = "2-digit";
+    }
+
+    return new Date(dateWithTimezone).toLocaleString("pt-BR", options);
+}
+
 function getTaskOperatorName(userId) {
     if (userId == null) {
         return "Não atribuído";
@@ -86,7 +109,7 @@ function renderTasks() {
                 ${taskStatuses[task.status] || task.status}
             </td>
             <td data-label="Data">
-                ${new Date(task.created_at).toLocaleDateString("pt-BR")}
+                ${formatTaskDate(task.created_at)}
             </td>
             
             <td data-label="Ações">
@@ -365,7 +388,7 @@ async function openTaskDetails(taskId) {
             taskStatuses[task.status] || task.status;
 
         document.getElementById("detailTaskDate").textContent =
-            new Date(task.created_at).toLocaleString("pt-BR");
+            formatTaskDate(task.created_at, true);
 
         taskDetailsModal.classList.add("open");
 

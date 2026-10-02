@@ -240,7 +240,19 @@ function formatDate(date) {
         return "—";
     }
 
-    return new Date(date).toLocaleString("pt-BR");
+    const dateWithTimezone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(date)
+        ? date
+        : `${date}Z`;
+
+    return new Date(dateWithTimezone).toLocaleString("pt-BR", {
+        timeZone: "America/Recife",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+    });
 }
 
 async function loadProducts() {
