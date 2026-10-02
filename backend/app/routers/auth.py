@@ -22,14 +22,21 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
         .first()
     )
 
-    if not user or not verify_password(login_data.password, user.password_hash):
+    password_is_valid = False
+    if user:
+        try:
+            password_is_valid = verify_password(login_data.password, user.password_hash)
+        except (TypeError, ValueError):
+            password_is_valid = False
+
+    if not user or not password_is_valid:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="E-mail ou senha incorretos.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    if not user.is_active:
+    if not getattr(user, "is_active", True):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Usuário inativo. Entre em contato com o administrador.",
