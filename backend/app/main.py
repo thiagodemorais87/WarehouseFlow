@@ -172,7 +172,22 @@ if FRONTEND_DIR.exists():
                 "active_page": "orders",
             },
         )
-        
+    @app.get("/tarefas", response_class=HTMLResponse, tags=["Frontend"])
+    def tasks_page(request: Request):
+        user = {
+            "name": "Usuário Teste",
+            "initials": "UT",
+            "role": "Administrador"
+        }
+
+        return templates.TemplateResponse(
+            request=request,
+            name="tasks/tasks.html",
+            context={
+                "user": user,
+                "active_page": "tasks"
+            },
+        )
 else:
     logger.warning(
         "FRONTEND_DIR não encontrado em %s — rotas HTML (/login, /dashboard, …) não serão registradas.",
