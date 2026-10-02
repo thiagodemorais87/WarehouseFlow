@@ -43,7 +43,11 @@ if FRONTEND_DIR.exists():
 
     @app.get("/login", response_class=HTMLResponse, tags=["Frontend"])
     def login_page(request: Request):
-        return templates.TemplateResponse("auth/login.html", {"request": request})
+        return templates.TemplateResponse(
+            request=request,
+            name="auth/login.html",
+            context={"request": request},
+        )
 
 
 @app.get("/", tags=["Healthcheck"])
