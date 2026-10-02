@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}Pedidos | WarehouseFlow{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/static/css/orders.css">
+{% endblock %}
+
+{% block content %}
+
+<section class="orders-page">
+
+    <div class="orders-header">
+        <div>
+            <h1>Pedidos</h1>
+            <p>Gerencie os pedidos de recebimento e expedição do armazém.</p>
+        </div>
+
+        <button
+            type="button"
+            class="button-primary"
+            id="newOrderButton"
+        >
+            <span>+</span>
+            Novo pedido
+        </button>
+    </div>
+
+    <div class="orders-toolbar">
+
+        <input
+            type="search"
+            id="orderSearch"
+            placeholder="Buscar por número do pedido..."
+            aria-label="Buscar pedidos"
+        >
+
+        <select id="orderTypeFilter">
+            <option value="">Todos os tipos</option>
+            <option value="INBOUND">Recebimento</option>
+            <option value="OUTBOUND">Expedição</option>
+        </select>
+
+        <select id="orderStatusFilter">
+            <option value="">Todos os status</option>
+            <option value="PENDING">Pendente</option>
+            <option value="PROCESSING">Em processamento</option>
+            <option value="COMPLETED">Concluído</option>
+            <option value="CANCELLED">Cancelado</option>
+        </select>
+
+    </div>
+
+    <div class="orders-table-container">
+
+        <table class="orders-table">
+
+            <thead>
+                <tr>
+                    <th>Pedido</th>
+                    <th>Tipo</th>
+                    <th>Itens</th>
+                    <th>Status</th>
+                    <th>Data</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+
+            <tbody id="ordersTableBody"></tbody>
+
+        </table>
+
+        <div class="orders-message" id="ordersMessage">
+            Carregando pedidos...
+        </div>
+
+    </div>
+
+</section>
+
+<div class="order-modal-overlay" id="orderModal">
+    <div class="order-modal">
+
+        <div class="modal-header">
+            <div>
+                <h2>Novo pedido</h2>
+                <p>Informe o tipo e os produtos do pedido.</p>
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                id="closeOrderModal"
+                aria-label="Fechar"
+            >
+                ×
+            </button>
+        </div>
+
+        <form id="orderForm">
+
+            <div class="form-group">
+                <label for="orderType">Tipo *</label>
+
+                <select id="orderType" required>
+                    <option value="">Selecione o tipo</option>
+                    <option value="INBOUND">Recebimento</option>
+                    <option value="OUTBOUND">Expedição</option>
+                </select>
+            </div>
+
+            <div class="order-items-header">
+                <div>
+                    <h3>Itens do pedido</h3>
+                    <p>Adicione pelo menos um produto.</p>
+                </div>
+
+                <button
+                    type="button"
+                    class="add-item-button"
+                    id="addOrderItemButton"
+                >
+                    + Adicionar item
+                </button>
+            </div>
+
+            <div id="orderItems"></div>
+
+            <div
+                class="form-message"
+                id="orderFormMessage"
+            ></div>
+
+            <div class="modal-actions">
+                <button
+                    type="button"
+                    class="button-secondary"
+                    id="cancelOrderButton"
+                >
+                    Cancelar
+                </button>
+
+                <button
+                    type="submit"
+                    class="button-primary"
+                    id="saveOrderButton"
+                >
+                    Criar pedido
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+<div class="order-modal-overlay" id="orderDetailsModal">
+    <div class="order-modal">
+
+        <div class="modal-header">
+            <div>
+                <h2 id="orderDetailsTitle">Detalhes do pedido</h2>
+                <p>Informações e itens vinculados ao pedido.</p>
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                id="closeOrderDetailsModal"
+                aria-label="Fechar"
+            >
+                ×
+            </button>
+        </div>
+
+        <div class="order-details-summary">
+
+            <div class="order-detail-field">
+                <span>Tipo</span>
+                <strong id="detailOrderType">—</strong>
+            </div>
+
+            <div class="order-detail-field">
+                <span>Status</span>
+                <div id="detailOrderStatus">—</div>
+            </div>
+
+            <div class="order-detail-field">
+                <span>Data de criação</span>
+                <strong id="detailOrderDate">—</strong>
+            </div>
+
+        </div>
+
+        <div class="order-details-items">
+
+            <h3>Itens do pedido</h3>
+
+            <div id="detailOrderItems"></div>
+
+        </div>
+
+        <div
+            class="form-message"
+            id="orderDetailsMessage"
+        ></div>
+
+        <div class="modal-actions">
+            <button
+                type="button"
+                class="button-secondary"
+                id="closeOrderDetailsButton"
+            >
+                Fechar
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<div class="order-modal-overlay" id="orderStatusModal">
+    <div class="order-modal order-status-modal">
+
+        <div class="modal-header">
+            <div>
+                <h2 id="orderStatusTitle">Alterar status</h2>
+                <p>Atualize o status do pedido.</p>
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                id="closeOrderStatusModal"
+                aria-label="Fechar"
+            >
+                ×
+            </button>
+        </div>
+
+        <form id="orderStatusForm">
+
+            <div class="form-group">
+                <label for="newOrderStatus">Status *</label>
+
+                <select id="newOrderStatus" required>
+                    <option value="PENDING">Pendente</option>
+                    <option value="PROCESSING">Em processamento</option>
+                    <option value="COMPLETED">Concluído</option>
+                    <option value="CANCELLED">Cancelado</option>
+                </select>
+            </div>
+
+            <div
+                class="form-message"
+                id="orderStatusMessage"
+            ></div>
+
+            <div class="modal-actions">
+                <button
+                    type="button"
+                    class="button-secondary"
+                    id="cancelOrderStatusButton"
+                >
+                    Cancelar
+                </button>
+
+                <button
+                    type="submit"
+                    class="button-primary"
+                >
+                    Salvar
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/orders.js"></script>
+{% endblock %}

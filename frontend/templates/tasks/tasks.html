@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}Tarefas - WarehouseFlow{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/static/css/tasks.css">
+{% endblock %}
+
+{% block content %}
+
+<div class="tasks-page">
+
+    <div class="tasks-header">
+        <div>
+            <h1>Tarefas</h1>
+            <p>Gerencie as tarefas operacionais do armazém.</p>
+        </div>
+
+        <button class="button-primary" id="newTaskButton">
+            + Nova tarefa
+        </button>
+    </div>
+
+    <div class="tasks-filters">
+
+        <input
+            type="text"
+            id="taskSearch"
+            placeholder="Buscar por tarefa ou pedido..."
+        >
+
+        <select id="taskTypeFilter">
+            <option value="">Todos os tipos</option>
+            <option value="PICKING">Picking</option>
+            <option value="PUTAWAY">Putaway</option>
+            <option value="REPLENISHMENT">Reposição</option>
+        </select>
+
+        <select id="taskStatusFilter">
+            <option value="">Todos os status</option>
+            <option value="PENDING">Pendente</option>
+            <option value="IN_PROGRESS">Em andamento</option>
+            <option value="COMPLETED">Concluída</option>
+        </select>
+
+    </div>
+
+    <div class="tasks-table-container">
+
+        <table class="tasks-table">
+
+            <thead>
+                <tr>
+                    <th>Tarefa</th>
+                    <th>Tipo</th>
+                    <th>Pedido</th>
+                    <th>Operador</th>
+                    <th>Status</th>
+                    <th>Data</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+
+            <tbody id="tasksTableBody">
+                <tr>
+                    <td colspan="7" class="tasks-loading">
+                        Carregando tarefas...
+                    </td>
+                </tr>
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+<!-- Modal: Nova tarefa -->
+<div class="task-modal-overlay" id="taskModal">
+    <div class="task-modal">
+
+        <div class="task-modal-header">
+            <div>
+                <h2>Nova tarefa</h2>
+                <p>Cadastre uma tarefa operacional.</p>
+            </div>
+
+            <button
+                type="button"
+                class="task-modal-close"
+                id="closeTaskModal"
+                aria-label="Fechar"
+            >&times;</button>
+        </div>
+
+        <form id="taskForm">
+
+            <div class="task-form-group">
+                <label for="taskType">Tipo de tarefa *</label>
+
+                <select id="taskType" required>
+                    <option value="">Selecione o tipo</option>
+                    <option value="PICKING">Separação (Picking)</option>
+                    <option value="PUTAWAY">Armazenamento (Putaway)</option>
+                    <option value="REPLENISHMENT">Reposição</option>
+                </select>
+            </div>
+
+            <div class="task-form-group">
+                <label for="taskOrder">Pedido vinculado *</label>
+
+                <select id="taskOrder" required>
+                    <option value="">Carregando pedidos...</option>
+                </select>
+            </div>
+
+            <div class="task-form-group">
+                <label for="taskOperator">Operador responsável</label>
+
+                <select id="taskOperator">
+                    <option value="">Sem operador atribuído</option>
+                </select>
+            </div>
+
+            <div class="task-form-message" id="taskFormMessage"></div>
+
+            <div class="task-modal-actions">
+                <button
+                    type="button"
+                    class="task-button-secondary"
+                    id="cancelTaskButton"
+                >Cancelar</button>
+
+                <button type="submit" class="button-primary">
+                    Criar tarefa
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+
+<!-- Modal: Detalhes da tarefa -->
+<div class="task-modal-overlay" id="taskDetailsModal">
+    <div class="task-modal">
+        <div class="task-modal-header">
+            <div>
+                <h2 id="taskDetailsTitle">Detalhes da tarefa</h2>
+                <p>Informações da tarefa operacional.</p>
+            </div>
+            <button type="button"
+                    class="task-modal-close"
+                    id="closeTaskDetails"
+                    aria-label="Fechar">&times;</button>
+        </div>
+
+        <div class="task-details">
+            <div><strong>Tipo:</strong> <span id="detailTaskType"></span></div>
+            <div><strong>Pedido:</strong> <span id="detailTaskOrder"></span></div>
+            <div><strong>Operador:</strong> <span id="detailTaskOperator"></span></div>
+            <div><strong>Status:</strong> <span id="detailTaskStatus"></span></div>
+            <div><strong>Criada em:</strong> <span id="detailTaskDate"></span></div>
+        </div>
+
+        <div class="task-modal-actions">
+            <button type="button"
+                    class="task-button-secondary"
+                    id="closeTaskDetailsButton">Fechar</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal: Editar tarefa -->
+<div class="task-modal-overlay" id="taskEditModal">
+    <div class="task-modal">
+
+        <div class="task-modal-header">
+            <div>
+                <h2 id="taskEditTitle">Editar tarefa</h2>
+                <p>Atualize o status ou o operador responsável.</p>
+            </div>
+
+            <button
+                type="button"
+                class="task-modal-close"
+                id="closeTaskEdit"
+                aria-label="Fechar"
+            >&times;</button>
+        </div>
+
+        <form id="taskEditForm">
+            <div class="task-form-group">
+                <label for="editTaskStatus">Status *</label>
+
+                <select id="editTaskStatus" required>
+                    <option value="PENDING">Pendente</option>
+                    <option value="IN_PROGRESS">Em andamento</option>
+                    <option value="COMPLETED">Concluída</option>
+                </select>
+            </div>
+
+            <div class="task-form-group">
+                <label for="editTaskOperator">
+                    Operador responsável
+                </label>
+
+                <select id="editTaskOperator">
+                    <option value="">Sem operador atribuído</option>
+                </select>
+            </div>
+
+            <div
+                class="task-form-message"
+                id="taskEditMessage"
+                role="alert"
+            ></div>
+
+            <div class="task-modal-actions">
+                <button
+                    type="button"
+                    class="task-button-secondary"
+                    id="cancelTaskEdit"
+                >Cancelar</button>
+
+                <button type="submit" class="button-primary">
+                    Salvar alterações
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/tasks.js"></script>
+{% endblock %}
