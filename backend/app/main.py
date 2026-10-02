@@ -5,14 +5,23 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from .database import engine, Base
-from .routers import auth, products, tasks, optimization, orders, stock, users, locations
+from .database import Base, engine
+from .routers import (
+    auth,
+    locations,
+    optimization,
+    orders,
+    products,
+    stock,
+    tasks,
+    users,
+)
 from .routers.optimization_engine import router as optimization_engine_router
-
 
 # Inicializa as tabelas no PostgreSQL
 Base.metadata.create_all(bind=engine)
@@ -22,12 +31,28 @@ logger = logging.getLogger(__name__)
 ROOT_DIR = Path(__file__).resolve().parents[2]
 FRONTEND_DIR = Path(os.getenv("FRONTEND_DIR", str(ROOT_DIR / "frontend"))).resolve()
 
-
 app = FastAPI(
     title="WarehouseFlow API",
     description="API inteligente para gerenciamento e otimização de operações em armazéns.",
     version="1.0.0",
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    erros_formatados = []
+    for erro in exc.errors():
+        campo = " -> ".join([str(loc) for loc in erro["loc"] if loc not in ("body", "query", "path")])
+        mensagem = erro["msg"].replace("Value error, ", "").replace("Input should be", "O valor deve ser")
+        erros_formatados.append(f"Campo '{campo}': {mensagem}")
+
+    return JSONResponse(
+        status_code=400,
+        content={
+            "detail": "Erro de validação nos dados enviados.",
+            "errors": erros_formatados,
+        },
+    )
 
 
 # Registro de todas as rotas modularizadas (CRUD + persistência)
@@ -40,7 +65,6 @@ app.include_router(stock.router)
 app.include_router(users.router)
 app.include_router(locations.router)
 
-
 # Motor de otimização de picking (desacoplado do PostgreSQL nesta versão)
 app.include_router(optimization_engine_router)
 
@@ -52,9 +76,7 @@ if FRONTEND_DIR.exists():
         name="static",
     )
 
-    templates = Jinja2Templates(
-        directory=str(FRONTEND_DIR / "templates")
-    )
+    templates = Jinja2Templates(directory=str(FRONTEND_DIR / "templates"))
 
     @app.get(
         "/login",
@@ -149,6 +171,43 @@ if FRONTEND_DIR.exists():
             context={
                 "user": user,
                 "active_page": "locations",
+            },
+        )
+
+    @app.get(
+        "/pedidos",
+        response_class=HTMLResponse,
+        tags=["Frontend"],
+    )
+    def orders_page(request: Request):
+        user = {
+            "name": "Usuário Teste",
+            "initials": "UT",
+            "role": "Administrador",
+        }
+
+        return templates.TemplateResponse(
+            request=request,
+            name="orders/orders.html",
+            context={
+                "user": user,
+                "active_page": "orders",
+            },
+        )
+    @app.get("/tarefas", response_class=HTMLResponse, tags=["Frontend"])
+    def tasks_page(request: Request):
+        user = {
+            "name": "Usuário Teste",
+            "initials": "UT",
+            "role": "Administrador"
+        }
+
+        return templates.TemplateResponse(
+            request=request,
+            name="tasks/tasks.html",
+            context={
+                "user": user,
+                "active_page": "tasks"
             },
         )
 else:
