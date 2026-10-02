@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from ..database import get_db
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
 from .. import models, schemas
+from ..database import get_db
 from ..deps import get_current_user, require_role
 from ..models.user import UserRole
 
@@ -25,7 +26,7 @@ def create_order(
     # Criar registro principal do Pedido
     new_order = models.Order(
         type=order_data.type,
-        status=order_data.status
+        status=order_data.status,
     )
     db.add(new_order)
     db.flush()  # Gera o ID do pedido antes de inserir os itens
@@ -35,12 +36,15 @@ def create_order(
         product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
         if not product:
             db.rollback()
-            raise HTTPException(status_code=404, detail=f"Produto ID {item.product_id} não encontrado.")
-        
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Produto ID {item.product_id} não encontrado.",
+            )
+
         order_item = models.OrderItem(
             order_id=new_order.id,
             product_id=item.product_id,
-            quantity=item.quantity
+            quantity=item.quantity,
         )
         db.add(order_item)
 
@@ -48,21 +52,32 @@ def create_order(
     db.refresh(new_order)
     return new_order
 
+
 @router.get("/", response_model=List[schemas.OrderResponse])
-def list_orders(type: Optional[str] = None, status: Optional[str] = None, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def list_orders(
+    type: Optional[str] = None,
+    status_filter: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+):
     query = db.query(models.Order)
     if type:
         query = query.filter(models.Order.type == type)
-    if status:
-        query = query.filter(models.Order.status == status)
+    if status_filter:
+        query = query.filter(models.Order.status == status_filter)
     return query.offset(skip).limit(limit).all()
+
 
 @router.get("/{order_id}", response_model=schemas.OrderResponse)
 def get_order(order_id: int, db: Session = Depends(get_db)):
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
-        raise HTTPException(status_code=404, detail="Pedido não encontrado.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado."
+        )
     return order
+
 
 @router.put("/{order_id}", response_model=schemas.OrderResponse)
 def update_order(
@@ -73,8 +88,10 @@ def update_order(
 ):
     db_order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not db_order:
-        raise HTTPException(status_code=404, detail="Pedido não encontrado.")
-    
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado."
+        )
+
     update_data = order_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_order, key, value)
@@ -82,6 +99,7 @@ def update_order(
     db.commit()
     db.refresh(db_order)
     return db_order
+
 
 @router.delete("/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_order(
@@ -91,96 +109,128 @@ def delete_order(
 ):
     db_order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not db_order:
-        raise HTTPException(status_code=404, detail="Pedido não encontrado.")
-    
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado."
+        )
+
     db.delete(db_order)
     db.commit()
     return None
 
-# POST /orders/{id}/items
-@router.post("/{order_id}/items", response_model=schemas.OrderResponse, status_code=status.HTTP_201_CREATED)
-def add_item_to_order(
+
+# --- GERENCIAMENTO DE ITENS DO PEDIDO ---
+
+
+@router.post(
+    "/{order_id}/items",
+    response_model=schemas.OrderItemResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def add_order_item(
     order_id: int,
-    item_data: schemas.OrderItemCreate,
+    item: schemas.OrderItemCreate,
     db: Session = Depends(get_db),
     _: models.User = _write,
 ):
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
-        raise HTTPException(status_code=404, detail="Pedido não encontrado.")
-    
-    product = db.query(models.Product).filter(models.Product.id == item_data.product_id).first()
-    if not product:
-        raise HTTPException(status_code=404, detail=f"Produto ID {item_data.product_id} não encontrado.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado."
+        )
 
-    # Se o item já existir no pedido, incrementa a quantidade, caso contrário cria um novo
-    existing_item = db.query(models.OrderItem).filter(
-        models.OrderItem.order_id == order_id,
-        models.OrderItem.product_id == item_data.product_id
-    ).first()
+    product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Produto ID {item.product_id} não encontrado.",
+        )
+
+    # Verifica se já existe o mesmo produto no pedido
+    existing_item = (
+        db.query(models.OrderItem)
+        .filter(
+            models.OrderItem.order_id == order_id,
+            models.OrderItem.product_id == item.product_id,
+        )
+        .first()
+    )
 
     if existing_item:
-        existing_item.quantity += item_data.quantity
-    else:
-        new_item = models.OrderItem(
-            order_id=order_id,
-            product_id=item_data.product_id,
-            quantity=item_data.quantity
-        )
-        db.add(new_item)
+        existing_item.quantity += item.quantity
+        db.commit()
+        db.refresh(existing_item)
+        return existing_item
 
+    new_item = models.OrderItem(
+        order_id=order_id, product_id=item.product_id, quantity=item.quantity
+    )
+    db.add(new_item)
     db.commit()
-    db.refresh(order)
-    return order
+    db.refresh(new_item)
+    return new_item
 
 
-# PUT /orders/{id}/items/{product_id}
-@router.put("/{order_id}/items/{product_id}", response_model=schemas.OrderResponse)
+@router.put("/{order_id}/items/{item_id}", response_model=schemas.OrderItemResponse)
 def update_order_item(
     order_id: int,
-    product_id: int,
+    item_id: int,
     item_update: schemas.OrderItemUpdate,
     db: Session = Depends(get_db),
     _: models.User = _write,
 ):
-    item = db.query(models.OrderItem).filter(
-        models.OrderItem.order_id == order_id,
-        models.OrderItem.product_id == product_id
-    ).first()
+    db_item = (
+        db.query(models.OrderItem)
+        .filter(
+            models.OrderItem.id == item_id,
+            models.OrderItem.order_id == order_id,
+        )
+        .first()
+    )
 
-    if not item:
-        raise HTTPException(status_code=404, detail="Item do pedido não encontrado.")
+    if not db_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item não encontrado no pedido informado.",
+        )
 
-    item.quantity = item_update.quantity
+    db_item.quantity = item_update.quantity
     db.commit()
-
-    order = db.query(models.Order).filter(models.Order.id == order_id).first()
-    db.refresh(order)
-    return order
+    db.refresh(db_item)
+    return db_item
 
 
-# DELETE /orders/{id}/items/{product_id}
-@router.delete("/{order_id}/items/{product_id}", response_model=schemas.OrderResponse)
-def remove_order_item(
+@router.delete("/{order_id}/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_order_item(
     order_id: int,
-    product_id: int,
+    item_id: int,
     db: Session = Depends(get_db),
     _: models.User = _write,
 ):
-    item = db.query(models.OrderItem).filter(
-        models.OrderItem.order_id == order_id,
-        models.OrderItem.product_id == product_id
-    ).first()
+    db_item = (
+        db.query(models.OrderItem)
+        .filter(
+            models.OrderItem.id == item_id,
+            models.OrderItem.order_id == order_id,
+        )
+        .first()
+    )
 
-    if not item:
-        raise HTTPException(status_code=404, detail="Item do pedido não encontrado.")
+    if not db_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item não encontrado no pedido informado.",
+        )
 
-    # Garante que o pedido não fique sem itens se for regra de negócio
-    order = db.query(models.Order).filter(models.Order.id == order_id).first()
-    if len(order.items) <= 1:
-        raise HTTPException(status_code=400, detail="O pedido deve conter pelo menos um item.")
+    # Validação da regra de negócio: não remover o último item
+    total_items = (
+        db.query(models.OrderItem).filter(models.OrderItem.order_id == order_id).count()
+    )
+    if total_items <= 1:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Não é possível remover o último item. Um pedido deve conter ao menos um item. Cancele ou delete o pedido se necessário.",
+        )
 
-    db.delete(item)
+    db.delete(db_item)
     db.commit()
-    db.refresh(order)
-    return order
+    return None
