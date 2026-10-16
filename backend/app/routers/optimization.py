@@ -4,14 +4,24 @@ from typing import List, Optional
 
 from ..database import get_db
 from .. import models, schemas
+from ..deps import get_current_user, require_role
+from ..models.user import UserRole
 
 router = APIRouter(
     prefix="/optimization-results",
-    tags=["Optimization"]
+    tags=["Optimization"],
+    dependencies=[Depends(get_current_user)],
 )
 
+_write = Depends(require_role(UserRole.ADMIN, UserRole.GESTOR, UserRole.OPERADOR))
+
+
 @router.post("/", response_model=schemas.OptimizationResultResponse, status_code=status.HTTP_201_CREATED)
-def save_optimization_result(result: schemas.OptimizationResultCreate, db: Session = Depends(get_db)):
+def save_optimization_result(
+    result: schemas.OptimizationResultCreate,
+    db: Session = Depends(get_db),
+    _: models.User = _write,
+):
     # Valida se a tarefa vinculada existe
     task = db.query(models.Task).filter(models.Task.id == result.task_id).first()
     if not task:
@@ -67,7 +77,11 @@ def get_optimization_by_task(task_id: int, db: Session = Depends(get_db)):
     ).order_by(models.OptimizationResult.created_at.desc()).all()
 
 @router.delete("/{result_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_optimization_result(result_id: int, db: Session = Depends(get_db)):
+def delete_optimization_result(
+    result_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(require_role(UserRole.ADMIN, UserRole.GESTOR)),
+):
     result = db.query(models.OptimizationResult).filter(models.OptimizationResult.id == result_id).first()
     if not result:
         raise HTTPException(

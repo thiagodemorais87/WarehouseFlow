@@ -1,48 +1,57 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from ..database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
+
 from .. import models, schemas
-from ..deps import get_current_user, require_roles
+from ..database import get_db
+from ..deps import get_current_user, require_role
+from ..models.user import UserRole
 
 router = APIRouter(
     prefix="/tasks",
     tags=["Tasks"],
-    dependencies=[Depends(get_current_user)]
+    dependencies=[Depends(get_current_user)],
 )
+
+_write = Depends(require_role(UserRole.ADMIN, UserRole.GESTOR, UserRole.OPERADOR))
 
 
 def is_operator(user: models.User) -> bool:
     """True quando o usuário logado tem o perfil OPERADOR."""
+    role_name = getattr(user, "role_name", None)
+    if role_name:
+        return role_name.upper() == "OPERADOR"
     return user.role is not None and user.role.name == "OPERADOR"
 
 
-@router.post("/", response_model=schemas.TaskResponse, status_code=status.HTTP_201_CREATED,
-             dependencies=[Depends(require_roles("ADMIN", "GESTOR"))])
-def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
-    # Valida se o pedido vinculado existe
+@router.post("/", response_model=schemas.TaskResponse, status_code=status.HTTP_201_CREATED)
+def create_task(
+    task: schemas.TaskCreate,
+    db: Session = Depends(get_db),
+    _: models.User = _write,
+):
     order = db.query(models.Order).filter(models.Order.id == task.order_id).first()
     if not order:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Pedido de ID {task.order_id} não encontrado."
         )
-    
-    # Valida o operador se informado
+
     if task.assigned_user_id:
         user = db.query(models.User).filter(models.User.id == task.assigned_user_id).first()
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, 
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Usuário de ID {task.assigned_user_id} não encontrado."
             )
-        
+
     new_task = models.Task(**task.model_dump())
     db.add(new_task)
     db.commit()
     db.refresh(new_task)
     return new_task
+
 
 @router.get("/", response_model=List[schemas.TaskResponse])
 def list_tasks(
@@ -53,14 +62,13 @@ def list_tasks(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(get_current_user),
 ):
     query = db.query(models.Task)
 
-    # Operador enxerga apenas as tarefas atribuídas a ele
     if is_operator(current_user):
         query = query.filter(models.Task.assigned_user_id == current_user.id)
-    
+
     if task_type:
         query = query.filter(models.Task.type == task_type)
     if status_filter:
@@ -69,14 +77,15 @@ def list_tasks(
         query = query.filter(models.Task.assigned_user_id == assigned_user_id)
     if order_id:
         query = query.filter(models.Task.order_id == order_id)
-        
+
     return query.offset(skip).limit(limit).all()
+
 
 @router.get("/{task_id}", response_model=schemas.TaskResponse)
 def get_task(
     task_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(get_current_user),
 ):
     task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if not task:
@@ -87,12 +96,15 @@ def get_task(
 
     return task
 
+
 @router.put("/{task_id}", response_model=schemas.TaskResponse)
 def update_task(
     task_id: int,
     task_update: schemas.TaskUpdate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(
+        require_role(UserRole.ADMIN, UserRole.GESTOR, UserRole.OPERADOR)
+    ),
 ):
     db_task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if not db_task:
@@ -100,7 +112,6 @@ def update_task(
 
     update_data = task_update.model_dump(exclude_unset=True)
 
-    # Operador só altera as próprias tarefas e não pode reatribuí-las
     if is_operator(current_user):
         if db_task.assigned_user_id != current_user.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Esta tarefa não é sua.")
@@ -109,29 +120,33 @@ def update_task(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Operador não pode alterar o responsável pela tarefa."
             )
-    
+
     if "assigned_user_id" in update_data and update_data["assigned_user_id"] is not None:
         user = db.query(models.User).filter(models.User.id == update_data["assigned_user_id"]).first()
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, 
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail="Usuário operador atribuído não foi encontrado."
             )
 
     for key, value in update_data.items():
         setattr(db_task, key, value)
-        
+
     db.commit()
     db.refresh(db_task)
     return db_task
 
-@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT,
-               dependencies=[Depends(require_roles("ADMIN", "GESTOR"))])
-def delete_task(task_id: int, db: Session = Depends(get_db)):
+
+@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(require_role(UserRole.ADMIN, UserRole.GESTOR)),
+):
     db_task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if not db_task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tarefa não encontrada.")
-    
+
     db.delete(db_task)
     db.commit()
     return None

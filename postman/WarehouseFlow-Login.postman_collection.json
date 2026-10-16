@@ -1,0 +1,247 @@
+{
+  "info": {
+    "_postman_id": "f5629eb7-98a7-4a6a-a2d3-394166ce4478",
+    "name": "WarehouseFlow - Login",
+    "description": "Testes da rota POST /login. Configure as variaveis loginEmail e loginPassword com credenciais de um usuario existente antes de executar o teste de sucesso. Base URL padrao: http://localhost:8000.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "loginEmail",
+      "value": "admin@warehouseflow.com",
+      "type": "string"
+    },
+    {
+      "key": "loginPassword",
+      "value": "PREENCHA_COM_UMA_SENHA_VALIDA",
+      "type": "string"
+    },
+    {
+      "key": "invalidPassword",
+      "value": "senha-incorreta-para-teste",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Login com credenciais validas",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{loginEmail}}\",\n  \"password\": \"{{loginPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "login"
+          ]
+        },
+        "description": "Espera HTTP 200, access_token JWT e token_type bearer. O token retornado fica salvo na variavel de collection accessToken."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('retorna HTTP 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('retorna access_token e token_type bearer', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.access_token).to.be.a('string').and.not.empty;",
+              "  pm.expect(body.token_type).to.eql('bearer');",
+              "  pm.collectionVariables.set('accessToken', body.access_token);",
+              "});",
+              "",
+              "pm.test('access_token tem estrutura JWT', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.access_token.split('.')).to.have.lengthOf(3);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login com senha incorreta",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{loginEmail}}\",\n  \"password\": \"{{invalidPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "login"
+          ]
+        },
+        "description": "Espera HTTP 401 e WWW-Authenticate: Bearer para credenciais incorretas."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('retorna HTTP 401', function () {",
+              "  pm.response.to.have.status(401);",
+              "});",
+              "",
+              "pm.test('informa credenciais incorretas', function () {",
+              "  pm.expect(pm.response.json().detail).to.eql('E-mail ou senha incorretos.');",
+              "});",
+              "",
+              "pm.test('solicita autenticacao Bearer', function () {",
+              "  pm.expect(pm.response.headers.get('WWW-Authenticate')).to.eql('Bearer');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login com email invalido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"nao-e-um-email\",\n  \"password\": \"qualquer-senha\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "login"
+          ]
+        },
+        "description": "Valida a rejeicao de email fora do formato esperado pelo schema LoginRequest."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('retorna HTTP 422', function () {",
+              "  pm.response.to.have.status(422);",
+              "});",
+              "",
+              "pm.test('erro de validacao aponta para email', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.detail).to.be.an('array');",
+              "  const emailError = body.detail.some((issue) => (issue.loc || []).includes('email'));",
+              "  pm.expect(emailError).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login sem campos obrigatorios",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "login"
+          ]
+        },
+        "description": "Valida HTTP 422 e erros de campo obrigatorio para email e password."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('retorna HTTP 422', function () {",
+              "  pm.response.to.have.status(422);",
+              "});",
+              "",
+              "pm.test('indica email e password obrigatorios', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.detail).to.be.an('array');",
+              "  const fields = body.detail.map((issue) => issue.loc && issue.loc[issue.loc.length - 1]);",
+              "  pm.expect(fields).to.include('email');",
+              "  pm.expect(fields).to.include('password');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

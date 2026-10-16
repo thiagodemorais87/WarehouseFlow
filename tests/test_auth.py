@@ -5,9 +5,9 @@ Rodam sem Docker: usam um SQLite em memória no lugar do PostgreSQL.
 
 from datetime import timedelta
 
-import jwt
 import pytest
 from fastapi.testclient import TestClient
+from jose import jwt
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -110,7 +110,7 @@ def client():
 def login(client, who, password=None):
     return client.post(
         "/auth/login",
-        data={"username": f"{who}@teste.com", "password": password or PASSWORDS[who]},
+        json={"email": f"{who}@teste.com", "password": password or PASSWORDS[who]},
     )
 
 
@@ -140,7 +140,10 @@ def test_login_senha_errada_devolve_401(client):
 
 
 def test_login_email_inexistente_devolve_401(client):
-    resp = client.post("/auth/login", data={"username": "ninguem@teste.com", "password": "x12345"})
+    resp = client.post(
+        "/auth/login",
+        json={"email": "ninguem@teste.com", "password": "x12345"},
+    )
     assert resp.status_code == 401
 
 
@@ -171,12 +174,29 @@ def test_users_sem_token_devolve_401(client):
     assert client.get("/users/").status_code == 401
 
 
-def test_users_operador_devolve_403(client):
-    assert client.get("/users/", headers=auth(client, "operador")).status_code == 403
+def test_users_autenticado_pode_listar(client):
+    assert client.get("/users/", headers=auth(client, "operador")).status_code == 200
+    assert client.get("/users/", headers=auth(client, "gestor")).status_code == 200
 
 
-def test_users_gestor_devolve_403(client):
-    assert client.get("/users/", headers=auth(client, "gestor")).status_code == 403
+def test_users_operador_nao_cria(client):
+    novo = {
+        "name": "Bloqueado",
+        "email": "bloqueado@teste.com",
+        "password": "senha123",
+        "role_id": IDS["role_operador"],
+    }
+    assert client.post("/users/", json=novo, headers=auth(client, "operador")).status_code == 403
+
+
+def test_users_gestor_nao_cria(client):
+    novo = {
+        "name": "Bloqueado",
+        "email": "bloqueado2@teste.com",
+        "password": "senha123",
+        "role_id": IDS["role_operador"],
+    }
+    assert client.post("/users/", json=novo, headers=auth(client, "gestor")).status_code == 403
 
 
 def test_users_admin_lista_sem_expor_senha(client):
@@ -206,7 +226,10 @@ def test_admin_cria_usuario_com_senha_hasheada_e_ele_consegue_logar(client):
     db.close()
 
     # E o novo usuário consegue entrar com ela
-    resp = client.post("/auth/login", data={"username": "novo@teste.com", "password": "senha123"})
+    resp = client.post(
+        "/auth/login",
+        json={"email": "novo@teste.com", "password": "senha123"},
+    )
     assert resp.status_code == 200
 
 
@@ -291,10 +314,10 @@ def test_operador_nao_reatribui_tarefa(client):
     assert resp.status_code == 403
 
 
-def test_operador_nao_cria_tarefa(client):
+def test_operador_pode_criar_tarefa(client):
     nova = {"type": "PICKING", "order_id": 1}
     resp = client.post("/tasks/", json=nova, headers=auth(client, "operador"))
-    assert resp.status_code == 403
+    assert resp.status_code == 201
 
 
 # ---------------------------------------------------------------------------

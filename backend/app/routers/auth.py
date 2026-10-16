@@ -1,29 +1,46 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
-from .. import models, schemas
 from ..database import get_db
 from ..deps import get_current_user
+from ..models import User
+from ..schemas.user import AuthUserResponse, LoginRequest, TokenResponse
 from ..security import create_access_token, verify_password
 
-router = APIRouter(prefix="/auth", tags=["Autenticação"])
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-@router.post("/login", response_model=schemas.TokenResponse)
-def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db),
-):
-    # O formulário chama o campo de "username", mas aqui ele carrega o e-mail
-    user = db.query(models.User).filter(models.User.email == form_data.username).first()
+@router.post("/login", response_model=TokenResponse, summary="Autenticar usuário")
+def login(login_data: LoginRequest, db: Session = Depends(get_db)):
+    """
+    Realiza o login do usuário validando e-mail e senha.
+    Retorna o Token JWT caso as credenciais estejam corretas.
+    """
+    user = (
+        db.query(User)
+        .options(joinedload(User.role))
+        .filter(User.email == login_data.email)
+        .first()
+    )
 
-    # Mesma mensagem nos dois casos, para não revelar se o e-mail existe
-    if user is None or not verify_password(form_data.password, user.password_hash):
+    password_is_valid = False
+    if user:
+        try:
+            password_is_valid = verify_password(login_data.password, user.password_hash)
+        except (TypeError, ValueError):
+            password_is_valid = False
+
+    if not user or not password_is_valid:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="E-mail ou senha incorretos",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not getattr(user, "is_active", True):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Usuário inativo. Entre em contato com o administrador.",
         )
 
     if user.role is None:
@@ -32,11 +49,21 @@ def login(
             detail="Usuário sem perfil de acesso",
         )
 
-    token = create_access_token({"sub": str(user.id), "role": user.role.name})
-    return {"access_token": token, "token_type": "bearer"}
+    role_name = user.role_name or "OPERADOR"
+    access_token = create_access_token(
+        data={"sub": str(user.id), "email": user.email, "role": role_name}
+    )
+
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.get("/me", response_model=schemas.UserResponse)
-def me(current_user: models.User = Depends(get_current_user)):
-    # Devolve o usuário logado; a tela usa isso para saber o perfil
-    return current_user
+@router.get("/me", response_model=AuthUserResponse, summary="Usuário autenticado")
+def me(current_user: User = Depends(get_current_user)):
+    """Devolve o usuário logado; a tela usa isso para saber o perfil."""
+    return AuthUserResponse(
+        id=current_user.id,
+        name=current_user.name,
+        email=current_user.email,
+        role=current_user.role_name,
+        is_active=current_user.is_active,
+    )

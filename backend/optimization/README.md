@@ -59,7 +59,28 @@ Distâncias usam Manhattan: `|Δx| + |Δy|`.
 
 O 2-opt **nunca piora** a rota NN. A rota final **pode** ser pior que a original — o motor reporta isso honestamente.
 
-## Integração futura
+## Integração com a API
 
-A API FastAPI (`POST /optimization/route`) apenas adapta JSON → `Location` e chama `optimize_route`.
-Quando houver banco, um `OrderRouteProvider` buscará as posições do pedido e reutilizará o mesmo motor.
+A API FastAPI adapta JSON → `Location` e chama `optimize_route`:
+
+| Endpoint | Descrição |
+|----------|-----------|
+| `POST /optimization/route` | Body com `locations` explícitas |
+| `POST /optimization/route/by-order` | `order_id` → provider → mesmo motor |
+| `GET /optimization/orders/{id}/pick-locations` | Lista posições do pedido (helper) |
+
+`POST /optimization/route/by-order` usa `SqlAlchemyOrderRouteProvider` (OUTBOUND → itens → stock → location).  
+Coordenadas `(x, y)` são derivadas de aisle/rack/shelf/code — **sem alterar o schema do banco**.  
+`MemoryOrderRouteProvider` permanece para testes e overrides.
+
+Contrato completo: [`docs/optimization.md`](../../docs/optimization.md) (seções 15 e 17).
+
+### Cenários manuais rápidos
+
+| Cenário | Como |
+|---------|------|
+| Coordenadas no body (UI atual) | `POST /optimization/route` com `locations` |
+| Pedido seed OUTBOUND `id=1` | `POST /optimization/route/by-order` `{"order_id":1}` |
+| Listar posições antes de otimizar | `GET /optimization/orders/1/pick-locations` |
+| Pedido inexistente / INBOUND | HTTP 404 |
+| 0 posições no body | `locations: []` → distâncias 0 |

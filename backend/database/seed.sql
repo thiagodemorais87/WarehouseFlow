@@ -7,11 +7,11 @@ INSERT INTO roles (id, name) VALUES
 (3, 'GESTOR')
 ON CONFLICT (id) DO NOTHING;
 
--- 2. Users (senhas de desenvolvimento, hash bcrypt)
-INSERT INTO users (id, name, email, password_hash, role_id) VALUES
-(1, 'Carlos Admin', 'admin@warehouseflow.com', '$2b$12$9HFQfOWJoompC5V/CSI/Aumk7lVR6Ct7XtDhUuvuvpdt6s5S4EfNS', 1),
-(2, 'João Operador', 'joao.operador@warehouseflow.com', '$2b$12$UZbU5Mon6fFFwW.o3dTpOOi5hRX3M8bmUN/Qg0JZaotc21eZ0DH/a', 2),
-(3, 'Maria Gestora', 'maria.gestora@warehouseflow.com', '$2b$12$8MfSdQyKa6SN3ILWr6/5M.g9uhbztOlXvc54r0LSmKMYj2a/PDcMC', 3)
+-- 2. Users (senha de demo para todos: admin123)
+INSERT INTO users (id, name, email, password_hash, role_id, is_active) VALUES
+(1, 'Carlos Admin', 'admin@warehouseflow.com', '$2b$12$eWAsC4gL.YE8gu.DHlg.O.ns6du9JLtQURAkHIPwWtyflXCTEU66m', 1, TRUE),
+(2, 'João Operador', 'joao.operador@warehouseflow.com', '$2b$12$eWAsC4gL.YE8gu.DHlg.O.ns6du9JLtQURAkHIPwWtyflXCTEU66m', 2, TRUE),
+(3, 'Maria Gestora', 'maria.gestora@warehouseflow.com', '$2b$12$eWAsC4gL.YE8gu.DHlg.O.ns6du9JLtQURAkHIPwWtyflXCTEU66m', 3, TRUE)
 ON CONFLICT (id) DO NOTHING;
 
 -- 3. Warehouses

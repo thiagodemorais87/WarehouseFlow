@@ -105,3 +105,15 @@ def test_optimization_may_not_beat_original():
     # Não forçar melhoria artificial
     assert result.distance_reduction == result.distance_before - result.distance_after
     assert result.two_opt_distance <= result.nearest_neighbor_distance
+
+
+def test_duplicate_location_ids_raise_value_error():
+    import pytest
+
+    locations = [
+        Location(id="A01", x=1, y=1),
+        Location(id="B02", x=2, y=2),
+        Location(id="A01", x=3, y=3),
+    ]
+    with pytest.raises(ValueError, match="id duplicado"):
+        optimize_route(locations, start=START)

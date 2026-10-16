@@ -1,26 +1,35 @@
 from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from ..database import get_db
 from .. import models, schemas
-from ..deps import require_roles
-from ..security import hash_password  # Hash real de senhas (bcrypt)
+from ..database import get_db
+from ..deps import get_current_user, require_role
+from ..models.user import UserRole
+from ..security import hash_password
 
 router = APIRouter(
     prefix="/users",
     tags=["Users & Roles"],
-    dependencies=[Depends(require_roles("ADMIN"))]
+    dependencies=[Depends(get_current_user)],
 )
+
+_admin = Depends(require_role(UserRole.ADMIN))
+
 
 # --- ROLES ---
 
 @router.post("/roles/", response_model=schemas.RoleResponse, status_code=status.HTTP_201_CREATED)
-def create_role(role: schemas.RoleCreate, db: Session = Depends(get_db)):
+def create_role(
+    role: schemas.RoleCreate,
+    db: Session = Depends(get_db),
+    _: models.User = _admin,
+):
     db_role = db.query(models.Role).filter(models.Role.name == role.name.upper()).first()
     if db_role:
         raise HTTPException(status_code=400, detail="Cargo já cadastrado.")
-    
+
     new_role = models.Role(name=role.name.upper())
     db.add(new_role)
     db.commit()
@@ -36,7 +45,11 @@ def list_roles(db: Session = Depends(get_db)):
 # --- USERS ---
 
 @router.post("/", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+def create_user(
+    user: schemas.UserCreate,
+    db: Session = Depends(get_db),
+    _: models.User = _admin,
+):
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="E-mail já está em uso.")
@@ -46,12 +59,11 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         if not role:
             raise HTTPException(status_code=404, detail="Role não encontrada.")
 
-    # Hash real da senha com bcrypt
     hashed_password = hash_password(user.password)
 
     user_data = user.model_dump(exclude={"password"})
     new_user = models.User(**user_data, password_hash=hashed_password)
-    
+
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -63,7 +75,7 @@ def list_users(
     role_id: Optional[int] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     query = db.query(models.User)
     if role_id:
@@ -80,7 +92,12 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{user_id}", response_model=schemas.UserResponse)
-def update_user(user_id: int, user_update: schemas.UserUpdate, db: Session = Depends(get_db)):
+def update_user(
+    user_id: int,
+    user_update: schemas.UserUpdate,
+    db: Session = Depends(get_db),
+    _: models.User = _admin,
+):
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
@@ -88,7 +105,6 @@ def update_user(user_id: int, user_update: schemas.UserUpdate, db: Session = Dep
     update_data = user_update.model_dump(exclude_unset=True)
 
     if "password" in update_data:
-        # Atualização com hash real
         update_data["password_hash"] = hash_password(update_data.pop("password"))
 
     for key, value in update_data.items():
@@ -100,7 +116,11 @@ def update_user(user_id: int, user_update: schemas.UserUpdate, db: Session = Dep
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(user_id: int, db: Session = Depends(get_db)):
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = _admin,
+):
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")

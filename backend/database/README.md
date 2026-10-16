@@ -7,7 +7,7 @@ Esta pasta contém a modelagem, scripts DDL/DML e instruções de execução par
 ## 📁 Estrutura do Diretório
 
 ```text
-database/
+backend/database/
 ├── schema.sql    # Script DDL: Criação das tabelas, chaves e relacionamentos
 ├── seed.sql      # Script DML: Dados iniciais de teste (massa de dados)
 └── README.md     # Documentação do modelo de dados e instruções
@@ -152,14 +152,14 @@ createdb -U postgres warehouseflow
 Estando na raiz do projeto, rode o script para criar a estrutura completa de tabelas:
 
 ```bash
-psql -U postgres -d warehouseflow -f database/schema.sql
+psql -U postgres -d warehouseflow -f backend/database/schema.sql
 ```
 
 ### 3. Popular com a Massa de Testes (`seed.sql`)
 Execute o script DML para inserir os registros iniciais nas tabelas:
 
 ```bash
-psql -U postgres -d warehouseflow -f database/seed.sql
+psql -U postgres -d warehouseflow -f backend/database/seed.sql
 ```
 
 ---

@@ -173,6 +173,16 @@
     text-decoration: underline;
 }
 
+.login-message {
+    margin-bottom: 12px;
+    color: #b91c1c;
+    font-size: 14px;
+}
+
+.login-message:empty {
+    display: none;
+}
+
 /* Botão */
 
 .login-button {
