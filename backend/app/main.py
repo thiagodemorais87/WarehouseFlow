@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Optional
 
 from fastapi import Depends, FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -10,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from . import models
 from .database import engine, Base, get_db
+from .deps import get_current_user_or_none
 from .routers import auth, products, tasks, optimization, orders, stock, users, locations
 from .routes.optimization import router as optimization_engine_router
 from .security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, verify_password
@@ -77,6 +79,24 @@ if FRONTEND_DIR.exists():
             samesite="lax",  # não é enviado em requisições vindas de outros sites
             max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         )
+        return response
+
+    @app.get("/inicio", response_class=HTMLResponse, tags=["Frontend"])
+    def inicio_page(
+        request: Request,
+        user: Optional[models.User] = Depends(get_current_user_or_none),
+    ):
+        if user is None:
+            return RedirectResponse(url="/login", status_code=303)
+        role = user.role.name if user.role else None
+        return templates.TemplateResponse(
+            "inicio.html", {"request": request, "user": user, "role": role}
+        )
+
+    @app.post("/logout", tags=["Frontend"])
+    def logout():
+        response = RedirectResponse(url="/login", status_code=303)
+        response.delete_cookie("access_token")
         return response
 
 

@@ -295,3 +295,73 @@ def test_operador_nao_cria_tarefa(client):
     nova = {"type": "PICKING", "order_id": 1}
     resp = client.post("/tasks/", json=nova, headers=auth(client, "operador"))
     assert resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Tela de login (cookie, página inicial e logout)
+# ---------------------------------------------------------------------------
+
+def entrar_pela_tela(client, who):
+    """Envia o formulário de login. O cookie fica guardado no próprio client."""
+    return client.post(
+        "/login",
+        data={"email": f"{who}@teste.com", "password": PASSWORDS[who]},
+        follow_redirects=False,
+    )
+
+
+def test_pagina_de_login_carrega(client):
+    assert client.get("/login").status_code == 200
+
+
+def test_login_pela_tela_redireciona_e_grava_cookie(client):
+    resp = entrar_pela_tela(client, "admin")
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/inicio"
+    assert "access_token=" in resp.headers["set-cookie"]
+
+
+def test_login_pela_tela_com_senha_errada_mostra_erro(client):
+    resp = client.post(
+        "/login",
+        data={"email": "admin@teste.com", "password": "errada"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 401
+    assert "E-mail ou senha incorretos" in resp.text
+    assert "access_token" not in resp.headers.get("set-cookie", "")
+
+
+def test_inicio_sem_login_volta_para_o_login(client):
+    resp = client.get("/inicio", follow_redirects=False)
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/login"
+
+
+def test_menu_do_operador_nao_mostra_usuarios(client):
+    entrar_pela_tela(client, "operador")
+    resp = client.get("/inicio")
+    assert resp.status_code == 200
+    assert "Olá, Operador" in resp.text
+    assert "/users/" not in resp.text
+    assert "/locations/" not in resp.text
+
+
+def test_menu_do_admin_mostra_usuarios(client):
+    entrar_pela_tela(client, "admin")
+    resp = client.get("/inicio")
+    assert resp.status_code == 200
+    assert "/users/" in resp.text
+
+
+def test_api_aceita_o_cookie_depois_do_login(client):
+    entrar_pela_tela(client, "admin")
+    assert client.get("/users/").status_code == 200
+
+
+def test_logout_apaga_o_cookie(client):
+    entrar_pela_tela(client, "admin")
+    resp = client.post("/logout", follow_redirects=False)
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/login"
+    assert client.get("/inicio", follow_redirects=False).status_code == 303

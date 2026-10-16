@@ -49,3 +49,13 @@ def require_roles(*allowed_roles: str):
         return current_user
 
     return checker
+
+def get_current_user_or_none(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> Optional[models.User]:
+    """Versão para páginas: devolve o usuário logado ou None, sem levantar erro."""
+    try:
+        return get_current_user(request=request, token=None, db=db)
+    except HTTPException:
+        return None
