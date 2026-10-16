@@ -2,20 +2,26 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi import Depends, FastAPI, Form, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
 
-from .database import engine, Base
+from . import models
+from .database import engine, Base, get_db
 from .routers import auth, products, tasks, optimization, orders, stock, users, locations
 from .routes.optimization import router as optimization_engine_router
+from .security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, verify_password
 
 # Inicializa as tabelas no PostgreSQL
 Base.metadata.create_all(bind=engine)
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 FRONTEND_DIR = ROOT_DIR / "frontend"
+
+# Página para onde o usuário vai após logar (combinar com a Pessoa 4)
+POST_LOGIN_URL = "/inicio"
 
 app = FastAPI(
     title="WarehouseFlow API",
@@ -44,6 +50,34 @@ if FRONTEND_DIR.exists():
     @app.get("/login", response_class=HTMLResponse, tags=["Frontend"])
     def login_page(request: Request):
         return templates.TemplateResponse("auth/login.html", {"request": request})
+
+    @app.post("/login", response_class=HTMLResponse, tags=["Frontend"])
+    def login_submit(
+        request: Request,
+        email: str = Form(...),
+        password: str = Form(...),
+        db: Session = Depends(get_db),
+    ):
+        user = db.query(models.User).filter(models.User.email == email).first()
+
+        # Mesma mensagem para e-mail inexistente e senha errada
+        if user is None or user.role is None or not verify_password(password, user.password_hash):
+            return templates.TemplateResponse(
+                "auth/login.html",
+                {"request": request, "error": "E-mail ou senha incorretos.", "email": email},
+                status_code=401,
+            )
+
+        token = create_access_token({"sub": str(user.id), "role": user.role.name})
+        response = RedirectResponse(url=POST_LOGIN_URL, status_code=303)
+        response.set_cookie(
+            "access_token",
+            token,
+            httponly=True,   # o JavaScript da página não consegue ler o cookie
+            samesite="lax",  # não é enviado em requisições vindas de outros sites
+            max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        )
+        return response
 
 
 @app.get("/", tags=["Healthcheck"])
