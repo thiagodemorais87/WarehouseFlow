@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
 from optimization.types import Location
 
+from ..database import get_db
 from ..deps import get_current_user
 from ..models import User
-from ..providers.memory import MemoryOrderRouteProvider
+from ..providers.base import OrderRouteProvider
+from ..providers.sqlalchemy import SqlAlchemyOrderRouteProvider
 from ..schemas.optimization import (
     LocationSchema,
     PickLocationResponse,
@@ -22,12 +25,10 @@ from ..services.optimization_service import (
 
 router = APIRouter(prefix="/optimization", tags=["optimization"])
 
-# Provider em memória (Sprint 05). Na S06: SqlAlchemyOrderRouteProvider.
-_default_provider = MemoryOrderRouteProvider()
 
-
-def get_order_route_provider() -> MemoryOrderRouteProvider:
-    return _default_provider
+def get_order_route_provider(db: Session = Depends(get_db)) -> OrderRouteProvider:
+    """Provider Postgres (Sprint 06). Sobrescrevível nos testes."""
+    return SqlAlchemyOrderRouteProvider(db)
 
 
 def _to_response(result) -> RouteOptimizeResponse:
@@ -57,7 +58,7 @@ def optimize_route_endpoint(
 ) -> RouteOptimizeResponse:
     """Otimiza a sequência de picking a partir de localizações explícitas.
 
-    Endpoint principal da 1ª versão — não depende de PostgreSQL.
+    Endpoint principal consumido pelo frontend — não depende de PostgreSQL.
     Requer autenticação JWT.
     """
     try:
@@ -74,13 +75,9 @@ def optimize_route_endpoint(
 def optimize_route_by_order_endpoint(
     request: RouteOptimizeByOrderRequest,
     _: User = Depends(get_current_user),
-    provider: MemoryOrderRouteProvider = Depends(get_order_route_provider),
+    provider: OrderRouteProvider = Depends(get_order_route_provider),
 ) -> RouteOptimizeResponse:
-    """Otimiza a rota a partir de um order_id (ponte Sprint 05 → 06).
-
-    Na Sprint 05 usa MemoryOrderRouteProvider (catálogo acadêmico).
-    Na Sprint 06 o provider lerá pedido OUTBOUND → itens → posições no Postgres.
-    """
+    """Otimiza a rota a partir de um order_id OUTBOUND no Postgres."""
     try:
         result = optimize_from_order_id(
             request.order_id,
@@ -90,7 +87,7 @@ def optimize_route_by_order_endpoint(
     except KeyError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Pedido {request.order_id} não encontrado no catálogo de picking",
+            detail=str(exc),
         ) from exc
     except ValueError as exc:
         raise HTTPException(
@@ -107,15 +104,15 @@ def optimize_route_by_order_endpoint(
 def list_pick_locations_for_order(
     order_id: int,
     _: User = Depends(get_current_user),
-    provider: MemoryOrderRouteProvider = Depends(get_order_route_provider),
+    provider: OrderRouteProvider = Depends(get_order_route_provider),
 ) -> list[PickLocationResponse]:
-    """Lista posições de picking do pedido na ordem dos itens (helper S06)."""
+    """Lista posições de picking do pedido na ordem dos itens."""
     try:
         locations = get_pick_locations_for_order(order_id, provider)
     except KeyError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Pedido {order_id} não encontrado no catálogo de picking",
+            detail=str(exc),
         ) from exc
     return [
         PickLocationResponse(id=loc.id, x=loc.x, y=loc.y) for loc in locations
