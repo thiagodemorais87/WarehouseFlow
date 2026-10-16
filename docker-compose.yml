@@ -27,6 +27,7 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+psycopg2://warehouse:warehouse@db:5432/warehouseflow
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-me}
     volumes:
       - ./backend:/app/backend
       - ./frontend:/app/frontend

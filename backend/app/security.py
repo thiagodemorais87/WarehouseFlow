@@ -1,30 +1,37 @@
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from jose import JWTError, jwt
-from passlib.context import CryptContext
 
-# Configurações do JWT
-# Dica: Em produção, o ideal é carregar SECRET_KEY a partir de um arquivo .env
-SECRET_KEY = "sua_chave_secreta_super_segura_aqui"
+import bcrypt
+import jwt
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("A variável SECRET_KEY não foi encontrada no arquivo .env")
+
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 horas de validade
-
-# Contexto do Passlib para criptografia de senhas usando o algoritmo bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+ACCESS_TOKEN_EXPIRE_MINUTES = 480  # o token vale 8 horas
 
 
 def hash_password(password: str) -> str:
-    """Gera o hash seguro da senha fornecida em texto puro."""
-    return pwd_context.hash(password)
+    """Transforma a senha em hash para guardar no banco."""
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verifica se a senha fornecida no login bate com o hash armazenado."""
-    return pwd_context.verify(plain_password, hashed_password)
+    """Confere se a senha digitada bate com o hash salvo."""
+    try:
+        return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
+    except ValueError:
+        # hash inválido no banco: trata como senha errada
+        return False
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Gera o token JWT assinado contendo os dados do usuário (ex: sub, role)."""
+    """Cria o token JWT com os dados do usuário e uma data de validade."""
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
