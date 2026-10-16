@@ -3,7 +3,34 @@
 }
 
 .optimization-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
     margin-bottom: 24px;
+}
+
+.optimization-engine-status {
+    padding: 7px 11px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.optimization-engine-status[data-status="checking"] {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.optimization-engine-status[data-status="online"] {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.optimization-engine-status[data-status="offline"] {
+    background: #fef2f2;
+    color: #b91c1c;
 }
 
 .optimization-header h1 {
@@ -418,6 +445,7 @@
         padding: 18px;
     }
 
+    .optimization-header,
     .locations-header,
     .results-header {
         align-items: stretch;

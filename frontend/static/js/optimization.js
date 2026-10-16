@@ -12,6 +12,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const optimizeRouteButton = document.getElementById("optimizeRouteButton");
     const optimizationMessage = document.getElementById("optimizationMessage");
     const optimizationResults = document.getElementById("optimizationResults");
+    const optimizationEngineStatus = document.getElementById(
+        "optimizationEngineStatus"
+    );
+
+    let engineOnline = false;
 
     const startId = document.getElementById("startId");
     const startX = document.getElementById("startX");
@@ -79,6 +84,49 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         return false;
+    }
+
+
+    function setEngineStatus(status, label) {
+        engineOnline = status === "online";
+
+        if (optimizationEngineStatus) {
+            optimizationEngineStatus.dataset.status = status;
+            optimizationEngineStatus.textContent = label;
+        }
+
+        if (optimizeRouteButton) {
+            optimizeRouteButton.disabled = !engineOnline;
+        }
+    }
+
+
+    async function checkEngineHealth() {
+        setEngineStatus("checking", "Verificando motor...");
+
+        try {
+            const response = await fetch("/health");
+            let data = null;
+
+            try {
+                data = await response.json();
+            } catch {
+                data = null;
+            }
+
+            if (response.ok && data && data.status === "ok") {
+                const version = data.version ? ` (${data.version})` : "";
+                setEngineStatus("online", `Motor online${version}`);
+                return true;
+            }
+
+            setEngineStatus("offline", "Motor offline");
+            return false;
+        } catch (error) {
+            console.error("Erro ao verificar motor:", error);
+            setEngineStatus("offline", "Motor offline");
+            return false;
+        }
     }
 
 
@@ -306,6 +354,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         clearMessage();
 
+        if (!engineOnline) {
+            const online = await checkEngineHealth();
+            if (!online) {
+                showMessage("Motor de otimização indisponível.");
+                return;
+            }
+        }
+
         const locations = getLocations();
 
         if (!validateLocations(locations)) {
@@ -398,4 +454,6 @@ document.addEventListener("DOMContentLoaded", () => {
     createLocationRow({
         id: "B01"
     });
+
+    checkEngineHealth();
 });
