@@ -1,2 +1,7 @@
 # Dependências do backend — manter sincronizado com o requirements.txt da raiz.
 -r ../requirements.txt
+
+bcrypt>=4.0.0
+PyJWT>=2.8.0
+python-multipart>=0.0.9
+email-validator>=2.0.0

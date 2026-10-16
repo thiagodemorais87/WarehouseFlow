@@ -23,15 +23,13 @@ def create_order(
     db: Session = Depends(get_db),
     _: models.User = _write,
 ):
-    # Criar registro principal do Pedido
     new_order = models.Order(
         type=order_data.type,
         status=order_data.status,
     )
     db.add(new_order)
-    db.flush()  # Gera o ID do pedido antes de inserir os itens
+    db.flush()
 
-    # Validar produtos e vincular itens
     for item in order_data.items:
         product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
         if not product:
@@ -149,7 +147,6 @@ def add_order_item(
             detail=f"Produto ID {item.product_id} não encontrado.",
         )
 
-    # Verifica se já existe o mesmo produto no pedido
     existing_item = (
         db.query(models.OrderItem)
         .filter(
@@ -225,7 +222,6 @@ def delete_order_item(
             detail="Item não encontrado no pedido informado.",
         )
 
-    # Validação da regra de negócio: não remover o último item
     total_items = (
         db.query(models.OrderItem).filter(models.OrderItem.order_id == order_id).count()
     )

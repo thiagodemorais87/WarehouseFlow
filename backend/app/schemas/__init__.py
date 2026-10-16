@@ -156,7 +156,7 @@ class UserBase(BaseModel):
     role_id: Optional[int] = None
 
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=6, description="Senha do usuário")
+    password: str = Field(..., min_length=6, max_length=72, description="Senha do usuário")
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
@@ -172,6 +172,15 @@ class UserResponse(UserBase):
     role: Optional[RoleResponse] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
 
 # WAREHOUSE & LOCATION SCHEMAS
 

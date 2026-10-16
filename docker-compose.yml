@@ -30,8 +30,9 @@ services:
     environment:
       # Override host URL from .env: inside the network the DB is always `db:5432`
       DATABASE_URL: postgresql+psycopg2://warehouse:warehouse@db:5432/warehouseflow
-      SECRET_KEY: ${SECRET_KEY:-sua_chave_secreta_super_segura_aqui}
+      SECRET_KEY: ${SECRET_KEY:-altere-esta-chave-em-desenvolvimento}
       FRONTEND_DIR: /app/frontend
+
     volumes:
       - ./backend:/app/backend
       - ./frontend:/app/frontend

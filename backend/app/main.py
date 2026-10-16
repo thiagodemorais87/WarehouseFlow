@@ -3,14 +3,18 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
+from typing import Optional
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Form, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
 
-from .database import Base, engine
+from . import models
+from .database import Base, engine, get_db
+from .deps import get_current_user_or_none
 from .routers import (
     auth,
     locations,
@@ -22,6 +26,7 @@ from .routers import (
     users,
 )
 from .routers.optimization_engine import router as optimization_engine_router
+from .security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, verify_password
 
 # Inicializa as tabelas no PostgreSQL
 Base.metadata.create_all(bind=engine)
@@ -30,6 +35,9 @@ logger = logging.getLogger(__name__)
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 FRONTEND_DIR = Path(os.getenv("FRONTEND_DIR", str(ROOT_DIR / "frontend"))).resolve()
+
+# Página para onde o usuário vai após logar via formulário (cookie)
+POST_LOGIN_URL = "/inicio"
 
 app = FastAPI(
     title="WarehouseFlow API",
@@ -65,7 +73,7 @@ app.include_router(stock.router)
 app.include_router(users.router)
 app.include_router(locations.router)
 
-# Motor de otimização de picking (desacoplado do PostgreSQL nesta versão)
+# Motor de otimização de picking
 app.include_router(optimization_engine_router)
 
 # Frontend Jinja (login, dashboard, produtos, estoque, posições)
@@ -89,6 +97,62 @@ if FRONTEND_DIR.exists():
             name="auth/login.html",
             context={},
         )
+
+    @app.post("/login", response_class=HTMLResponse, tags=["Frontend"])
+    def login_submit(
+        request: Request,
+        email: str = Form(...),
+        password: str = Form(...),
+        db: Session = Depends(get_db),
+    ):
+        user = db.query(models.User).filter(models.User.email == email).first()
+
+        if (
+            user is None
+            or user.role is None
+            or not verify_password(password, user.password_hash)
+            or not getattr(user, "is_active", True)
+        ):
+            return templates.TemplateResponse(
+                request=request,
+                name="auth/login.html",
+                context={"error": "E-mail ou senha incorretos.", "email": email},
+                status_code=401,
+            )
+
+        role_name = user.role_name or (user.role.name if user.role else "OPERADOR")
+        token = create_access_token(
+            {"sub": str(user.id), "email": user.email, "role": role_name}
+        )
+        response = RedirectResponse(url=POST_LOGIN_URL, status_code=303)
+        response.set_cookie(
+            "access_token",
+            token,
+            httponly=True,
+            samesite="lax",
+            max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        )
+        return response
+
+    @app.get("/inicio", response_class=HTMLResponse, tags=["Frontend"])
+    def inicio_page(
+        request: Request,
+        user: Optional[models.User] = Depends(get_current_user_or_none),
+    ):
+        if user is None:
+            return RedirectResponse(url="/login", status_code=303)
+        role = user.role_name or (user.role.name if user.role else None)
+        return templates.TemplateResponse(
+            request=request,
+            name="inicio.html",
+            context={"user": user, "role": role},
+        )
+
+    @app.post("/logout", tags=["Frontend"])
+    def logout():
+        response = RedirectResponse(url="/login", status_code=303)
+        response.delete_cookie("access_token")
+        return response
 
     @app.get(
         "/dashboard",
@@ -194,12 +258,13 @@ if FRONTEND_DIR.exists():
                 "active_page": "orders",
             },
         )
+
     @app.get("/tarefas", response_class=HTMLResponse, tags=["Frontend"])
     def tasks_page(request: Request):
         user = {
             "name": "Usuário Teste",
             "initials": "UT",
-            "role": "Administrador"
+            "role": "Administrador",
         }
 
         return templates.TemplateResponse(
@@ -207,14 +272,14 @@ if FRONTEND_DIR.exists():
             name="tasks/tasks.html",
             context={
                 "user": user,
-                "active_page": "tasks"
+                "active_page": "tasks",
             },
         )
 
     @app.get(
-    "/otimizacao",
-    response_class=HTMLResponse,
-    tags=["Frontend"],
+        "/otimizacao",
+        response_class=HTMLResponse,
+        tags=["Frontend"],
     )
     def optimization_page(request: Request):
         user = {
@@ -231,7 +296,7 @@ if FRONTEND_DIR.exists():
                 "active_page": "optimization",
             },
         )
-        
+
 else:
     logger.warning(
         "FRONTEND_DIR não encontrado em %s — rotas HTML (/login, /dashboard, …) não serão registradas.",
