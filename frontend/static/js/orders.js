@@ -19,6 +19,11 @@ const orderItems = document.getElementById("orderItems");
 const addOrderItemButton = document.getElementById("addOrderItemButton");
 const orderFormMessage = document.getElementById("orderFormMessage");
 
+
+// ======================================================
+// DETALHES DO PEDIDO
+// ======================================================
+
 const orderDetailsModal =
     document.getElementById("orderDetailsModal");
 
@@ -46,6 +51,66 @@ const closeOrderDetailsModal =
 const closeOrderDetailsButton =
     document.getElementById("closeOrderDetailsButton");
 
+const addDetailOrderItemButton =
+    document.getElementById("addDetailOrderItemButton");
+
+
+// ======================================================
+// ADICIONAR ITEM A PEDIDO EXISTENTE
+// ======================================================
+
+const addOrderItemModal =
+    document.getElementById("addOrderItemModal");
+
+const closeAddOrderItemModal =
+    document.getElementById("closeAddOrderItemModal");
+
+const cancelAddOrderItemButton =
+    document.getElementById("cancelAddOrderItemButton");
+
+const addOrderItemForm =
+    document.getElementById("addOrderItemForm");
+
+const detailProductSelect =
+    document.getElementById("detailProductSelect");
+
+const detailProductQuantity =
+    document.getElementById("detailProductQuantity");
+
+const addOrderItemMessage =
+    document.getElementById("addOrderItemMessage");
+
+
+// ======================================================
+// EDITAR ITEM
+// ======================================================
+
+const editOrderItemModal =
+    document.getElementById("editOrderItemModal");
+
+const closeEditOrderItemModal =
+    document.getElementById("closeEditOrderItemModal");
+
+const cancelEditOrderItemButton =
+    document.getElementById("cancelEditOrderItemButton");
+
+const editOrderItemForm =
+    document.getElementById("editOrderItemForm");
+
+const editOrderItemProduct =
+    document.getElementById("editOrderItemProduct");
+
+const editOrderItemQuantity =
+    document.getElementById("editOrderItemQuantity");
+
+const editOrderItemMessage =
+    document.getElementById("editOrderItemMessage");
+
+
+// ======================================================
+// STATUS DO PEDIDO
+// ======================================================
+
 const orderStatusModal =
     document.getElementById("orderStatusModal");
 
@@ -67,15 +132,63 @@ const closeOrderStatusModal =
 const cancelOrderStatusButton =
     document.getElementById("cancelOrderStatusButton");
 
+
+// ======================================================
+// ESTADO
+// ======================================================
+
 let selectedOrderId = null;
+let selectedOrderItemId = null;
 
 let productsData = [];
-
 let ordersData = [];
+
 
 if (!token) {
     window.location.href = "/login";
 }
+
+
+// ======================================================
+// UTILITÁRIOS
+// ======================================================
+
+async function getErrorMessage(response, fallback) {
+    try {
+        const error = await response.json();
+
+        if (typeof error.detail === "string") {
+            return error.detail;
+        }
+
+        if (Array.isArray(error.detail)) {
+            return error.detail
+                .map(item => item.msg || "Erro de validação.")
+                .join(" ");
+        }
+
+        return fallback;
+    } catch {
+        return fallback;
+    }
+}
+
+
+function handleUnauthorized(response) {
+    if (response.status !== 401) {
+        return false;
+    }
+
+    localStorage.removeItem("access_token");
+    window.location.href = "/login";
+
+    return true;
+}
+
+
+// ======================================================
+// PEDIDOS
+// ======================================================
 
 async function loadOrders() {
     ordersMessage.style.display = "block";
@@ -88,17 +201,16 @@ async function loadOrders() {
             }
         });
 
-        if (response.status === 401) {
-            localStorage.removeItem("access_token");
-            window.location.href = "/login";
+        if (handleUnauthorized(response)) {
             return;
         }
 
         if (!response.ok) {
-            const error = await response.json();
-
             throw new Error(
-                error.detail || "Não foi possível carregar os pedidos."
+                await getErrorMessage(
+                    response,
+                    "Não foi possível carregar os pedidos."
+                )
             );
         }
 
@@ -113,6 +225,7 @@ async function loadOrders() {
         ordersMessage.textContent = error.message;
     }
 }
+
 
 function renderOrders(orders) {
     ordersTableBody.innerHTML = "";
@@ -153,6 +266,7 @@ function renderOrders(orders) {
 
             <td data-label="Ações">
                 <div class="order-actions">
+
                     <button
                         type="button"
                         class="order-detail-button"
@@ -168,6 +282,7 @@ function renderOrders(orders) {
                     >
                         Status
                     </button>
+
                 </div>
             </td>
         `;
@@ -175,6 +290,7 @@ function renderOrders(orders) {
         ordersTableBody.appendChild(row);
     });
 }
+
 
 function applyFilters() {
     const search = orderSearch.value
@@ -204,6 +320,11 @@ function applyFilters() {
     renderOrders(filteredOrders);
 }
 
+
+// ======================================================
+// FORMATAÇÃO
+// ======================================================
+
 function formatOrderType(type) {
     const types = {
         INBOUND: "Recebimento",
@@ -212,6 +333,7 @@ function formatOrderType(type) {
 
     return types[type] || type;
 }
+
 
 function formatOrderStatus(status) {
     const statuses = {
@@ -224,6 +346,7 @@ function formatOrderStatus(status) {
     return statuses[status] || status;
 }
 
+
 function getStatusClass(status) {
     const classes = {
         PENDING: "status-pending",
@@ -234,6 +357,7 @@ function getStatusClass(status) {
 
     return classes[status] || "";
 }
+
 
 function formatDate(date) {
     if (!date) {
@@ -255,6 +379,11 @@ function formatDate(date) {
     });
 }
 
+
+// ======================================================
+// PRODUTOS
+// ======================================================
+
 async function loadProducts() {
     const response = await fetch("/products/", {
         headers: {
@@ -262,19 +391,37 @@ async function loadProducts() {
         }
     });
 
-    if (!response.ok) {
-        const error = await response.json();
+    if (handleUnauthorized(response)) {
+        throw new Error("Sessão expirada.");
+    }
 
+    if (!response.ok) {
         throw new Error(
-            error.detail || "Não foi possível carregar os produtos."
+            await getErrorMessage(
+                response,
+                "Não foi possível carregar os produtos."
+            )
         );
     }
 
     productsData = await response.json();
 }
 
+
+function getProduct(productId) {
+    return productsData.find(
+        product => Number(product.id) === Number(productId)
+    );
+}
+
+
+// ======================================================
+// CRIAÇÃO DO PEDIDO
+// ======================================================
+
 function addOrderItem() {
     const item = document.createElement("div");
+
     item.className = "order-item-row";
 
     const options = productsData
@@ -320,6 +467,7 @@ function addOrderItem() {
     orderItems.appendChild(item);
 }
 
+
 async function openOrderModal() {
     orderForm.reset();
     orderItems.innerHTML = "";
@@ -347,6 +495,7 @@ async function openOrderModal() {
     }
 }
 
+
 function closeOrderForm() {
     orderModal.classList.remove("open");
 
@@ -357,6 +506,7 @@ function closeOrderForm() {
     orderFormMessage.className = "form-message";
 }
 
+
 newOrderButton.addEventListener("click", openOrderModal);
 
 closeOrderModal.addEventListener("click", closeOrderForm);
@@ -364,31 +514,40 @@ cancelOrderButton.addEventListener("click", closeOrderForm);
 
 addOrderItemButton.addEventListener("click", addOrderItem);
 
+
 orderModal.addEventListener("click", function (event) {
     if (event.target === orderModal) {
         closeOrderForm();
     }
 });
 
+
 orderItems.addEventListener("click", function (event) {
-    const removeButton = event.target.closest(".remove-order-item");
+    const removeButton =
+        event.target.closest(".remove-order-item");
 
     if (!removeButton) {
         return;
     }
 
-    const rows = orderItems.querySelectorAll(".order-item-row");
+    const rows =
+        orderItems.querySelectorAll(".order-item-row");
 
     if (rows.length === 1) {
         orderFormMessage.textContent =
             "O pedido deve possuir pelo menos um item.";
 
-        orderFormMessage.className = "form-message error";
+        orderFormMessage.className =
+            "form-message error";
+
         return;
     }
 
-    removeButton.closest(".order-item-row").remove();
+    removeButton
+        .closest(".order-item-row")
+        .remove();
 });
+
 
 orderForm.addEventListener("submit", async function (event) {
     event.preventDefault();
@@ -406,7 +565,9 @@ orderForm.addEventListener("submit", async function (event) {
         orderFormMessage.textContent =
             "Selecione o tipo do pedido.";
 
-        orderFormMessage.className = "form-message error";
+        orderFormMessage.className =
+            "form-message error";
+
         return;
     }
 
@@ -414,7 +575,9 @@ orderForm.addEventListener("submit", async function (event) {
         orderFormMessage.textContent =
             "Adicione pelo menos um item ao pedido.";
 
-        orderFormMessage.className = "form-message error";
+        orderFormMessage.className =
+            "form-message error";
+
         return;
     }
 
@@ -433,7 +596,9 @@ orderForm.addEventListener("submit", async function (event) {
             orderFormMessage.textContent =
                 "Selecione o produto de todos os itens.";
 
-            orderFormMessage.className = "form-message error";
+            orderFormMessage.className =
+                "form-message error";
+
             return;
         }
 
@@ -441,7 +606,9 @@ orderForm.addEventListener("submit", async function (event) {
             orderFormMessage.textContent =
                 "As quantidades devem ser números inteiros maiores que zero.";
 
-            orderFormMessage.className = "form-message error";
+            orderFormMessage.className =
+                "form-message error";
+
             return;
         }
 
@@ -467,11 +634,16 @@ orderForm.addEventListener("submit", async function (event) {
             })
         });
 
-        if (!response.ok) {
-            const error = await response.json();
+        if (handleUnauthorized(response)) {
+            return;
+        }
 
+        if (!response.ok) {
             throw new Error(
-                error.detail || "Não foi possível criar o pedido."
+                await getErrorMessage(
+                    response,
+                    "Não foi possível criar o pedido."
+                )
             );
         }
 
@@ -485,44 +657,50 @@ orderForm.addEventListener("submit", async function (event) {
     }
 });
 
+
+// ======================================================
+// DETALHES DO PEDIDO
+// ======================================================
+
 async function openOrderDetails(orderId) {
+    selectedOrderId = Number(orderId);
+
     orderDetailsMessage.textContent = "";
     orderDetailsMessage.className = "form-message";
 
     detailOrderItems.innerHTML = "";
 
     try {
-        const response = await fetch(`/orders/${orderId}`, {
-            headers: {
-                "Authorization": `Bearer ${token}`
+        const response = await fetch(
+            `/orders/${selectedOrderId}`,
+            {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
             }
-        });
+        );
 
-        if (response.status === 401) {
-            localStorage.removeItem("access_token");
-            window.location.href = "/login";
+        if (handleUnauthorized(response)) {
             return;
         }
 
         if (!response.ok) {
-            const error = await response.json();
-
             throw new Error(
-                error.detail || "Não foi possível carregar o pedido."
+                await getErrorMessage(
+                    response,
+                    "Não foi possível carregar o pedido."
+                )
             );
         }
 
         const order = await response.json();
 
-        /*
-         * Se a pessoa abrir Detalhes antes de Novo pedido,
-         * productsData ainda pode estar vazio.
-         */
         if (!productsData.length) {
             await loadProducts();
         }
 
-        orderDetailsTitle.textContent = `Pedido #${order.id}`;
+        orderDetailsTitle.textContent =
+            `Pedido #${order.id}`;
 
         detailOrderType.textContent =
             formatOrderType(order.type);
@@ -541,9 +719,11 @@ async function openOrderDetails(orderId) {
         orderDetailsModal.classList.add("open");
 
     } catch (error) {
+        selectedOrderId = null;
         alert(error.message);
     }
 }
+
 
 function renderOrderDetailItems(items) {
     detailOrderItems.innerHTML = "";
@@ -559,9 +739,7 @@ function renderOrderDetailItems(items) {
     }
 
     items.forEach(item => {
-        const product = productsData.find(
-            product => Number(product.id) === Number(item.product_id)
-        );
+        const product = getProduct(item.product_id);
 
         const element = document.createElement("div");
 
@@ -582,31 +760,45 @@ function renderOrderDetailItems(items) {
                 <span>Quantidade</span>
                 <strong>${item.quantity}</strong>
             </div>
+
+            <div class="order-detail-item-actions">
+
+                <button
+                    type="button"
+                    class="edit-detail-item"
+                    data-item-id="${item.id}"
+                    data-product-id="${item.product_id}"
+                    data-quantity="${item.quantity}"
+                >
+                    Editar
+                </button>
+
+                <button
+                    type="button"
+                    class="delete-detail-item"
+                    data-item-id="${item.id}"
+                >
+                    Remover
+                </button>
+
+            </div>
         `;
 
         detailOrderItems.appendChild(element);
     });
 }
 
-ordersTableBody.addEventListener("click", function (event) {
-    const detailButton =
-        event.target.closest(".order-detail-button");
-
-    if (detailButton) {
-        openOrderDetails(detailButton.dataset.id);
-    }
-
-    const statusButton =
-    event.target.closest(".order-status-button");
-
-if (statusButton) {
-    openOrderStatus(statusButton.dataset.id);
-}
-});
 
 function closeOrderDetails() {
     orderDetailsModal.classList.remove("open");
+
+    selectedOrderId = null;
+    selectedOrderItemId = null;
+
+    orderDetailsMessage.textContent = "";
+    orderDetailsMessage.className = "form-message";
 }
+
 
 closeOrderDetailsModal.addEventListener(
     "click",
@@ -618,11 +810,446 @@ closeOrderDetailsButton.addEventListener(
     closeOrderDetails
 );
 
+
 orderDetailsModal.addEventListener("click", function (event) {
     if (event.target === orderDetailsModal) {
         closeOrderDetails();
     }
 });
+
+
+// ======================================================
+// ADICIONAR PRODUTO A PEDIDO EXISTENTE
+// ======================================================
+
+async function openAddOrderItemModal() {
+    if (!selectedOrderId) {
+        return;
+    }
+
+    addOrderItemForm.reset();
+
+    detailProductQuantity.value = 1;
+
+    addOrderItemMessage.textContent = "";
+    addOrderItemMessage.className = "form-message";
+
+    try {
+        if (!productsData.length) {
+            await loadProducts();
+        }
+
+        if (!productsData.length) {
+            throw new Error(
+                "Nenhum produto cadastrado."
+            );
+        }
+
+        detailProductSelect.innerHTML = `
+            <option value="">
+                Selecione um produto
+            </option>
+
+            ${productsData.map(product => `
+                <option value="${product.id}">
+                    ${product.sku} - ${product.name}
+                </option>
+            `).join("")}
+        `;
+
+        addOrderItemModal.classList.add("open");
+
+    } catch (error) {
+        orderDetailsMessage.textContent =
+            error.message;
+
+        orderDetailsMessage.className =
+            "form-message error";
+    }
+}
+
+
+function closeAddItemModal() {
+    addOrderItemModal.classList.remove("open");
+
+    addOrderItemForm.reset();
+
+    addOrderItemMessage.textContent = "";
+    addOrderItemMessage.className = "form-message";
+}
+
+
+addDetailOrderItemButton.addEventListener(
+    "click",
+    openAddOrderItemModal
+);
+
+closeAddOrderItemModal.addEventListener(
+    "click",
+    closeAddItemModal
+);
+
+cancelAddOrderItemButton.addEventListener(
+    "click",
+    closeAddItemModal
+);
+
+
+addOrderItemModal.addEventListener(
+    "click",
+    function (event) {
+        if (event.target === addOrderItemModal) {
+            closeAddItemModal();
+        }
+    }
+);
+
+
+addOrderItemForm.addEventListener(
+    "submit",
+    async function (event) {
+        event.preventDefault();
+
+        addOrderItemMessage.textContent = "";
+        addOrderItemMessage.className = "form-message";
+
+        if (!selectedOrderId) {
+            return;
+        }
+
+        const productId =
+            Number(detailProductSelect.value);
+
+        const quantity =
+            Number(detailProductQuantity.value);
+
+        if (!productId) {
+            addOrderItemMessage.textContent =
+                "Selecione um produto.";
+
+            addOrderItemMessage.className =
+                "form-message error";
+
+            return;
+        }
+
+        if (!Number.isInteger(quantity) || quantity <= 0) {
+            addOrderItemMessage.textContent =
+                "A quantidade deve ser um número inteiro maior que zero.";
+
+            addOrderItemMessage.className =
+                "form-message error";
+
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `/orders/${selectedOrderId}/items`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+
+                    body: JSON.stringify({
+                        product_id: productId,
+                        quantity: quantity
+                    })
+                }
+            );
+
+            if (handleUnauthorized(response)) {
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(
+                    await getErrorMessage(
+                        response,
+                        "Não foi possível adicionar o produto."
+                    )
+                );
+            }
+
+            closeAddItemModal();
+
+            await openOrderDetails(selectedOrderId);
+            await loadOrders();
+
+        } catch (error) {
+            addOrderItemMessage.textContent =
+                error.message;
+
+            addOrderItemMessage.className =
+                "form-message error";
+        }
+    }
+);
+
+
+// ======================================================
+// EDITAR ITEM
+// ======================================================
+
+function openEditOrderItem(button) {
+    if (!selectedOrderId) {
+        return;
+    }
+
+    selectedOrderItemId =
+        Number(button.dataset.itemId);
+
+    const productId =
+        Number(button.dataset.productId);
+
+    const quantity =
+        Number(button.dataset.quantity);
+
+    const product = getProduct(productId);
+
+    editOrderItemProduct.textContent =
+        product
+            ? `${product.sku} - ${product.name}`
+            : `Produto #${productId}`;
+
+    editOrderItemQuantity.value = quantity;
+
+    editOrderItemMessage.textContent = "";
+    editOrderItemMessage.className = "form-message";
+
+    editOrderItemModal.classList.add("open");
+}
+
+
+function closeEditItemModal() {
+    editOrderItemModal.classList.remove("open");
+
+    selectedOrderItemId = null;
+
+    editOrderItemForm.reset();
+
+    editOrderItemMessage.textContent = "";
+    editOrderItemMessage.className = "form-message";
+}
+
+
+closeEditOrderItemModal.addEventListener(
+    "click",
+    closeEditItemModal
+);
+
+cancelEditOrderItemButton.addEventListener(
+    "click",
+    closeEditItemModal
+);
+
+
+editOrderItemModal.addEventListener(
+    "click",
+    function (event) {
+        if (event.target === editOrderItemModal) {
+            closeEditItemModal();
+        }
+    }
+);
+
+
+editOrderItemForm.addEventListener(
+    "submit",
+    async function (event) {
+        event.preventDefault();
+
+        editOrderItemMessage.textContent = "";
+        editOrderItemMessage.className = "form-message";
+
+        if (!selectedOrderId || !selectedOrderItemId) {
+            return;
+        }
+
+        const quantity =
+            Number(editOrderItemQuantity.value);
+
+        if (!Number.isInteger(quantity) || quantity <= 0) {
+            editOrderItemMessage.textContent =
+                "A quantidade deve ser um número inteiro maior que zero.";
+
+            editOrderItemMessage.className =
+                "form-message error";
+
+            return;
+        }
+
+        try {
+            const orderId = selectedOrderId;
+
+            const response = await fetch(
+                `/orders/${orderId}/items/${selectedOrderItemId}`,
+                {
+                    method: "PUT",
+
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+
+                    body: JSON.stringify({
+                        quantity: quantity
+                    })
+                }
+            );
+
+            if (handleUnauthorized(response)) {
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(
+                    await getErrorMessage(
+                        response,
+                        "Não foi possível atualizar o item."
+                    )
+                );
+            }
+
+            closeEditItemModal();
+
+            await openOrderDetails(orderId);
+            await loadOrders();
+
+        } catch (error) {
+            editOrderItemMessage.textContent =
+                error.message;
+
+            editOrderItemMessage.className =
+                "form-message error";
+        }
+    }
+);
+
+
+// ======================================================
+// REMOVER ITEM
+// ======================================================
+
+async function deleteOrderItem(itemId) {
+    if (!selectedOrderId) {
+        return;
+    }
+
+    const confirmed = window.confirm(
+        "Deseja realmente remover este produto do pedido?"
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    orderDetailsMessage.textContent = "";
+    orderDetailsMessage.className = "form-message";
+
+    try {
+        const orderId = selectedOrderId;
+
+        const response = await fetch(
+            `/orders/${orderId}/items/${itemId}`,
+            {
+                method: "DELETE",
+
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            }
+        );
+
+        if (handleUnauthorized(response)) {
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(
+                await getErrorMessage(
+                    response,
+                    "Não foi possível remover o item."
+                )
+            );
+        }
+
+        await openOrderDetails(orderId);
+        await loadOrders();
+
+    } catch (error) {
+        orderDetailsMessage.textContent =
+            error.message;
+
+        orderDetailsMessage.className =
+            "form-message error";
+    }
+}
+
+
+// ======================================================
+// AÇÕES DOS ITENS NOS DETALHES
+// ======================================================
+
+detailOrderItems.addEventListener(
+    "click",
+    function (event) {
+        const editButton =
+            event.target.closest(".edit-detail-item");
+
+        if (editButton) {
+            openEditOrderItem(editButton);
+            return;
+        }
+
+        const deleteButton =
+            event.target.closest(".delete-detail-item");
+
+        if (deleteButton) {
+            deleteOrderItem(
+                Number(deleteButton.dataset.itemId)
+            );
+        }
+    }
+);
+
+
+// ======================================================
+// AÇÕES DA TABELA DE PEDIDOS
+// ======================================================
+
+ordersTableBody.addEventListener(
+    "click",
+    function (event) {
+        const detailButton =
+            event.target.closest(".order-detail-button");
+
+        if (detailButton) {
+            openOrderDetails(
+                detailButton.dataset.id
+            );
+
+            return;
+        }
+
+        const statusButton =
+            event.target.closest(".order-status-button");
+
+        if (statusButton) {
+            openOrderStatus(
+                statusButton.dataset.id
+            );
+        }
+    }
+);
+
+
+// ======================================================
+// STATUS
+// ======================================================
 
 function openOrderStatus(orderId) {
     const order = ordersData.find(
@@ -646,6 +1273,7 @@ function openOrderStatus(orderId) {
     orderStatusModal.classList.add("open");
 }
 
+
 function closeOrderStatus() {
     orderStatusModal.classList.remove("open");
 
@@ -655,51 +1283,63 @@ function closeOrderStatus() {
     orderStatusMessage.className = "form-message";
 }
 
-orderStatusForm.addEventListener("submit", async function (event) {
-    event.preventDefault();
 
-    orderStatusMessage.textContent = "";
-    orderStatusMessage.className = "form-message";
+orderStatusForm.addEventListener(
+    "submit",
+    async function (event) {
+        event.preventDefault();
 
-    if (!selectedOrderId) {
-        return;
-    }
+        orderStatusMessage.textContent = "";
+        orderStatusMessage.className = "form-message";
 
-    try {
-        const response = await fetch(
-            `/orders/${selectedOrderId}`,
-            {
-                method: "PUT",
-
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-
-                body: JSON.stringify({
-                    status: newOrderStatus.value
-                })
-            }
-        );
-
-        if (!response.ok) {
-            const error = await response.json();
-
-            throw new Error(
-                error.detail ||
-                "Não foi possível alterar o status do pedido."
-            );
+        if (!selectedOrderId) {
+            return;
         }
 
-        closeOrderStatus();
+        try {
+            const response = await fetch(
+                `/orders/${selectedOrderId}`,
+                {
+                    method: "PUT",
 
-        await loadOrders();
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
 
-    } catch (error) {
-        orderStatusMessage.textContent = error.message;
-        orderStatusMessage.className = "form-message error";
+                    body: JSON.stringify({
+                        status: newOrderStatus.value
+                    })
+                }
+            );
+
+            if (handleUnauthorized(response)) {
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(
+                    await getErrorMessage(
+                        response,
+                        "Não foi possível alterar o status do pedido."
+                    )
+                );
+            }
+
+            closeOrderStatus();
+
+            await loadOrders();
+
+        } catch (error) {
+            orderStatusMessage.textContent =
+                error.message;
+
+            orderStatusMessage.className =
+                "form-message error";
+        }
     }
-});
+);
+
 
 closeOrderStatusModal.addEventListener(
     "click",
@@ -711,14 +1351,39 @@ cancelOrderStatusButton.addEventListener(
     closeOrderStatus
 );
 
-orderStatusModal.addEventListener("click", function (event) {
-    if (event.target === orderStatusModal) {
-        closeOrderStatus();
-    }
-});
 
-orderSearch.addEventListener("input", applyFilters);
-orderTypeFilter.addEventListener("change", applyFilters);
-orderStatusFilter.addEventListener("change", applyFilters);
+orderStatusModal.addEventListener(
+    "click",
+    function (event) {
+        if (event.target === orderStatusModal) {
+            closeOrderStatus();
+        }
+    }
+);
+
+
+// ======================================================
+// FILTROS
+// ======================================================
+
+orderSearch.addEventListener(
+    "input",
+    applyFilters
+);
+
+orderTypeFilter.addEventListener(
+    "change",
+    applyFilters
+);
+
+orderStatusFilter.addEventListener(
+    "change",
+    applyFilters
+);
+
+
+// ======================================================
+// INICIALIZAÇÃO
+// ======================================================
 
 loadOrders();

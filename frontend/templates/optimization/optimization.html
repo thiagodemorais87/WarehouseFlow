@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}Otimização | WarehouseFlow{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/static/css/optimization.css">
+{% endblock %}
+
+{% block content %}
+
+<section class="optimization-page">
+
+    <div class="optimization-header">
+        <div>
+            <h1>Otimização de Rotas</h1>
+            <p>Calcule a melhor sequência de picking para reduzir a distância percorrida no armazém.</p>
+        </div>
+    </div>
+
+    <div class="optimization-card">
+
+        <div class="optimization-card-header">
+            <div>
+                <h2>Configuração da rota</h2>
+                <p>Informe o ponto de partida e as localizações que devem ser visitadas.</p>
+            </div>
+        </div>
+
+        <form id="optimizationForm">
+
+            <div class="optimization-section">
+                <div class="section-title">
+                    <h3>Ponto de partida</h3>
+                    <p>Local onde a rota de picking será iniciada.</p>
+                </div>
+
+                <div class="start-location-grid">
+
+                    <div class="form-group">
+                        <label for="startId">Identificador</label>
+                        <input
+                            type="text"
+                            id="startId"
+                            value="START"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="startX">Coordenada X</label>
+                        <input
+                            type="number"
+                            id="startX"
+                            value="0"
+                            step="any"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="startY">Coordenada Y</label>
+                        <input
+                            type="number"
+                            id="startY"
+                            value="0"
+                            step="any"
+                            required
+                        >
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="optimization-section">
+
+                <div class="locations-header">
+                    <div class="section-title">
+                        <h3>Localizações</h3>
+                        <p>Adicione os pontos que deverão fazer parte da rota.</p>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="button-secondary"
+                        id="addLocationButton"
+                    >
+                        + Adicionar localização
+                    </button>
+                </div>
+
+                <div id="optimizationLocations"></div>
+
+            </div>
+
+            <div
+                class="optimization-message"
+                id="optimizationMessage"
+            ></div>
+
+            <div class="optimization-actions">
+                <button
+                    type="submit"
+                    class="button-primary"
+                    id="optimizeRouteButton"
+                >
+                    Otimizar rota
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <div
+        class="optimization-results"
+        id="optimizationResults"
+        hidden
+    >
+
+        <div class="results-header">
+            <div>
+                <h2>Resultado da otimização</h2>
+                <p>Comparação entre a rota original e a rota otimizada.</p>
+            </div>
+
+            <span class="optimization-success">
+                Rota otimizada
+            </span>
+        </div>
+
+
+        <div class="optimization-metrics">
+
+            <div class="metric-card">
+                <span>Distância original</span>
+                <strong id="distanceBefore">—</strong>
+            </div>
+
+            <div class="metric-card">
+                <span>Distância otimizada</span>
+                <strong id="distanceAfter">—</strong>
+            </div>
+
+            <div class="metric-card">
+                <span>Distância economizada</span>
+                <strong id="distanceReduction">—</strong>
+            </div>
+
+            <div class="metric-card">
+                <span>Redução</span>
+                <strong id="reductionPercent">—</strong>
+            </div>
+
+        </div>
+
+
+        <div class="routes-comparison">
+
+            <div class="route-card">
+                <div class="route-card-header">
+                    <div>
+                        <span class="route-step">Etapa 1</span>
+                        <h3>Rota original</h3>
+                    </div>
+
+                    <strong id="originalDistance">—</strong>
+                </div>
+
+                <div
+                    class="route-path"
+                    id="originalRoute"
+                ></div>
+            </div>
+
+
+            <div class="route-card">
+                <div class="route-card-header">
+                    <div>
+                        <span class="route-step">Etapa 2</span>
+                        <h3>Vizinho mais próximo</h3>
+                    </div>
+
+                    <strong id="nearestNeighborDistance">—</strong>
+                </div>
+
+                <div
+                    class="route-path"
+                    id="nearestNeighborRoute"
+                ></div>
+            </div>
+
+
+            <div class="route-card route-card-highlight">
+                <div class="route-card-header">
+                    <div>
+                        <span class="route-step">Etapa 3</span>
+                        <h3>Rota otimizada (2-opt)</h3>
+                    </div>
+
+                    <strong id="twoOptDistance">—</strong>
+                </div>
+
+                <div
+                    class="route-path"
+                    id="twoOptRoute"
+                ></div>
+            </div>
+
+        </div>
+
+
+        <div class="optimization-info">
+
+            <div>
+                <span>Localizações processadas</span>
+                <strong id="locationsCount">—</strong>
+            </div>
+
+            <div>
+                <span>Tempo de execução</span>
+                <strong id="executionTime">—</strong>
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+{% endblock %}
+
+
+{% block scripts %}
+<script src="/static/js/optimization.js"></script>
+{% endblock %}
