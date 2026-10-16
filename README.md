@@ -323,6 +323,17 @@ O Postgres aplica `backend/database/schema.sql` + `seed.sql` na primeira inicial
 Volumes montam `backend/` e `frontend/` com hot-reload (`--reload`) no serviço `api`.
 O serviço `frontend` (nginx) faz proxy de tudo em `:8080` para a API, mantendo as URLs relativas do JS.
 
+#### Versão do projeto (`APP_VERSION`)
+
+A imagem da API e o endpoint `/health` expõem a versão alinhada à tag/GitHub Release.
+
+1. No `.env`, defina `APP_VERSION` igual à tag da release (ex.: `v1.0.0`). Sem release, use `dev` (padrão do `.env.example`).
+2. No GitHub: crie uma tag `vX.Y.Z` e uma **Release** (*Releases → New release*).
+3. Suba de novo com `docker compose up --build` e confira:
+   * `GET http://127.0.0.1:8000/health` → `{"status":"ok","version":"v1.0.0"}`
+   * Swagger (`/docs`) mostra a mesma versão no título da API
+   * Labels da imagem: `org.opencontainers.image.version` (via `docker inspect warehouseflow-api`)
+
 ### Opção B — API no host + banco no Docker
 
 ```bash

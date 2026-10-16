@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 FRONTEND_DIR = Path(os.getenv("FRONTEND_DIR", str(ROOT_DIR / "frontend"))).resolve()
+APP_VERSION = os.getenv("APP_VERSION", "dev")
 
 # Página para onde o usuário vai após logar via formulário (cookie)
 POST_LOGIN_URL = "/inicio"
@@ -42,7 +43,7 @@ POST_LOGIN_URL = "/inicio"
 app = FastAPI(
     title="WarehouseFlow API",
     description="API inteligente para gerenciamento e otimização de operações em armazéns.",
-    version="1.0.0",
+    version=APP_VERSION,
 )
 
 
@@ -312,4 +313,4 @@ def root():
 
 @app.get("/health", tags=["Healthcheck"])
 def health() -> dict[str, str]:
-    return {"status": "ok"}
+    return {"status": "ok", "version": APP_VERSION}

@@ -20,7 +20,11 @@ services:
       retries: 10
 
   api:
-    build: .
+    image: warehouseflow-api:${APP_VERSION:-dev}
+    build:
+      context: .
+      args:
+        APP_VERSION: ${APP_VERSION:-dev}
     container_name: warehouseflow-api
     restart: unless-stopped
     ports:
@@ -32,7 +36,10 @@ services:
       DATABASE_URL: postgresql+psycopg2://warehouse:warehouse@db:5432/warehouseflow
       SECRET_KEY: ${SECRET_KEY:-altere-esta-chave-em-desenvolvimento}
       FRONTEND_DIR: /app/frontend
-
+      APP_VERSION: ${APP_VERSION:-dev}
+    labels:
+      org.opencontainers.image.title: WarehouseFlow
+      org.opencontainers.image.version: ${APP_VERSION:-dev}
     volumes:
       - ./backend:/app/backend
       - ./frontend:/app/frontend
