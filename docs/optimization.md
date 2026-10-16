@@ -112,8 +112,9 @@ Não usamos OR-Tools, NetworkX nem solvers comerciais: o diferencial acadêmico 
 - Uma visita por posição; não modela múltiplas unidades no mesmo ponto além da própria posição.
 - Heurística: não garante ótimo global.
 - Rota final pode ser pior que a original em casos patológicos (reportado honestamente).
-- Integração com pedidos reais no banco ainda é futura (`SqlAlchemyOrderRouteProvider` na Sprint 06).
-  Na Sprint 05 existe ponte via `MemoryOrderRouteProvider` + `POST /optimization/route/by-order`.
+- Integração com pedidos reais: `SqlAlchemyOrderRouteProvider` (Sprint 06) resolve
+  OUTBOUND → itens → stock → `locations` (`code`, aisle/rack/shelf). Coordenadas da grade
+  são **derivadas** no provider (sem alterar o schema do banco). `MemoryOrderRouteProvider` permanece para testes.
 - IDs de posição duplicados são rejeitados com erro (HTTP 400 na API).
 
 ## 12. Exemplo (fixture acadêmica)
@@ -154,9 +155,9 @@ pytest -q
 
 | Endpoint | Status |
 |----------|--------|
-| `POST /optimization/route` | Implementado (locations no body) |
-| `POST /optimization/route/by-order` | Implementado na Sprint 05 (MemoryProvider; Postgres na S06) |
-| `GET /optimization/orders/{order_id}/pick-locations` | Implementado na Sprint 05 (helper para S06) |
+| `POST /optimization/route` | Implementado (locations no body; consumido pelo frontend) |
+| `POST /optimization/route/by-order` | Implementado (SqlAlchemyOrderRouteProvider + Postgres) |
+| `GET /optimization/orders/{order_id}/pick-locations` | Implementado (mesmo provider Postgres) |
 | `GET /health` | Implementado |
 
 ---
@@ -273,18 +274,18 @@ curl -s -X POST http://127.0.0.1:8000/optimization/route \
 
 ---
 
-## 16. Integração (Pessoa 1 — banco/backend)
+## 16. Integração com pedidos (motor — sem alterar o banco)
 
-Na Sprint 05 o by-order usa `MemoryOrderRouteProvider`. Para a Sprint 06:
+Sprint 06 no **módulo do motor** (schema/seed ficam com a pessoa do banco):
 
-1. Adicionar colunas `x`, `y` em `locations` (migration alinhada ao CRUD de posições).
-2. Implementar `SqlAlchemyOrderRouteProvider.get_pick_locations(order_id)`:
-   - pedido `OUTBOUND` → `order_items` → produto → `stock` → `location` `(code, x, y)`;
-   - ordem das posições = ordem dos itens; deduplicar por `location.code` se o mesmo produto aparecer mais de uma vez.
-3. Substituir o provider injetado em `optimization_engine.py` (mesmo service `optimize_from_order_id`).
-4. Frontend chama `POST /optimization/route/by-order` e exibe rotas/métricas conforme a seção 15.
+1. `SqlAlchemyOrderRouteProvider.get_pick_locations(order_id)`:
+   - pedido `OUTBOUND` → `order_items` → `stock` → `location` (`code`, aisle, rack, shelf);
+   - `(x, y)` derivados deterministicamente via `coords_from_warehouse_location` (não exige colunas novas);
+   - ordem das posições = ordem dos itens; deduplicar por `location.code`.
+2. DI em `optimization_engine.py` injeta o provider SQLAlchemy via `get_db`.
+3. Frontend atual continua em `POST /optimization/route` (coordenadas no body); `by-order` devolve o mesmo `RouteOptimizeResponse`.
 
-O núcleo em `backend/optimization/` permanece inalterado.
+O núcleo em `backend/optimization/` permanece inalterado. Alterações de DDL/`seed` não fazem parte deste módulo.
 
 ---
 
@@ -297,16 +298,17 @@ Documento de ponte da Sprint 05: permite testar o fluxo pedido → posições �
 ```text
 Pedido OUTBOUND
   → order_items (produto + quantidade)
-    → stock / location (code, x, y)
-      → list[Location]
-        → optimize_route (NN + 2-opt)
-          → RouteOptimizeResponse
+    → stock / location (code, aisle, rack, shelf)
+      → (x, y) derivados no provider
+        → list[Location]
+          → optimize_route (NN + 2-opt)
+            → RouteOptimizeResponse
 ```
 
-| Etapa | Sprint 05 | Sprint 06 |
-|-------|-----------|-----------|
+| Etapa | Sprint 05 | Sprint 06 (atual) |
+|-------|-----------|-------------------|
 | Fonte das posições | `MemoryOrderRouteProvider` (catálogo acadêmico) | `SqlAlchemyOrderRouteProvider` + Postgres |
-| Coordenadas | Fixture em memória (`order_id` 1 e 2) | Colunas `locations.x` / `locations.y` |
+| Coordenadas | Fixture em memória (`order_id` 1 e 2) | Derivadas de aisle/rack/shelf/code (sem DDL) |
 | Tipo de pedido | Implícito no catálogo | Apenas **OUTBOUND** (picking); INBOUND fora do escopo |
 
 Catálogo acadêmico default:
@@ -384,15 +386,17 @@ O front pode: (1) chamar este GET e depois `POST /optimization/route`, ou (2) ch
 2. Ordem original da rota = ordem dos itens / posições retornadas pelo provider.
 3. Cada posição aparece uma vez (`id` único); o motor rejeita duplicados.
 4. Métricas nunca são inventadas — sempre calculadas pelo pipeline NN + 2-opt.
-5. Na S05 o catálogo é em memória; evidências de “pedido real no banco → rota” exigem S06 + `x`/`y` em `locations`.
+5. Pedido real no banco → rota: `SqlAlchemyOrderRouteProvider` + grade derivada de aisle/rack/shelf (Sprint 06; sem DDL).
 
 ### 17.5 Código de referência
 
 | Peça | Arquivo |
 |------|---------|
 | Protocolo | `backend/app/providers/base.py` |
-| Provider S05 | `backend/app/providers/memory.py` |
+| Provider memória (testes) | `backend/app/providers/memory.py` |
+| Provider Postgres (S06) | `backend/app/providers/sqlalchemy.py` |
+| Derivação de coordenadas | `backend/app/providers/coords.py` |
 | Service | `backend/app/services/optimization_service.py` (`optimize_from_order_id`) |
 | Router | `backend/app/routers/optimization_engine.py` |
 | Schemas | `RouteOptimizeByOrderRequest`, `PickLocationResponse` |
-| Testes | `tests/test_memory_provider.py`, `tests/test_api_optimization.py` |
+| Testes | `tests/test_memory_provider.py`, `tests/test_sqlalchemy_provider.py`, `tests/test_api_optimization.py`, `tests/test_coords.py` |

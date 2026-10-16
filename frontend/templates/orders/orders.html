@@ -194,7 +194,20 @@
 
         <div class="order-details-items">
 
-            <h3>Itens do pedido</h3>
+            <div class="order-details-items-header">
+                <div>
+                    <h3>Itens do pedido</h3>
+                    <p>Gerencie os produtos vinculados a este pedido.</p>
+                </div>
+
+                <button
+                    type="button"
+                    class="add-item-button"
+                    id="addDetailOrderItemButton"
+                >
+                    + Adicionar produto
+                </button>
+            </div>
 
             <div id="detailOrderItems"></div>
 
@@ -214,6 +227,138 @@
                 Fechar
             </button>
         </div>
+
+    </div>
+</div>
+
+<!-- Modal para adicionar item a um pedido existente -->
+<div class="order-modal-overlay" id="addOrderItemModal">
+    <div class="order-modal order-item-modal">
+
+        <div class="modal-header">
+            <div>
+                <h2>Adicionar produto</h2>
+                <p>Selecione o produto e informe a quantidade.</p>
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                id="closeAddOrderItemModal"
+                aria-label="Fechar"
+            >
+                ×
+            </button>
+        </div>
+
+        <form id="addOrderItemForm">
+
+            <div class="form-group">
+                <label for="detailProductSelect">Produto *</label>
+
+                <select id="detailProductSelect" required>
+                    <option value="">Selecione um produto</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="detailProductQuantity">Quantidade *</label>
+
+                <input
+                    type="number"
+                    id="detailProductQuantity"
+                    min="1"
+                    step="1"
+                    value="1"
+                    required
+                >
+            </div>
+
+            <div
+                class="form-message"
+                id="addOrderItemMessage"
+            ></div>
+
+            <div class="modal-actions">
+                <button
+                    type="button"
+                    class="button-secondary"
+                    id="cancelAddOrderItemButton"
+                >
+                    Cancelar
+                </button>
+
+                <button
+                    type="submit"
+                    class="button-primary"
+                >
+                    Adicionar
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+
+<!-- Modal para alterar a quantidade de um item -->
+<div class="order-modal-overlay" id="editOrderItemModal">
+    <div class="order-modal order-item-modal">
+
+        <div class="modal-header">
+            <div>
+                <h2>Editar item</h2>
+                <p id="editOrderItemProduct">Altere a quantidade do produto.</p>
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                id="closeEditOrderItemModal"
+                aria-label="Fechar"
+            >
+                ×
+            </button>
+        </div>
+
+        <form id="editOrderItemForm">
+
+            <div class="form-group">
+                <label for="editOrderItemQuantity">Quantidade *</label>
+
+                <input
+                    type="number"
+                    id="editOrderItemQuantity"
+                    min="1"
+                    step="1"
+                    required
+                >
+            </div>
+
+            <div
+                class="form-message"
+                id="editOrderItemMessage"
+            ></div>
+
+            <div class="modal-actions">
+                <button
+                    type="button"
+                    class="button-secondary"
+                    id="cancelEditOrderItemButton"
+                >
+                    Cancelar
+                </button>
+
+                <button
+                    type="submit"
+                    class="button-primary"
+                >
+                    Salvar
+                </button>
+            </div>
+
+        </form>
 
     </div>
 </div>

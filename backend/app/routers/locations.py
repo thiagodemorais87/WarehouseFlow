@@ -99,7 +99,6 @@ def delete_warehouse(
 ):
     db_warehouse = _get_warehouse_or_404(db, warehouse_id)
 
-    # ON DELETE CASCADE apagaria posições e estoque em silêncio; exige esvaziar antes.
     total = db.query(models.Location).filter(models.Location.warehouse_id == warehouse_id).count()
     if total > 0:
         raise HTTPException(
@@ -226,6 +225,6 @@ def delete_location(
                    "Desative a posição (is_active=false) em vez de excluí-la."
         )
 
-    db.delete(db_location)  # registros de estoque com quantidade 0 saem por cascade
+    db.delete(db_location)
     db.commit()
     return None

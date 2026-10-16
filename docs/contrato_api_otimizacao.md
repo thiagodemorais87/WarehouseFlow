@@ -15,17 +15,17 @@ O motor utiliza uma abordagem combinada em duas etapas para calcular a rota otim
 
 ---
 
-## 2. Fluxo de Integração de Dados (Pipeline para a Sprint 06)
+## 2. Fluxo de Integração de Dados (Pipeline Sprint 06)
 
-Para a integração completa com o módulo de Pedidos e Estoque, o fluxo de transformação de dados segue a cadeia:
+Integração com Pedidos e Estoque (backend):
 
-`Pedido` ➔ `Itens do Pedido` ➔ `Produtos` ➔ `Posições no Estoque (x, y)` ➔ `Rota Otimizada`
+`Pedido OUTBOUND` ➔ `Itens do Pedido` ➔ `Produtos` ➔ `Posições (code/aisle/rack/shelf → x,y derivados)` ➔ `Rota Otimizada`
 
-1. **Pedido:** O frontend ou backend seleciona um ou mais pedidos ativos.
-2. **Itens & Produtos:** O sistema recupera a lista de SKUs/produtos vinculados aos pedidos.
-3. **Posições:** O mapa do estoque converte as localizações físicas dos produtos em coordenadas cartesianas (`x`, `y`).
-4. **Motor de Otimização:** As posições convertidas são enviadas ao endpoint `POST /optimization/route`.
-5. **Rota Otimizada:** O endpoint retorna a sequência ideal de coleta e as métricas de ganho de eficiência.
+1. **Pedido:** `POST /optimization/route/by-order` com `order_id` (ou o front envia coordenadas em `POST /optimization/route`).
+2. **Itens & Produtos:** `SqlAlchemyOrderRouteProvider` recupera os itens do pedido.
+3. **Posições:** resolve `stock` → `locations` e deriva `(x, y)` sem exigir colunas novas no banco.
+4. **Motor de Otimização:** mesmo pipeline NN + 2-opt de `/route`.
+5. **Rota Otimizada:** `RouteOptimizeResponse` com rotas e métricas.
 
 ---
 

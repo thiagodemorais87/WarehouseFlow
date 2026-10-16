@@ -4,6 +4,7 @@ import os
 
 # Deve rodar antes de qualquer import de app.main / database
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
+os.environ.setdefault("SECRET_KEY", "test-secret")
 
 import pytest
 

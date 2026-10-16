@@ -1,0 +1,50 @@
+.inicio {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 20px;
+}
+
+.inicio-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+}
+
+.inicio-topo h1 {
+    margin: 0 0 4px;
+}
+
+.inicio-topo p {
+    margin: 0;
+    color: #64748b;
+}
+
+.btn-sair {
+    padding: 8px 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.inicio-menu {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.inicio-menu a {
+    display: block;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    text-decoration: none;
+    color: inherit;
+    font-weight: 600;
+    text-align: center;
+}
+
+.inicio-menu a:hover {
+    background: #f1f5f9;
+}
