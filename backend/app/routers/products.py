@@ -1,16 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from ..deps import get_current_user, require_roles
 
 from ..database import get_db
 from .. import models, schemas
+from ..deps import get_current_user, require_roles
 
 router = APIRouter(
     prefix="/products",
-    tags=["Products"]
+    tags=["Products"],
+    dependencies=[Depends(get_current_user)],
 )
 
-@router.post("/", response_model=schemas.ProductResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.ProductResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles("ADMIN", "GESTOR"))])
+
 def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)):
     db_product = db.query(models.Product).filter(models.Product.sku == product.sku).first()
     if db_product:
@@ -47,7 +51,7 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Produto não encontrado.")
     return product
 
-@router.put("/{product_id}", response_model=schemas.ProductResponse)
+@router.put("/{product_id}", response_model=schemas.ProductResponse, dependencies=[Depends(require_roles("ADMIN", "GESTOR"))])
 def update_product(product_id: int, product_update: schemas.ProductUpdate, db: Session = Depends(get_db)):
     db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
     if not db_product:
@@ -70,7 +74,8 @@ def update_product(product_id: int, product_update: schemas.ProductUpdate, db: S
     db.refresh(db_product)
     return db_product
 
-@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_roles("ADMIN", "GESTOR"))])
+
 def delete_product(product_id: int, db: Session = Depends(get_db)):
     db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
     if not db_product:

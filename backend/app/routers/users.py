@@ -4,11 +4,13 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from .. import models, schemas
-from ..security import hash_password  # Importa a criptografia real de senhas
+from ..deps import require_roles
+from ..security import hash_password  # Hash real de senhas (bcrypt)
 
 router = APIRouter(
     prefix="/users",
-    tags=["Users & Roles"]
+    tags=["Users & Roles"],
+    dependencies=[Depends(require_roles("ADMIN"))]
 )
 
 # --- ROLES ---
@@ -44,7 +46,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         if not role:
             raise HTTPException(status_code=404, detail="Role não encontrada.")
 
-    # Criptografia real usando passlib/bcrypt
+    # Hash real da senha com bcrypt
     hashed_password = hash_password(user.password)
 
     user_data = user.model_dump(exclude={"password"})
@@ -86,7 +88,7 @@ def update_user(user_id: int, user_update: schemas.UserUpdate, db: Session = Dep
     update_data = user_update.model_dump(exclude_unset=True)
 
     if "password" in update_data:
-        # Atualização com criptografia real
+        # Atualização com hash real
         update_data["password_hash"] = hash_password(update_data.pop("password"))
 
     for key, value in update_data.items():

@@ -4,13 +4,16 @@ from typing import List, Optional
 
 from ..database import get_db
 from .. import models, schemas
+from ..deps import get_current_user, require_roles
 
 router = APIRouter(
     prefix="/orders",
-    tags=["Orders"]
+    tags=["Orders"],
+    dependencies=[Depends(get_current_user)]
 )
 
-@router.post("/", response_model=schemas.OrderResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.OrderResponse, status_code=status.HTTP_201_CREATED,
+             dependencies=[Depends(require_roles("ADMIN", "GESTOR"))])
 def create_order(order_data: schemas.OrderCreate, db: Session = Depends(get_db)):
     # Criar registro principal do Pedido
     new_order = models.Order(
@@ -54,7 +57,8 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Pedido não encontrado.")
     return order
 
-@router.put("/{order_id}", response_model=schemas.OrderResponse)
+@router.put("/{order_id}", response_model=schemas.OrderResponse,
+            dependencies=[Depends(require_roles("ADMIN", "GESTOR"))])
 def update_order(order_id: int, order_update: schemas.OrderUpdate, db: Session = Depends(get_db)):
     db_order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not db_order:
@@ -68,7 +72,8 @@ def update_order(order_id: int, order_update: schemas.OrderUpdate, db: Session =
     db.refresh(db_order)
     return db_order
 
-@router.delete("/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{order_id}", status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[Depends(require_roles("ADMIN", "GESTOR"))])
 def delete_order(order_id: int, db: Session = Depends(get_db)):
     db_order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not db_order:

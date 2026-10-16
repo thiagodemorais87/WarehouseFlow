@@ -4,13 +4,16 @@ from typing import List, Optional
 
 from ..database import get_db
 from .. import models, schemas
+from ..deps import get_current_user, require_roles
 
 router = APIRouter(
     prefix="/stock",
-    tags=["Stock"]
+    tags=["Stock"],
+    dependencies=[Depends(get_current_user)]
 )
 
-@router.post("/", response_model=schemas.StockResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.StockResponse, status_code=status.HTTP_201_CREATED,
+             dependencies=[Depends(require_roles("ADMIN", "GESTOR"))])
 def create_or_update_stock(stock_data: schemas.StockCreate, db: Session = Depends(get_db)):
     # Validar existência do produto e da vaga
     product = db.query(models.Product).filter(models.Product.id == stock_data.product_id).first()
@@ -53,7 +56,8 @@ def get_stock_by_id(stock_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Registro de estoque não encontrado.")
     return stock_item
 
-@router.put("/{stock_id}", response_model=schemas.StockResponse)
+@router.put("/{stock_id}", response_model=schemas.StockResponse,
+            dependencies=[Depends(require_roles("ADMIN", "GESTOR"))])
 def update_stock_quantity(stock_id: int, stock_update: schemas.StockUpdate, db: Session = Depends(get_db)):
     db_stock = db.query(models.Stock).filter(models.Stock.id == stock_id).first()
     if not db_stock:
@@ -64,7 +68,8 @@ def update_stock_quantity(stock_id: int, stock_update: schemas.StockUpdate, db: 
     db.refresh(db_stock)
     return db_stock
 
-@router.delete("/{stock_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{stock_id}", status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[Depends(require_roles("ADMIN", "GESTOR"))])
 def delete_stock(stock_id: int, db: Session = Depends(get_db)):
     db_stock = db.query(models.Stock).filter(models.Stock.id == stock_id).first()
     if not db_stock:

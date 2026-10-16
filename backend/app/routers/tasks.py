@@ -4,13 +4,22 @@ from typing import List, Optional
 
 from ..database import get_db
 from .. import models, schemas
+from ..deps import get_current_user, require_roles
 
 router = APIRouter(
     prefix="/tasks",
-    tags=["Tasks"]
+    tags=["Tasks"],
+    dependencies=[Depends(get_current_user)]
 )
 
-@router.post("/", response_model=schemas.TaskResponse, status_code=status.HTTP_201_CREATED)
+
+def is_operator(user: models.User) -> bool:
+    """True quando o usuário logado tem o perfil OPERADOR."""
+    return user.role is not None and user.role.name == "OPERADOR"
+
+
+@router.post("/", response_model=schemas.TaskResponse, status_code=status.HTTP_201_CREATED,
+             dependencies=[Depends(require_roles("ADMIN", "GESTOR"))])
 def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
     # Valida se o pedido vinculado existe
     order = db.query(models.Order).filter(models.Order.id == task.order_id).first()
@@ -43,9 +52,14 @@ def list_tasks(
     order_id: Optional[int] = Query(None, description="Filtra tarefas de um pedido específico"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
 ):
     query = db.query(models.Task)
+
+    # Operador enxerga apenas as tarefas atribuídas a ele
+    if is_operator(current_user):
+        query = query.filter(models.Task.assigned_user_id == current_user.id)
     
     if task_type:
         query = query.filter(models.Task.type == task_type)
@@ -59,19 +73,42 @@ def list_tasks(
     return query.offset(skip).limit(limit).all()
 
 @router.get("/{task_id}", response_model=schemas.TaskResponse)
-def get_task(task_id: int, db: Session = Depends(get_db)):
+def get_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
     task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tarefa não encontrada.")
+
+    if is_operator(current_user) and task.assigned_user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Esta tarefa não é sua.")
+
     return task
 
 @router.put("/{task_id}", response_model=schemas.TaskResponse)
-def update_task(task_id: int, task_update: schemas.TaskUpdate, db: Session = Depends(get_db)):
+def update_task(
+    task_id: int,
+    task_update: schemas.TaskUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
     db_task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if not db_task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tarefa não encontrada.")
-    
+
     update_data = task_update.model_dump(exclude_unset=True)
+
+    # Operador só altera as próprias tarefas e não pode reatribuí-las
+    if is_operator(current_user):
+        if db_task.assigned_user_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Esta tarefa não é sua.")
+        if "assigned_user_id" in update_data:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Operador não pode alterar o responsável pela tarefa."
+            )
     
     if "assigned_user_id" in update_data and update_data["assigned_user_id"] is not None:
         user = db.query(models.User).filter(models.User.id == update_data["assigned_user_id"]).first()
@@ -88,7 +125,8 @@ def update_task(task_id: int, task_update: schemas.TaskUpdate, db: Session = Dep
     db.refresh(db_task)
     return db_task
 
-@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[Depends(require_roles("ADMIN", "GESTOR"))])
 def delete_task(task_id: int, db: Session = Depends(get_db)):
     db_task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if not db_task:
