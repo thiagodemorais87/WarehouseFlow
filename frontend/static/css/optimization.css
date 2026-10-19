@@ -1,3 +1,6 @@
+
+/* Página de otimização */
+
 .optimization-page {
     width: 100%;
 }
@@ -43,6 +46,57 @@
     margin: 0;
     color: #6b7280;
     font-size: 14px;
+}
+
+
+/* Seleção do modo de otimização */
+
+.optimization-mode-selector {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.optimization-mode-button {
+    padding: 11px 20px;
+    border: 1px solid #d1d9e6;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #334155;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.optimization-mode-button:hover {
+    background: #eff6ff;
+    border-color: #2563eb;
+    color: #2563eb;
+}
+
+.optimization-mode-button.active,
+.optimization-mode-button.active:hover {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+}
+
+.optimization-mode-button:focus-visible {
+    outline: 3px solid #93c5fd;
+    outline-offset: 2px;
+}
+
+/* Garante que formulários e resultados ocultos não apareçam */
+
+.optimization-card[hidden],
+.optimization-results[hidden] {
+    display: none !important;
 }
 
 
@@ -116,8 +170,10 @@
     color: #374151;
 }
 
-.form-group input {
+.form-group input,
+.form-group select {
     width: 100%;
+    min-height: 42px;
     padding: 11px 12px;
     border: 1px solid #d1d5db;
     border-radius: 8px;
@@ -131,9 +187,20 @@
         box-shadow 0.2s ease;
 }
 
-.form-group input:focus {
+.form-group input:focus,
+.form-group select:focus {
     border-color: #2563eb;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form-group select {
+    cursor: pointer;
+}
+
+.form-group select:disabled {
+    background: #f9fafb;
+    color: #9ca3af;
+    cursor: not-allowed;
 }
 
 
@@ -169,7 +236,7 @@
     font-weight: 600;
     cursor: pointer;
     transition:
-        background 0.2s ease,
+        background-color 0.2s ease,
         border-color 0.2s ease;
 }
 
@@ -190,7 +257,7 @@
     font-weight: 600;
     cursor: pointer;
     transition:
-        background 0.2s ease,
+        background-color 0.2s ease,
         border-color 0.2s ease;
 }
 
@@ -200,7 +267,7 @@
     color: #ffffff;
 }
 
-.button-primary:hover {
+.button-primary:hover:not(:disabled) {
     background: #1d4ed8;
     border-color: #1d4ed8;
 }
@@ -450,6 +517,15 @@
     .results-header {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    .optimization-mode-selector {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .optimization-mode-button {
+        width: 100%;
     }
 
     .locations-header .button-secondary {
