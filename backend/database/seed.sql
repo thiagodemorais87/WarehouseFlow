@@ -9,9 +9,9 @@ ON CONFLICT (id) DO NOTHING;
 
 -- 2. Users (senha de demo para todos: admin123)
 INSERT INTO users (id, name, email, password_hash, role_id, is_active) VALUES
-(1, 'Carlos Admin', 'admin@warehouseflow.com', '$2b$12$eWAsC4gL.YE8gu.DHlg.O.ns6du9JLtQURAkHIPwWtyflXCTEU66m', 1, TRUE),
-(2, 'João Operador', 'joao.operador@warehouseflow.com', '$2b$12$eWAsC4gL.YE8gu.DHlg.O.ns6du9JLtQURAkHIPwWtyflXCTEU66m', 2, TRUE),
-(3, 'Maria Gestora', 'maria.gestora@warehouseflow.com', '$2b$12$eWAsC4gL.YE8gu.DHlg.O.ns6du9JLtQURAkHIPwWtyflXCTEU66m', 3, TRUE)
+(1, 'Carlos Admin', 'admin@warehouseflow.com', '$2b$12$i/tln6nI/fn1EN/kl6O21eD9JvZCdWlqrTGARYsLdD4kXQExA9vxu', 1, TRUE),
+(2, 'João Operador', 'joao.operador@warehouseflow.com', '$2b$12$i/tln6nI/fn1EN/kl6O21eD9JvZCdWlqrTGARYsLdD4kXQExA9vxu', 2, TRUE),
+(3, 'Maria Gestora', 'maria.gestora@warehouseflow.com', '$2b$12$i/tln6nI/fn1EN/kl6O21eD9JvZCdWlqrTGARYsLdD4kXQExA9vxu', 3, TRUE)
 ON CONFLICT (id) DO NOTHING;
 
 -- 3. Warehouses
