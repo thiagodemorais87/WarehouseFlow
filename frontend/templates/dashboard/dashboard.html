@@ -15,7 +15,6 @@ Dashboard | WarehouseFlow
 
     <!-- Cabeçalho -->
     <div class="dashboard-header">
-
         <div>
             <h1>Dashboard</h1>
             <p>
@@ -25,7 +24,6 @@ Dashboard | WarehouseFlow
         </div>
 
         <div class="dashboard-actions">
-
             <a href="/estoque" class="button-secondary">
                 Ver estoque
             </a>
@@ -34,109 +32,114 @@ Dashboard | WarehouseFlow
                 <span>+</span>
                 Novo produto
             </a>
-
         </div>
-
     </div>
 
-    <!-- Indicadores com dados da API -->
-    <section class="stats-grid">
+    <!-- Indicadores com dados reais da API -->
+    <section class="stats-grid" aria-label="Indicadores do armazém">
 
         <!-- Total de produtos -->
         <article class="stat-card">
-
-            <div class="stat-icon stat-icon-blue">
+            <div class="stat-icon stat-icon-blue" aria-hidden="true">
                 ◇
             </div>
 
             <div class="stat-content">
-                <span class="stat-label">
-                    Total de produtos
-                </span>
-
-                <strong class="stat-value" id="totalProducts">
-                    —
-                </strong>
-
-                <span class="stat-detail">
-                    Produtos cadastrados
-                </span>
+                <span class="stat-label">Total de produtos</span>
+                <strong class="stat-value" id="totalProducts">—</strong>
+                <span class="stat-detail">Produtos cadastrados</span>
             </div>
-
         </article>
 
         <!-- Estoque total -->
         <article class="stat-card">
-
-            <div class="stat-icon stat-icon-green">
+            <div class="stat-icon stat-icon-green" aria-hidden="true">
                 ▣
             </div>
 
             <div class="stat-content">
+                <span class="stat-label">Estoque total</span>
+                <strong class="stat-value" id="totalStock">—</strong>
+                <span class="stat-detail">Unidades em estoque</span>
+            </div>
+        </article>
+
+        <!-- Produtos com estoque baixo: Sprint 07 -->
+        <article class="stat-card">
+            <div class="stat-icon stat-icon-orange" aria-hidden="true">
+                !
+            </div>
+
+            <div class="stat-content">
                 <span class="stat-label">
-                    Estoque total
+                    Produtos com estoque baixo
                 </span>
 
-                <strong class="stat-value" id="totalStock">
+                <strong class="stat-value" id="lowStockProducts">
                     —
                 </strong>
 
                 <span class="stat-detail">
-                    Unidades em estoque
+                    Produtos com menos de 15 unidades
                 </span>
             </div>
-
         </article>
 
         <!-- Pedidos pendentes -->
         <article class="stat-card">
-
-            <div class="stat-icon stat-icon-orange">
+            <div class="stat-icon stat-icon-orange" aria-hidden="true">
                 ◫
             </div>
 
             <div class="stat-content">
-                <span class="stat-label">
-                    Pedidos pendentes
-                </span>
-
-                <strong class="stat-value" id="pendingOrders">
-                    —
-                </strong>
-
+                <span class="stat-label">Pedidos pendentes</span>
+                <strong class="stat-value" id="pendingOrders">—</strong>
                 <span class="stat-detail">
                     Aguardando processamento
                 </span>
             </div>
-
         </article>
 
         <!-- Tarefas em andamento -->
         <article class="stat-card">
-
-            <div class="stat-icon stat-icon-red">
+            <div class="stat-icon stat-icon-red" aria-hidden="true">
                 ✓
             </div>
 
             <div class="stat-content">
+                <span class="stat-label">Tarefas em andamento</span>
+                <strong class="stat-value" id="activeTasks">—</strong>
+                <span class="stat-detail">Tarefas em execução</span>
+            </div>
+        </article>
+
+        <!-- Redução média das rotas: Sprint 07 -->
+        <article class="stat-card">
+            <div class="stat-icon stat-icon-purple" aria-hidden="true">
+                %
+            </div>
+
+            <div class="stat-content">
                 <span class="stat-label">
-                    Tarefas em andamento
+                    Redução média das rotas
                 </span>
 
-                <strong class="stat-value" id="activeTasks">
+                <strong
+                    class="stat-value"
+                    id="averageRouteReduction"
+                >
                     —
                 </strong>
 
                 <span class="stat-detail">
-                    Tarefas em execução
+                    Economia média nas otimizações
                 </span>
             </div>
-
         </article>
 
     </section>
 
-        <!-- Gráfico de pedidos por status -->
+    <!-- Gráfico de pedidos por status -->
     <section class="dashboard-chart">
 
         <div class="dashboard-chart-header">
@@ -144,14 +147,19 @@ Dashboard | WarehouseFlow
             <p>Distribuição dos pedidos por status</p>
         </div>
 
-        <div id="ordersStatusChart" class="orders-status-chart">
+        <div
+            id="ordersStatusChart"
+            class="orders-status-chart"
+            aria-live="polite"
+        >
             <p>Carregando dados...</p>
         </div>
 
     </section>
-    
+
     <!-- Pedidos recentes -->
     <section class="dashboard-recent">
+
         <div class="dashboard-recent-header">
             <div>
                 <h2>Pedidos recentes</h2>
@@ -165,6 +173,7 @@ Dashboard | WarehouseFlow
 
         <div class="recent-table-wrapper">
             <table class="recent-table">
+
                 <thead>
                     <tr>
                         <th>Pedido</th>
@@ -176,11 +185,15 @@ Dashboard | WarehouseFlow
 
                 <tbody id="recentOrdersBody">
                     <tr>
-                        <td colspan="4">Carregando pedidos...</td>
+                        <td colspan="4">
+                            Carregando pedidos...
+                        </td>
                     </tr>
                 </tbody>
+
             </table>
         </div>
+
     </section>
 
 </section>
