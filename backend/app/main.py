@@ -21,6 +21,7 @@ from .routers import (
     optimization,
     orders,
     products,
+    reports, 
     stock,
     tasks,
     users,
@@ -73,6 +74,7 @@ app.include_router(orders.router)
 app.include_router(stock.router)
 app.include_router(users.router)
 app.include_router(locations.router)
+app.include_router(reports.router)  
 
 # Motor de otimização de picking
 app.include_router(optimization_engine_router)
