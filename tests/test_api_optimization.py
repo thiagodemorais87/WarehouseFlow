@@ -4,7 +4,12 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.deps import get_current_user
-from app.routers.optimization_engine import router as optimization_router
+from app.providers.memory import MemoryOrderRouteProvider
+from app.routers.optimization_engine import (
+    get_order_route_provider,
+    get_run_recorder,
+    router as optimization_router,
+)
 
 
 class _FakeUser:
@@ -14,9 +19,18 @@ class _FakeUser:
     role_name = "ADMIN"
 
 
+class _NullRecorder:
+    def save(self, *args, **kwargs):
+        return None
+
+
 app = FastAPI()
 app.include_router(optimization_router)
 app.dependency_overrides[get_current_user] = lambda: _FakeUser()
+app.dependency_overrides[get_run_recorder] = lambda: _NullRecorder()
+# Mantém catálogo acadêmico nos testes de API (provider Postgres coberto em
+# test_sqlalchemy_provider.py e testes de integração by-order com DB).
+app.dependency_overrides[get_order_route_provider] = lambda: MemoryOrderRouteProvider()
 
 
 @app.get("/health")

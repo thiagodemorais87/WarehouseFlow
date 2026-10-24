@@ -1,12 +1,15 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from typing import Optional
-from enum import Enum
 
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-class UserRole(str, Enum):
-    ADMIN = "ADMIN"
-    GESTOR = "GESTOR"
-    OPERADOR = "OPERADOR"
+from ..models.user import UserRole
+
+__all__ = [
+    "UserRole",
+    "LoginRequest",
+    "TokenResponse",
+    "AuthUserResponse",
+]
 
 
 class LoginRequest(BaseModel):

@@ -73,3 +73,18 @@ Na Sprint 05 o by-order usa `MemoryOrderRouteProvider` (catálogo acadêmico em 
 Na Sprint 06: `SqlAlchemyOrderRouteProvider` (pedido OUTBOUND → itens → posições no Postgres).
 
 Contrato completo: [`docs/optimization.md`](../../docs/optimization.md) (seções 15 e 17).
+`POST /optimization/route/by-order` usa `SqlAlchemyOrderRouteProvider` (OUTBOUND → itens → stock → location).  
+Coordenadas `(x, y)` são derivadas de aisle/rack/shelf/code — **sem alterar o schema do banco**.  
+`MemoryOrderRouteProvider` permanece para testes e overrides.
+
+Contrato completo: [`docs/optimization.md`](../../docs/optimization.md) (seções 15 e 17).
+
+### Cenários manuais rápidos
+
+| Cenário | Como |
+|---------|------|
+| Coordenadas no body (UI atual) | `POST /optimization/route` com `locations` |
+| Pedido seed OUTBOUND `id=1` | `POST /optimization/route/by-order` `{"order_id":1}` |
+| Listar posições antes de otimizar | `GET /optimization/orders/1/pick-locations` |
+| Pedido inexistente / INBOUND | HTTP 404 |
+| 0 posições no body | `locations: []` → distâncias 0 |

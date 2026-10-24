@@ -136,19 +136,19 @@ function renderLocations() {
 
         return `
             <tr>
-                <td>${location.code}</td>
-                <td>${warehouse ? warehouse.name : "-"}</td>
-                <td>${location.aisle || "-"}</td>
-                <td>${location.rack || "-"}</td>
-                <td>${location.shelf || "-"}</td>
+                <td data-label="Código">${location.code}</td>
+                <td data-label="Armazém">${warehouse ? warehouse.name : "-"}</td>
+                <td data-label="Corredor">${location.aisle || "-"}</td>
+                <td data-label="Rack">${location.rack || "-"}</td>
+                <td data-label="Prateleira">${location.shelf || "-"}</td>
 
-                <td>
+                <td data-label="Status">
                     <span class="${location.is_active ? "status-active" : "status-inactive"}">
                         ${location.is_active ? "Ativa" : "Inativa"}
                     </span>
                 </td>
 
-                <td>
+                <td data-label="Ações">
                     <div class="location-actions">
                         <button
                             class="btn-edit"

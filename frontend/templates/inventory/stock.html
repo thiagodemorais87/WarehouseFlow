@@ -21,7 +21,7 @@
         id="newStockButton"
         >
             <span>+</span>
-            Ajustar estoque
+            Adicionar ao estoque
         </button>
     </div>
 
@@ -63,7 +63,7 @@
 
         <div class="modal-header">
             <div>
-                <h2 id="stockModalTitle">Ajustar estoque</h2>
+                <h2 id="stockModalTitle">Adicionar ao estoque</h2>
                 <p>Informe o produto, a posição e a quantidade.</p>
             </div>
 
@@ -131,6 +131,71 @@
             </div>
             
         </form>
+    </div>
+</div>
+
+<div class="stock-modal-overlay" id="movementModal">
+    <div class="stock-modal">
+
+        <div class="modal-header">
+            <div>
+                <h2 id="movementModalTitle">Movimentar estoque</h2>
+                <p id="movementModalDescription">
+                    Informe a quantidade.
+                </p>
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                id="closeMovementModal"
+                aria-label="Fechar"
+            >
+                ×
+            </button>
+        </div>
+
+        <form id="movementForm">
+
+            <div class="form-group">
+                <label for="movementQuantity">
+                    Quantidade *
+                </label>
+
+                <input
+                    type="number"
+                    id="movementQuantity"
+                    min="1"
+                    step="1"
+                    required
+                >
+            </div>
+
+            <div
+                class="form-message"
+                id="movementFormMessage"
+            ></div>
+
+            <div class="modal-actions">
+                <button
+                    type="button"
+                    class="button-secondary"
+                    id="cancelMovementButton"
+                >
+                    Cancelar
+                </button>
+
+                <button
+                    type="submit"
+                    class="button-primary"
+                    id="saveMovementButton"
+                >
+                    Confirmar
+                </button>
+            </div>
+
+        </form>
+
     </div>
 </div>
 

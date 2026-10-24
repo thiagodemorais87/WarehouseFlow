@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -23,15 +23,13 @@ def create_order(
     db: Session = Depends(get_db),
     _: models.User = _write,
 ):
-    # Criar registro principal do Pedido
     new_order = models.Order(
         type=order_data.type,
         status=order_data.status,
     )
     db.add(new_order)
-    db.flush()  # Gera o ID do pedido antes de inserir os itens
+    db.flush()
 
-    # Validar produtos e vincular itens
     for item in order_data.items:
         product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
         if not product:
@@ -55,15 +53,19 @@ def create_order(
 
 @router.get("/", response_model=List[schemas.OrderResponse])
 def list_orders(
-    type: Optional[str] = None,
-    status_filter: Optional[str] = None,
-    skip: int = 0,
-    limit: int = 100,
+    order_type: Optional[str] = Query(
+        None, alias="type", description="Filtra por tipo (INBOUND, OUTBOUND)"
+    ),
+    status_filter: Optional[str] = Query(
+        None, alias="status", description="Filtra por status (PENDING, PROCESSING, etc.)"
+    ),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
 ):
     query = db.query(models.Order)
-    if type:
-        query = query.filter(models.Order.type == type)
+    if order_type:
+        query = query.filter(models.Order.type == order_type)
     if status_filter:
         query = query.filter(models.Order.status == status_filter)
     return query.offset(skip).limit(limit).all()
@@ -145,7 +147,6 @@ def add_order_item(
             detail=f"Produto ID {item.product_id} não encontrado.",
         )
 
-    # Verifica se já existe o mesmo produto no pedido
     existing_item = (
         db.query(models.OrderItem)
         .filter(
@@ -221,7 +222,6 @@ def delete_order_item(
             detail="Item não encontrado no pedido informado.",
         )
 
-    # Validação da regra de negócio: não remover o último item
     total_items = (
         db.query(models.OrderItem).filter(models.OrderItem.order_id == order_id).count()
     )

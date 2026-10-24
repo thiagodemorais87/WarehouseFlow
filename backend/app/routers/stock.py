@@ -24,7 +24,7 @@ _admin_gestor = Depends(require_role(UserRole.ADMIN, UserRole.GESTOR))
 def _get_stock_or_404(db: Session, stock_id: int, for_update: bool = False) -> models.Stock:
     query = db.query(models.Stock).filter(models.Stock.id == stock_id)
     if for_update:
-        query = query.with_for_update()  # evita perda de atualização em saídas simultâneas
+        query = query.with_for_update()
     stock = query.first()
     if not stock:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Registro de estoque não encontrado.")

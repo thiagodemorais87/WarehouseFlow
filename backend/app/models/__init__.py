@@ -86,8 +86,12 @@ class Stock(Base):
 class Order(Base):
     __tablename__ = "orders"
     id = Column(Integer, primary_key=True, index=True)
-    type = Column(SQLEnum(OrderType), nullable=False)
-    status = Column(SQLEnum(OrderStatus), nullable=False, default=OrderStatus.PENDING)
+    type = Column(SQLEnum(OrderType, native_enum=False), nullable=False)
+    status = Column(
+        SQLEnum(OrderStatus, native_enum=False),
+        nullable=False,
+        default=OrderStatus.PENDING,
+    )
     created_at = Column(DateTime, server_default=func.now())
 
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan", passive_deletes=True)
@@ -108,8 +112,12 @@ class OrderItem(Base):
 class Task(Base):
     __tablename__ = "tasks"
     id = Column(Integer, primary_key=True, index=True)
-    type = Column(SQLEnum(TaskType), nullable=False)
-    status = Column(SQLEnum(TaskStatus), nullable=False, default=TaskStatus.PENDING)
+    type = Column(SQLEnum(TaskType, native_enum=False), nullable=False)
+    status = Column(
+        SQLEnum(TaskStatus, native_enum=False),
+        nullable=False,
+        default=TaskStatus.PENDING,
+    )
     order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
     assigned_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
