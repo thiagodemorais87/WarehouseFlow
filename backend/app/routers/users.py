@@ -1,12 +1,13 @@
 from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from ..database import get_db
 from .. import models, schemas
-from ..security import hash_password
+from ..database import get_db
 from ..deps import get_current_user, require_role
 from ..models.user import UserRole
+from ..security import hash_password
 
 router = APIRouter(
     prefix="/users",
@@ -28,7 +29,7 @@ def create_role(
     db_role = db.query(models.Role).filter(models.Role.name == role.name.upper()).first()
     if db_role:
         raise HTTPException(status_code=400, detail="Cargo já cadastrado.")
-    
+
     new_role = models.Role(name=role.name.upper())
     db.add(new_role)
     db.commit()
@@ -58,12 +59,11 @@ def create_user(
         if not role:
             raise HTTPException(status_code=404, detail="Role não encontrada.")
 
-    # Criptografia real usando passlib/bcrypt
     hashed_password = hash_password(user.password)
 
     user_data = user.model_dump(exclude={"password"})
     new_user = models.User(**user_data, password_hash=hashed_password)
-    
+
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -73,14 +73,24 @@ def create_user(
 @router.get("/", response_model=List[schemas.UserResponse])
 def list_users(
     role_id: Optional[int] = Query(None),
+    role: Optional[UserRole] = Query(None, description="Filtra pelo nome do perfil (ADMIN, GESTOR, OPERADOR)"), 
+    email: Optional[str] = Query(None, description="Busca parcial por e-mail"), 
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     query = db.query(models.User)
     if role_id:
         query = query.filter(models.User.role_id == role_id)
-    return query.offset(skip).limit(limit).all()
+    if role:
+        aliases = {"GESTOR": {"GESTOR", "MANAGER"}, "OPERADOR": {"OPERADOR", "OPERATOR"}}
+        names = aliases.get(role.value, {role.value})
+        query = query.join(models.Role, models.Role.id == models.User.role_id).filter(
+            models.Role.name.in_(names)
+        )
+    if email:
+        query = query.filter(models.User.email.ilike(f"%{email}%"))
+    return query.order_by(models.User.id).offset(skip).limit(limit).all() 
 
 
 @router.get("/{user_id}", response_model=schemas.UserResponse)
@@ -105,7 +115,6 @@ def update_user(
     update_data = user_update.model_dump(exclude_unset=True)
 
     if "password" in update_data:
-        # Atualização com criptografia real
         update_data["password_hash"] = hash_password(update_data.pop("password"))
 
     for key, value in update_data.items():
