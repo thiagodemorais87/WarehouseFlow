@@ -319,6 +319,27 @@ if FRONTEND_DIR.exists():
             },
         )
 
+    @app.get(
+        "/relatorios/movimentacoes",
+        response_class=HTMLResponse,
+        tags=["Frontend"]
+    )
+    def stock_movements_report_page(request: Request):
+        user = {
+            "name": "Usuário Teste",
+            "initials": "UT",
+            "role": "Administrador"
+        }
+
+        return templates.TemplateResponse(
+            request=request,
+            name="reports/stock-movements.html",
+            context={
+                "user": user,
+                "active_page": "stock_movements_report"
+            }
+        )
+
 else:
     logger.warning(
         "FRONTEND_DIR não encontrado em %s — rotas HTML (/login, /dashboard, …) não serão registradas.",
