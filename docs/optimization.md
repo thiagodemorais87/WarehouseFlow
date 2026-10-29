@@ -388,6 +388,117 @@ O front pode: (1) chamar este GET e depois `POST /optimization/route`, ou (2) ch
 4. Métricas nunca são inventadas — sempre calculadas pelo pipeline NN + 2-opt.
 5. Pedido real no banco → rota: `SqlAlchemyOrderRouteProvider` + grade derivada de aisle/rack/shelf (Sprint 06; sem DDL).
 
+Na Sprint 05 o by-order usa `MemoryOrderRouteProvider`. Para a Sprint 06:
+
+1. Adicionar colunas `x`, `y` em `locations` (migration alinhada ao CRUD de posições).
+2. Implementar `SqlAlchemyOrderRouteProvider.get_pick_locations(order_id)`:
+   - pedido `OUTBOUND` → `order_items` → produto → `stock` → `location` `(code, x, y)`;
+   - ordem das posições = ordem dos itens; deduplicar por `location.code` se o mesmo produto aparecer mais de uma vez.
+3. Substituir o provider injetado em `optimization_engine.py` (mesmo service `optimize_from_order_id`).
+4. Frontend chama `POST /optimization/route/by-order` e exibe rotas/métricas conforme a seção 15.
+
+O núcleo em `backend/optimization/` permanece inalterado.
+
+---
+
+## 17. Contrato `order_id` (preparação Sprint 06)
+
+Documento de ponte da Sprint 05: permite testar o fluxo pedido → posições → rota **sem** depender ainda de `x`/`y` no PostgreSQL.
+
+### 17.1 Fluxo alvo (S06) vs ponte atual (S05)
+
+```text
+Pedido OUTBOUND
+  → order_items (produto + quantidade)
+    → stock / location (code, x, y)
+      → list[Location]
+        → optimize_route (NN + 2-opt)
+          → RouteOptimizeResponse
+```
+
+| Etapa | Sprint 05 | Sprint 06 |
+|-------|-----------|-----------|
+| Fonte das posições | `MemoryOrderRouteProvider` (catálogo acadêmico) | `SqlAlchemyOrderRouteProvider` + Postgres |
+| Coordenadas | Fixture em memória (`order_id` 1 e 2) | Colunas `locations.x` / `locations.y` |
+| Tipo de pedido | Implícito no catálogo | Apenas **OUTBOUND** (picking); INBOUND fora do escopo |
+
+Catálogo acadêmico default:
+
+| `order_id` | Posições (ordem original) |
+|------------|---------------------------|
+| `1` | FAR1(10,0), NEAR1(1,0), FAR2(11,0), NEAR2(2,0) |
+| `2` | A01(1,1), C03(5,5), B02(2,2), D04(8,3) |
+
+### 17.2 `POST /optimization/route/by-order`
+
+```http
+POST /optimization/route/by-order
+Content-Type: application/json
+Authorization: Bearer <access_token>
+```
+
+**Request**
+
+| Campo | Tipo | Obrigatório | Descrição |
+|-------|------|-------------|-----------|
+| `order_id` | `integer` (≥ 1) | sim | ID do pedido no catálogo / banco |
+| `start` | `object` | não | Mesmo formato de `/route`; default START (0,0) |
+
+**Response:** idêntico a `RouteOptimizeResponse` (seção 15.3).
+
+**Erros**
+
+| HTTP | Quando |
+|------|--------|
+| `404` | Pedido ausente no provider (`Pedido {id} não encontrado no catálogo de picking`) |
+| `400` | IDs de posição duplicados (ou payload inválido) |
+| `401` | Sem JWT válido |
+
+**Exemplo**
+
+```json
+{ "order_id": 1, "start": { "id": "START", "x": 0, "y": 0 } }
+```
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/optimization/route/by-order \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d "{\"order_id\":1}"
+```
+
+### 17.3 `GET /optimization/orders/{order_id}/pick-locations`
+
+Helper para o front / integração S06: lista as posições **antes** de otimizar.
+
+```http
+GET /optimization/orders/1/pick-locations
+Authorization: Bearer <access_token>
+```
+
+**Response (200)**
+
+```json
+[
+  {"id": "FAR1", "x": 10.0, "y": 0.0},
+  {"id": "NEAR1", "x": 1.0, "y": 0.0},
+  {"id": "FAR2", "x": 11.0, "y": 0.0},
+  {"id": "NEAR2", "x": 2.0, "y": 0.0}
+]
+```
+
+**404** se o pedido não existir no catálogo.
+
+O front pode: (1) chamar este GET e depois `POST /optimization/route`, ou (2) chamar direto `POST /optimization/route/by-order`.
+
+### 17.4 Regras de negócio (motor / picking)
+
+1. Escopo de otimização: pedidos **OUTBOUND** (picking). INBOUND / putaway ficam fora deste contrato.
+2. Ordem original da rota = ordem dos itens / posições retornadas pelo provider.
+3. Cada posição aparece uma vez (`id` único); o motor rejeita duplicados.
+4. Métricas nunca são inventadas — sempre calculadas pelo pipeline NN + 2-opt.
+5. Na S05 o catálogo é em memória; evidências de “pedido real no banco → rota” exigem S06 + `x`/`y` em `locations`.
+
 ### 17.5 Código de referência
 
 | Peça | Arquivo |
