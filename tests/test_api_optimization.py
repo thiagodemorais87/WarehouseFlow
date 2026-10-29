@@ -5,7 +5,36 @@ from fastapi.testclient import TestClient
 
 from app.deps import get_current_user
 from app.providers.memory import MemoryOrderRouteProvider
-from app.routers.optimization_engine import get_order_route_provider, router as optimization_router
+from app.routers.optimization_engine import (
+    OptimizationRunRecorder,
+    get_order_route_provider,
+    get_run_recorder,
+    router as optimization_router,
+)
+
+ROUTE_RESPONSE_KEYS = {
+    "original_route",
+    "nearest_neighbor_route",
+    "two_opt_route",
+    "distance_before",
+    "nearest_neighbor_distance",
+    "two_opt_distance",
+    "distance_after",
+    "distance_reduction",
+    "reduction_percent",
+    "execution_time_ms",
+    "locations_count",
+}
+
+ACADEMIC_PAYLOAD = {
+    "locations": [
+        {"id": "FAR1", "x": 10, "y": 0},
+        {"id": "NEAR1", "x": 1, "y": 0},
+        {"id": "FAR2", "x": 11, "y": 0},
+        {"id": "NEAR2", "x": 2, "y": 0},
+    ],
+    "start": {"id": "START", "x": 0, "y": 0},
+}
 
 
 class _FakeUser:
@@ -15,9 +44,31 @@ class _FakeUser:
     role_name = "ADMIN"
 
 
+class _NullRecorder:
+    def save(self, *args, **kwargs):
+        return None
+
+
+class _BrokenDbSession:
+    """Sessão mínima que falha no commit (histórico best-effort)."""
+
+    def __init__(self) -> None:
+        self.rolled_back = False
+
+    def add(self, _obj) -> None:
+        return None
+
+    def commit(self) -> None:
+        raise RuntimeError("falha simulada ao gravar histórico")
+
+    def rollback(self) -> None:
+        self.rolled_back = True
+
+
 app = FastAPI()
 app.include_router(optimization_router)
 app.dependency_overrides[get_current_user] = lambda: _FakeUser()
+app.dependency_overrides[get_run_recorder] = lambda: _NullRecorder()
 # Mantém catálogo acadêmico nos testes de API (provider Postgres coberto em
 # test_sqlalchemy_provider.py e testes de integração by-order com DB).
 app.dependency_overrides[get_order_route_provider] = lambda: MemoryOrderRouteProvider()
@@ -31,6 +82,17 @@ def health() -> dict[str, str]:
 client = TestClient(app)
 
 
+def _assert_coherent_metrics(data: dict) -> None:
+    assert data["distance_after"] == data["two_opt_distance"]
+    assert data["distance_reduction"] == data["distance_before"] - data["distance_after"]
+    assert data["two_opt_distance"] <= data["nearest_neighbor_distance"]
+    if data["distance_before"] == 0:
+        assert data["reduction_percent"] == 0.0
+    else:
+        expected = (data["distance_reduction"] / data["distance_before"]) * 100.0
+        assert abs(data["reduction_percent"] - expected) < 1e-9
+
+
 def test_health():
     response = client.get("/health")
     assert response.status_code == 200
@@ -38,25 +100,40 @@ def test_health():
 
 
 def test_optimize_route_endpoint_academic_demo():
-    payload = {
-        "locations": [
-            {"id": "FAR1", "x": 10, "y": 0},
-            {"id": "NEAR1", "x": 1, "y": 0},
-            {"id": "FAR2", "x": 11, "y": 0},
-            {"id": "NEAR2", "x": 2, "y": 0},
-        ],
-        "start": {"id": "START", "x": 0, "y": 0},
-    }
-    response = client.post("/optimization/route", json=payload)
+    response = client.post("/optimization/route", json=ACADEMIC_PAYLOAD)
     assert response.status_code == 200
     data = response.json()
 
+    assert set(data.keys()) == ROUTE_RESPONSE_KEYS
     assert data["original_route"] == ["START", "FAR1", "NEAR1", "FAR2", "NEAR2"]
     assert data["locations_count"] == 4
     assert data["distance_before"] > data["distance_after"]
-    assert data["two_opt_distance"] <= data["nearest_neighbor_distance"]
-    assert data["distance_reduction"] == data["distance_before"] - data["distance_after"]
     assert data["execution_time_ms"] >= 0
+    _assert_coherent_metrics(data)
+
+
+def test_optimize_route_contract_keys_stable_for_frontend():
+    response = client.post("/optimization/route", json=ACADEMIC_PAYLOAD)
+    assert response.status_code == 200
+    assert set(response.json().keys()) == ROUTE_RESPONSE_KEYS
+
+
+def test_optimize_route_history_write_failure_still_returns_200():
+    """Falha ao gravar histórico não interrompe a otimização."""
+    broken_db = _BrokenDbSession()
+    app.dependency_overrides[get_run_recorder] = (
+        lambda: OptimizationRunRecorder(broken_db)
+    )
+    try:
+        response = client.post("/optimization/route", json=ACADEMIC_PAYLOAD)
+        assert response.status_code == 200
+        data = response.json()
+        assert set(data.keys()) == ROUTE_RESPONSE_KEYS
+        assert data["locations_count"] == 4
+        _assert_coherent_metrics(data)
+        assert broken_db.rolled_back is True
+    finally:
+        app.dependency_overrides[get_run_recorder] = lambda: _NullRecorder()
 
 
 def test_optimize_route_sample_warehouse_locations():
@@ -105,10 +182,11 @@ def test_optimize_route_by_order_academic_demo():
     response = client.post("/optimization/route/by-order", json=payload)
     assert response.status_code == 200
     data = response.json()
+    assert set(data.keys()) == ROUTE_RESPONSE_KEYS
     assert data["original_route"] == ["START", "FAR1", "NEAR1", "FAR2", "NEAR2"]
     assert data["locations_count"] == 4
     assert data["distance_before"] > data["distance_after"]
-    assert data["two_opt_distance"] <= data["nearest_neighbor_distance"]
+    _assert_coherent_metrics(data)
 
 
 def test_optimize_route_by_order_not_found():
@@ -118,6 +196,23 @@ def test_optimize_route_by_order_not_found():
     detail = response.json()["detail"]
     assert "999" in detail
     assert "não encontrado" in detail.lower()
+
+
+def test_optimize_route_by_order_without_positions_returns_404():
+    app.dependency_overrides[get_order_route_provider] = (
+        lambda: MemoryOrderRouteProvider(catalog={50: []})
+    )
+    try:
+        response = client.post(
+            "/optimization/route/by-order",
+            json={"order_id": 50},
+        )
+        assert response.status_code == 404
+        assert "não possui itens" in response.json()["detail"].lower()
+    finally:
+        app.dependency_overrides[get_order_route_provider] = (
+            lambda: MemoryOrderRouteProvider()
+        )
 
 
 def test_list_pick_locations_for_order():

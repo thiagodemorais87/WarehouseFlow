@@ -1,83 +1,296 @@
+
 {% extends "base.html" %}
 
 {% block title %}Pedidos | WarehouseFlow{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="/static/css/orders.css">
+<link rel="stylesheet" href="/static/css/orders-report.css">
 {% endblock %}
 
 {% block content %}
 
 <section class="orders-page">
 
-    <div class="orders-header">
-        <div>
-            <h1>Pedidos</h1>
-            <p>Gerencie os pedidos de recebimento e expedição do armazém.</p>
-        </div>
+    <!-- ABAS -->
+    <nav class="orders-tabs" aria-label="Seções de pedidos" role="tablist">
+        <button
+            type="button"
+            class="orders-tab active"
+            id="ordersManagementTab"
+            role="tab"
+            aria-controls="ordersManagementPanel"
+            aria-selected="true"
+        >
+            Gerenciar pedidos
+        </button>
 
         <button
             type="button"
-            class="button-primary"
-            id="newOrderButton"
+            class="orders-tab"
+            id="ordersReportTab"
+            role="tab"
+            aria-controls="ordersReportPanel"
+            aria-selected="false"
         >
-            <span>+</span>
-            Novo pedido
+            Relatório de pedidos
         </button>
-    </div>
+    </nav>
 
-    <div class="orders-toolbar">
+    <!-- GERENCIAMENTO DE PEDIDOS -->
+    <div
+        id="ordersManagementPanel"
+        role="tabpanel"
+        aria-labelledby="ordersManagementTab"
+    >
 
-        <input
-            type="search"
-            id="orderSearch"
-            placeholder="Buscar por número do pedido..."
-            aria-label="Buscar pedidos"
-        >
+        <div class="orders-header">
+            <div>
+                <h1>Pedidos</h1>
+                <p>Gerencie os pedidos de recebimento e expedição do armazém.</p>
+            </div>
 
-        <select id="orderTypeFilter">
-            <option value="">Todos os tipos</option>
-            <option value="INBOUND">Recebimento</option>
-            <option value="OUTBOUND">Expedição</option>
-        </select>
+            <button
+                type="button"
+                class="button-primary"
+                id="newOrderButton"
+            >
+                <span>+</span>
+                Novo pedido
+            </button>
+        </div>
 
-        <select id="orderStatusFilter">
-            <option value="">Todos os status</option>
-            <option value="PENDING">Pendente</option>
-            <option value="PROCESSING">Em processamento</option>
-            <option value="COMPLETED">Concluído</option>
-            <option value="CANCELLED">Cancelado</option>
-        </select>
+        <div class="orders-toolbar">
 
-    </div>
+            <input
+                type="search"
+                id="orderSearch"
+                placeholder="Buscar por número do pedido..."
+                aria-label="Buscar pedidos"
+            >
 
-    <div class="orders-table-container">
+            <select id="orderTypeFilter">
+                <option value="">Todos os tipos</option>
+                <option value="INBOUND">Recebimento</option>
+                <option value="OUTBOUND">Expedição</option>
+            </select>
 
-        <table class="orders-table">
+            <select id="orderStatusFilter">
+                <option value="">Todos os status</option>
+                <option value="PENDING">Pendente</option>
+                <option value="PROCESSING">Em processamento</option>
+                <option value="COMPLETED">Concluído</option>
+                <option value="CANCELLED">Cancelado</option>
+            </select>
 
-            <thead>
-                <tr>
-                    <th>Pedido</th>
-                    <th>Tipo</th>
-                    <th>Itens</th>
-                    <th>Status</th>
-                    <th>Data</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
+        </div>
 
-            <tbody id="ordersTableBody"></tbody>
+        <div class="orders-table-container">
 
-        </table>
+            <table class="orders-table">
+                <thead>
+                    <tr>
+                        <th>Pedido</th>
+                        <th>Tipo</th>
+                        <th>Itens</th>
+                        <th>Status</th>
+                        <th>Data</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
 
-        <div class="orders-message" id="ordersMessage">
-            Carregando pedidos...
+                <tbody id="ordersTableBody"></tbody>
+            </table>
+
+            <div class="orders-message" id="ordersMessage">
+                Carregando pedidos...
+            </div>
+
         </div>
 
     </div>
 
+    <!-- RELATÓRIO DE PEDIDOS -->
+    <section
+        id="ordersReportPanel"
+        class="orders-report"
+        role="tabpanel"
+        aria-labelledby="ordersReportTab"
+        hidden
+    >
+
+        <header class="orders-report-heading">
+            <div>
+                <h2>Relatório de Pedidos</h2>
+                <p>Analise os pedidos por período, tipo e status.</p>
+            </div>
+
+            <button
+                type="button"
+                id="exportOrdersCsv"
+                class="orders-report-primary"
+            >
+                Exportar CSV
+            </button>
+        </header>
+
+        <!-- INDICADORES -->
+        <div class="orders-report-stats">
+
+            <article>
+                <span>Total de pedidos filtrados</span>
+                <strong id="reportOrdersTotal">—</strong>
+            </article>
+
+            <article>
+                <span>Itens na página</span>
+                <strong id="reportOrdersItems">—</strong>
+            </article>
+
+            <article>
+                <span>Unidades na página</span>
+                <strong id="reportOrdersQuantity">—</strong>
+            </article>
+
+            <article>
+                <span>Tarefas na página</span>
+                <strong id="reportOrdersTasks">—</strong>
+            </article>
+
+        </div>
+
+        <!-- FILTROS E TABELA -->
+        <div class="orders-report-panel">
+
+            <div class="orders-report-section-heading">
+                <h3>Histórico de pedidos</h3>
+                <span id="reportOrdersCount">0 registros</span>
+            </div>
+
+            <form
+                id="ordersReportFilters"
+                class="orders-report-filters"
+            >
+
+                <label>
+                    Data inicial
+                    <input
+                        type="date"
+                        id="reportOrdersStartDate"
+                    >
+                </label>
+
+                <label>
+                    Data final
+                    <input
+                        type="date"
+                        id="reportOrdersEndDate"
+                    >
+                </label>
+
+                <label>
+                    Tipo
+                    <select id="reportOrdersType">
+                        <option value="">Todos os tipos</option>
+                        <option value="INBOUND">Recebimento</option>
+                        <option value="OUTBOUND">Expedição</option>
+                    </select>
+                </label>
+
+                <label>
+                    Status
+                    <select id="reportOrdersStatus">
+                        <option value="">Todos os status</option>
+                        <option value="PENDING">Pendente</option>
+                        <option value="PROCESSING">Em processamento</option>
+                        <option value="COMPLETED">Concluído</option>
+                        <option value="CANCELLED">Cancelado</option>
+                    </select>
+                </label>
+
+                <div class="orders-report-filter-actions">
+                    <button
+                        type="submit"
+                        class="orders-report-primary"
+                    >
+                        Filtrar
+                    </button>
+
+                    <button
+                        type="button"
+                        id="clearOrdersReportFilters"
+                        class="orders-report-secondary"
+                    >
+                        Limpar filtros
+                    </button>
+                </div>
+
+            </form>
+
+            <p
+                id="ordersReportMessage"
+                class="orders-report-message"
+                role="status"
+                aria-live="polite"
+            >
+                Selecione a aba para carregar o relatório.
+            </p>
+
+            <div class="orders-report-table-wrap">
+
+                <table class="orders-report-table">
+
+                    <thead>
+                        <tr>
+                            <th>Pedido</th>
+                            <th>Data</th>
+                            <th>Tipo</th>
+                            <th>Status</th>
+                            <th>Itens</th>
+                            <th>Quantidade</th>
+                            <th>Tarefas</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="reportOrdersTableBody"></tbody>
+
+                </table>
+
+            </div>
+
+            <!-- PAGINAÇÃO -->
+            <footer class="orders-report-pagination">
+
+                <span id="reportOrdersPageInfo">
+                    Página 1 de 1
+                </span>
+
+                <div>
+                    <button
+                        type="button"
+                        id="reportOrdersPrevious"
+                    >
+                        Anterior
+                    </button>
+
+                    <button
+                        type="button"
+                        id="reportOrdersNext"
+                    >
+                        Próxima
+                    </button>
+                </div>
+
+            </footer>
+
+        </div>
+
+    </section>
+
 </section>
 
+
+<!-- MODAL: NOVO PEDIDO -->
 <div class="order-modal-overlay" id="orderModal">
     <div class="order-modal">
 
@@ -154,6 +367,8 @@
     </div>
 </div>
 
+
+<!-- MODAL: DETALHES DO PEDIDO -->
 <div class="order-modal-overlay" id="orderDetailsModal">
     <div class="order-modal">
 
@@ -231,7 +446,8 @@
     </div>
 </div>
 
-<!-- Modal para adicionar item a um pedido existente -->
+
+<!-- MODAL: ADICIONAR PRODUTO -->
 <div class="order-modal-overlay" id="addOrderItemModal">
     <div class="order-modal order-item-modal">
 
@@ -254,15 +470,21 @@
         <form id="addOrderItemForm">
 
             <div class="form-group">
-                <label for="detailProductSelect">Produto *</label>
+                <label for="detailProductSelect">
+                    Produto *
+                </label>
 
                 <select id="detailProductSelect" required>
-                    <option value="">Selecione um produto</option>
+                    <option value="">
+                        Selecione um produto
+                    </option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label for="detailProductQuantity">Quantidade *</label>
+                <label for="detailProductQuantity">
+                    Quantidade *
+                </label>
 
                 <input
                     type="number"
@@ -302,14 +524,16 @@
 </div>
 
 
-<!-- Modal para alterar a quantidade de um item -->
+<!-- MODAL: EDITAR ITEM -->
 <div class="order-modal-overlay" id="editOrderItemModal">
     <div class="order-modal order-item-modal">
 
         <div class="modal-header">
             <div>
                 <h2>Editar item</h2>
-                <p id="editOrderItemProduct">Altere a quantidade do produto.</p>
+                <p id="editOrderItemProduct">
+                    Altere a quantidade do produto.
+                </p>
             </div>
 
             <button
@@ -325,7 +549,9 @@
         <form id="editOrderItemForm">
 
             <div class="form-group">
-                <label for="editOrderItemQuantity">Quantidade *</label>
+                <label for="editOrderItemQuantity">
+                    Quantidade *
+                </label>
 
                 <input
                     type="number"
@@ -363,6 +589,8 @@
     </div>
 </div>
 
+
+<!-- MODAL: ALTERAR STATUS -->
 <div class="order-modal-overlay" id="orderStatusModal">
     <div class="order-modal order-status-modal">
 
@@ -385,7 +613,9 @@
         <form id="orderStatusForm">
 
             <div class="form-group">
-                <label for="newOrderStatus">Status *</label>
+                <label for="newOrderStatus">
+                    Status *
+                </label>
 
                 <select id="newOrderStatus" required>
                     <option value="PENDING">Pendente</option>
@@ -426,4 +656,5 @@
 
 {% block scripts %}
 <script src="/static/js/orders.js"></script>
+<script src="/static/js/orders-report.js"></script>
 {% endblock %}
