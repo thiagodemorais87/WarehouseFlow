@@ -1,8 +1,9 @@
+
 .dashboard {
     width: 100%;
 }
 
-/* header */
+/* Cabeçalho */
 
 .dashboard-header {
     display: flex;
@@ -41,15 +42,11 @@
     align-items: center;
     justify-content: center;
     gap: 7px;
-
     padding: 0 14px;
-
     border-radius: 6px;
-
     text-decoration: none;
     font-size: 14px;
     font-weight: 500;
-
     cursor: pointer;
 }
 
@@ -73,39 +70,32 @@
     background-color: #183451;
 }
 
-/* Cards */
+/* Indicadores */
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
 }
 
 .stat-card {
     min-height: 110px;
-
     display: flex;
     align-items: center;
     gap: 18px;
-
     padding: 20px 24px;
-
     border: 1px solid #d7dee8;
     border-radius: 7px;
-
     background-color: #ffffff;
 }
 
 .stat-icon {
     width: 32px;
     height: 32px;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     flex-shrink: 0;
-
     font-size: 19px;
     font-weight: 600;
 }
@@ -126,31 +116,32 @@
     color: #ef4444;
 }
 
+.stat-icon-purple {
+    color: #7c3aed;
+}
+
 .stat-content {
     min-width: 0;
-
     display: flex;
     flex-direction: column;
 }
 
 .stat-label {
     margin-bottom: 2px;
-
     color: #475569;
     font-size: 13px;
 }
 
 .stat-value {
     color: #0f172a;
-
     font-size: 27px;
     line-height: 1.15;
     font-weight: 700;
+    overflow-wrap: anywhere;
 }
 
 .stat-detail {
     margin-top: 3px;
-
     color: #64748b;
     font-size: 12px;
 }
@@ -309,7 +300,38 @@
     color: #b91c1c;
 }
 
+.recent-status.status-unknown {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+/* Responsividade */
+
+@media (max-width: 1100px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 @media (max-width: 700px) {
+    .dashboard-header {
+        flex-direction: column;
+    }
+
+    .dashboard-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-card {
+        padding: 18px;
+    }
+
+    .dashboard-chart,
     .dashboard-recent {
         padding: 16px;
     }
@@ -360,27 +382,5 @@
 
     .recent-table td[colspan]::before {
         content: none;
-    }
-}
-
-/* Responsividade */
-
-@media (max-width: 1100px) {
-    .stats-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 700px) {
-    .dashboard-header {
-        flex-direction: column;
-    }
-
-    .dashboard-actions {
-        width: 100%;
-    }
-
-    .stats-grid {
-        grid-template-columns: 1fr;
     }
 }

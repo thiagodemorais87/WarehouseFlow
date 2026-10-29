@@ -1,0 +1,106 @@
+
+{% extends "base.html" %}
+
+{% block title %}Relatório de Picking | WarehouseFlow{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/static/css/picking-report.css">
+{% endblock %}
+
+{% block content %}
+<section class="picking-report-page">
+    <header class="report-header">
+        <div>
+            <h1>Relatório de Picking</h1>
+            <p>Acompanhe o histórico e o desempenho das otimizações de rotas.</p>
+        </div>
+
+        <button id="exportPickingCsv" type="button" class="report-export-button">
+            Exportar CSV
+        </button>
+    </header>
+
+    <div class="report-stats">
+        <article class="report-stat-card">
+            <span>Otimizações realizadas</span>
+            <strong id="pickingRunsCount">—</strong>
+        </article>
+
+        <article class="report-stat-card">
+            <span>Redução média das rotas</span>
+            <strong id="pickingAverageReduction">—</strong>
+        </article>
+
+        <article class="report-stat-card">
+            <span>Distância média economizada</span>
+            <strong id="pickingAverageDistance">—</strong>
+        </article>
+    </div>
+
+    <section class="report-panel">
+        <div class="report-panel-header">
+            <div>
+                <h2>Histórico de otimizações</h2>
+                <p>Consulte as rotas executadas e seus resultados.</p>
+            </div>
+            <span id="pickingResultsCount">0 registros</span>
+        </div>
+
+        <div class="report-filters">
+            <label>
+                Data inicial
+                <input type="date" id="pickingStartDate">
+            </label>
+
+            <label>
+                Data final
+                <input type="date" id="pickingEndDate">
+            </label>
+
+            <label>
+                Pedido
+                <input type="search" id="pickingOrderSearch" placeholder="Número do pedido">
+            </label>
+
+            <label>
+                Origem
+                <select id="pickingSourceFilter">
+                    <option value="">Todas as origens</option>
+                </select>
+            </label>
+
+            <button id="clearPickingFilters" type="button">
+                Limpar filtros
+            </button>
+        </div>
+
+        <p id="pickingReportMessage" role="status" aria-live="polite">
+            Carregando histórico de otimizações...
+        </p>
+
+        <div class="report-table-wrapper">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Usuário</th>
+                        <th>Pedido</th>
+                        <th>Origem</th>
+                        <th>Posições</th>
+                        <th>Distância original</th>
+                        <th>Distância final</th>
+                        <th>Redução</th>
+                        <th>Tempo</th>
+                        <th>Rota otimizada</th>
+                    </tr>
+                </thead>
+                <tbody id="pickingReportTableBody"></tbody>
+            </table>
+        </div>
+    </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/picking-report.js"></script>
+{% endblock %}

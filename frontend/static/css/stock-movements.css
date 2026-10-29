@@ -1,0 +1,338 @@
+
+/* ======================================================
+   WAREHOUSEFLOW - RELATÓRIO DE MOVIMENTAÇÕES DE ESTOQUE
+   Sprint 07
+   Estilos complementares ao picking-report.css
+   ====================================================== */
+
+/* ======================================================
+   INDICADORES
+   ====================================================== */
+
+.stock-movements-page .movements-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.stock-movements-page .report-stat-card {
+    min-width: 0;
+}
+
+.stock-movements-page .report-stat-card strong {
+    overflow-wrap: anywhere;
+}
+
+/* ======================================================
+   FILTROS
+   ====================================================== */
+
+.stock-movements-page .movements-filters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    align-items: end;
+}
+
+.stock-movements-page .movements-filters label {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+}
+
+.stock-movements-page .movements-filters input,
+.stock-movements-page .movements-filters select {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.stock-movements-page .movements-filters input:focus,
+.stock-movements-page .movements-filters select:focus {
+    outline: 2px solid #93c5fd;
+    outline-offset: 1px;
+    border-color: #2563eb;
+}
+
+/* ======================================================
+   BOTÕES DOS FILTROS
+   ====================================================== */
+
+.stock-movements-page .movements-filters button {
+    width: 100%;
+    min-height: 40px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    cursor: pointer;
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+/* Botão principal: Filtrar */
+
+.stock-movements-page #applyMovementsFilters {
+    background-color: #2563eb;
+    border: 1px solid #2563eb;
+    color: #ffffff;
+}
+
+.stock-movements-page #applyMovementsFilters:hover:not(:disabled) {
+    background-color: #1d4ed8;
+    border-color: #1d4ed8;
+}
+
+.stock-movements-page #applyMovementsFilters:active:not(:disabled) {
+    background-color: #1e40af;
+}
+
+/* Botão secundário: Limpar filtros */
+
+.stock-movements-page #clearMovementsFilters {
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+}
+
+.stock-movements-page #clearMovementsFilters:hover:not(:disabled) {
+    background-color: #f1f5f9;
+    border-color: #94a3b8;
+}
+
+.stock-movements-page .movements-filters button:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 3px;
+}
+
+.stock-movements-page .movements-filters button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ======================================================
+   TABELA DE MOVIMENTAÇÕES
+   ====================================================== */
+
+.stock-movements-page .report-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.stock-movements-page .report-table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+}
+
+.stock-movements-page .report-table th,
+.stock-movements-page .report-table td {
+    vertical-align: middle;
+}
+
+.stock-movements-page .report-table td {
+    overflow-wrap: anywhere;
+}
+
+/* ======================================================
+   IDENTIFICAÇÃO DO TIPO DE MOVIMENTAÇÃO
+   ====================================================== */
+
+.movements-type {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+/* Entrada de estoque */
+
+.movements-type.inbound {
+    color: #15803d;
+    background-color: #dcfce7;
+}
+
+/* Saída de estoque */
+
+.movements-type.outbound {
+    color: #b91c1c;
+    background-color: #fee2e2;
+}
+
+/* ======================================================
+   VALORES POSITIVOS E NEGATIVOS
+   ====================================================== */
+
+.movements-positive {
+    color: #15803d;
+    font-weight: 600;
+}
+
+.movements-negative {
+    color: #b91c1c;
+    font-weight: 600;
+}
+
+/* ======================================================
+   PAGINAÇÃO
+   ====================================================== */
+
+.movements-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 20px;
+}
+
+#movementsPageInfo {
+    font-size: 14px;
+    color: #475569;
+}
+
+.movements-pagination-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.movements-pagination button {
+    min-height: 38px;
+    padding: 9px 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background-color: #ffffff;
+    color: #334155;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.movements-pagination button:hover:not(:disabled) {
+    background-color: #f1f5f9;
+    border-color: #94a3b8;
+}
+
+.movements-pagination button:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+.movements-pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+
+/* ======================================================
+   AÇÕES DOS FILTROS
+   ====================================================== */
+
+.stock-movements-page .movements-filter-actions {
+    display: flex;
+    align-items: end;
+    gap: 10px;
+    min-width: 0;
+}
+
+.stock-movements-page .movements-filter-actions button {
+    flex: 1;
+    min-width: 0;
+}
+
+@media (max-width: 700px) {
+    .stock-movements-page .movements-filter-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .stock-movements-page .movements-filter-actions button {
+        width: 100%;
+    }
+}
+
+
+/* ======================================================
+   RESPONSIVIDADE - NOTEBOOKS E TABLETS
+   ====================================================== */
+
+@media (max-width: 1100px) {
+    .stock-movements-page .movements-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stock-movements-page .movements-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* ======================================================
+   RESPONSIVIDADE - CELULARES
+   ====================================================== */
+
+@media (max-width: 700px) {
+    .stock-movements-page .movements-stats {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .stock-movements-page .movements-filters {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .stock-movements-page .movements-filters button {
+        width: 100%;
+    }
+
+    .stock-movements-page .report-table {
+        min-width: 850px;
+    }
+
+    .movements-pagination {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .movements-pagination-actions {
+        width: 100%;
+    }
+
+    .movements-pagination-actions button {
+        flex: 1;
+    }
+
+    #movementsPageInfo {
+        text-align: center;
+    }
+}
+
+/* ======================================================
+   TELAS MUITO PEQUENAS
+   ====================================================== */
+
+@media (max-width: 400px) {
+    .stock-movements-page .movements-filters button {
+        font-size: 13px;
+    }
+
+    .movements-pagination button {
+        padding: 9px 12px;
+    }
+}
