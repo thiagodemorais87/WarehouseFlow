@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentPage = 1;
     let totalRecords = 0;
     let loading = false;
+    let initialized = false;
 
     const $ = (id) => document.getElementById(id);
 
@@ -31,6 +32,12 @@ document.addEventListener("DOMContentLoaded", () => {
         pageInfo: $("movementsPageInfo")
     };
 
+    // Permite carregar o script apenas em páginas
+    // que realmente possuem o relatório.
+    if (Object.values(elements).some((element) => !element)) {
+        return;
+    }
+
     const numberFormat = new Intl.NumberFormat("pt-BR");
 
     function getToken() {
@@ -50,13 +57,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
         let text = String(value).trim();
 
-        // Convenção provisória: datas sem fuso são UTC.
+        // Convenção provisória:
+        // datas sem fuso são interpretadas como UTC.
         if (!/(Z|[+-]\d{2}:\d{2})$/i.test(text)) {
             text += "Z";
         }
 
         const date = new Date(text);
-        if (Number.isNaN(date.getTime())) return "—";
+
+        if (Number.isNaN(date.getTime())) {
+            return "—";
+        }
 
         return date.toLocaleString("pt-BR", {
             timeZone: TIME_ZONE,
@@ -88,7 +99,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (elements.product.value.trim()) {
-            params.set("product_id", elements.product.value.trim());
+            params.set(
+                "product_id",
+                elements.product.value.trim()
+            );
         }
 
         return params;
@@ -100,7 +114,9 @@ document.addEventListener("DOMContentLoaded", () => {
             elements.end.value &&
             elements.start.value > elements.end.value
         ) {
-            showMessage("A data inicial não pode ser posterior à data final.");
+            showMessage(
+                "A data inicial não pode ser posterior à data final."
+            );
             return false;
         }
 
@@ -108,7 +124,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (
             product &&
-            (!Number.isSafeInteger(Number(product)) || Number(product) < 1)
+            (
+                !Number.isSafeInteger(Number(product)) ||
+                Number(product) < 1
+            )
         ) {
             showMessage("Informe um ID de produto válido.");
             return false;
@@ -179,7 +198,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const cell = document.createElement("td");
         cell.textContent = value ?? "—";
 
-        if (className) cell.className = className;
+        if (className) {
+            cell.className = className;
+        }
 
         row.appendChild(cell);
         return cell;
@@ -198,11 +219,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const typeCell = document.createElement("td");
             const typeBadge = document.createElement("span");
-            const isInbound = item.movement_type === "INBOUND";
+
+            const isInbound =
+                item.movement_type === "INBOUND";
 
             typeBadge.className =
-                `movements-type ${isInbound ? "inbound" : "outbound"}`;
-            typeBadge.textContent = isInbound ? "Entrada" : "Saída";
+                `movements-type ${
+                    isInbound ? "inbound" : "outbound"
+                }`;
+
+            typeBadge.textContent =
+                isInbound ? "Entrada" : "Saída";
 
             typeCell.appendChild(typeBadge);
             row.appendChild(typeCell);
@@ -210,6 +237,7 @@ document.addEventListener("DOMContentLoaded", () => {
             addCell(row, formatNumber(item.quantity));
 
             const signed = Number(item.signed_quantity) || 0;
+
             addCell(
                 row,
                 `${signed > 0 ? "+" : ""}${formatNumber(signed)}`,
@@ -233,23 +261,34 @@ document.addEventListener("DOMContentLoaded", () => {
         elements.pageInfo.textContent =
             `Página ${currentPage} de ${pages}`;
 
-        elements.previous.disabled = loading || currentPage <= 1;
-        elements.next.disabled = loading || currentPage >= pages;
+        elements.previous.disabled =
+            loading || currentPage <= 1;
+
+        elements.next.disabled =
+            loading || currentPage >= pages;
     }
 
     async function loadMovements() {
-        if (loading || !validateFilters()) return;
+        if (loading || !validateFilters()) {
+            return;
+        }
 
         loading = true;
+
         elements.apply.disabled = true;
         elements.export.disabled = true;
+
         updatePagination();
         showMessage("Carregando movimentações...");
 
         try {
             const params = getFilters();
 
-            params.set("skip", (currentPage - 1) * PAGE_SIZE);
+            params.set(
+                "skip",
+                (currentPage - 1) * PAGE_SIZE
+            );
+
             params.set("limit", PAGE_SIZE);
 
             const response = await apiFetch(
@@ -273,23 +312,28 @@ document.addEventListener("DOMContentLoaded", () => {
                     : "Nenhuma movimentação encontrada para os filtros."
             );
 
-            // A API informa os status retornados na página.
-            // A lista completa será alinhada com os enums do backend.
         } catch (error) {
             totalRecords = 0;
+
             clearStats();
             elements.tbody.replaceChildren();
+
             showMessage(error.message);
+
         } finally {
             loading = false;
+
             elements.apply.disabled = false;
             elements.export.disabled = false;
+
             updatePagination();
         }
     }
 
     async function exportCsv() {
-        if (!validateFilters()) return;
+        if (!validateFilters()) {
+            return;
+        }
 
         elements.export.disabled = true;
 
@@ -305,25 +349,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
             link.href = objectUrl;
             link.download = "stock-movements-report.csv";
+
             document.body.appendChild(link);
             link.click();
             link.remove();
 
-            setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+            setTimeout(() => {
+                URL.revokeObjectURL(objectUrl);
+            }, 1000);
+
         } catch (error) {
             showMessage(error.message);
+
         } finally {
             elements.export.disabled = false;
         }
     }
 
     function applyFilters() {
-        if (!validateFilters()) return;
+        if (!validateFilters()) {
+            return;
+        }
+
         currentPage = 1;
         loadMovements();
     }
 
-    elements.apply.addEventListener("click", applyFilters);
+    function initializeReport() {
+        if (initialized) {
+            return;
+        }
+
+        initialized = true;
+        loadMovements();
+    }
+
+    // ==========================================
+    // EVENTOS DOS FILTROS
+    // ==========================================
+
+    elements.apply.addEventListener(
+        "click",
+        applyFilters
+    );
 
     elements.clear.addEventListener("click", () => {
         elements.start.value = "";
@@ -336,8 +404,15 @@ document.addEventListener("DOMContentLoaded", () => {
         loadMovements();
     });
 
+    // ==========================================
+    // PAGINAÇÃO
+    // ==========================================
+
     elements.previous.addEventListener("click", () => {
-        if (loading || currentPage <= 1) return;
+        if (loading || currentPage <= 1) {
+            return;
+        }
+
         currentPage--;
         loadMovements();
     });
@@ -346,13 +421,47 @@ document.addEventListener("DOMContentLoaded", () => {
         if (
             loading ||
             currentPage * PAGE_SIZE >= totalRecords
-        ) return;
+        ) {
+            return;
+        }
 
         currentPage++;
         loadMovements();
     });
 
-    elements.export.addEventListener("click", exportCsv);
+    // ==========================================
+    // EXPORTAÇÃO
+    // ==========================================
 
-    loadMovements();
+    elements.export.addEventListener(
+        "click",
+        exportCsv
+    );
+
+    // ==========================================
+    // INTEGRAÇÃO COM AS ABAS
+    // ==========================================
+
+    const movementsPanel = $("stockMovementsPanel");
+    const movementsTab = $("stockMovementsTab");
+
+    if (movementsPanel && movementsTab) {
+        // Página de estoque com abas:
+        // carrega somente quando a aba for aberta.
+        movementsTab.addEventListener(
+            "click",
+            initializeReport
+        );
+
+        // Permite inicialização se a aba
+        // já estiver visível por algum motivo.
+        if (!movementsPanel.hidden) {
+            initializeReport();
+        }
+
+    } else {
+        // Página independente do relatório:
+        // mantém o carregamento automático original.
+        initializeReport();
+    }
 });

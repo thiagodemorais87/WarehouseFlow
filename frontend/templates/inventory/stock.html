@@ -3,143 +3,422 @@
 {% block title %}Estoque | WarehouseFlow{% endblock %}
 
 {% block styles %}
-    <link rel="stylesheet" href="/static/css/stock.css">
+<link rel="stylesheet" href="/static/css/stock.css">
+<link rel="stylesheet" href="/static/css/picking-report.css">
+<link rel="stylesheet" href="/static/css/stock-movements.css">
 {% endblock %}
 
-{% block content  %}
+{% block content %}
+
 <section class="stock-page">
 
-    <div class="stock-header">
-        <div>
-            <h1>Estoque</h1>
-            <p>Consulte e gerencie o saldo de produtos por posição.</p>
-        </div>
+    <!-- ABAS DE NAVEGAÇÃO -->
+    <nav class="stock-tabs" role="tablist"
+            aria-label="Seções de estoque">
 
         <button
-        type="button"
-        class="button-primary"
-        id="newStockButton"
+            type="button"
+            class="stock-tab active"
+            id="stockManagementTab"
+            role="tab"
+            aria-controls="stockManagementPanel"
+            aria-selected="true"
         >
-            <span>+</span>
-            Adicionar ao estoque
+            Gerenciar estoque
         </button>
-    </div>
 
-    <div class="stock-toolbar">
-        <div class="stock-search">
-            <input type="search"
-            id="stockSearch"
-            placeholder="Buscar por produto, SKU ou posição..."
-            aria-label="Buscar no estoque"
+        <button
+            type="button"
+            class="stock-tab"
+            id="stockMovementsTab"
+            role="tab"
+            aria-controls="stockMovementsPanel"
+            aria-selected="false"
+        >
+            Relatório de movimentações
+        </button>
+
+    </nav>
+
+    <!-- GERENCIAMENTO DE ESTOQUE -->
+    <div
+        id="stockManagementPanel"
+        role="tabpanel"
+        aria-labelledby="stockManagementTab"
+    >
+
+        <div class="stock-header">
+            <div>
+                <h1>Estoque</h1>
+                <p>
+                    Consulte e gerencie o saldo de produtos
+                    por posição.
+                </p>
+            </div>
+
+            <button
+                type="button"
+                class="button-primary"
+                id="newStockButton"
             >
+                <span>+</span>
+                Adicionar ao estoque
+            </button>
         </div>
+
+        <div class="stock-toolbar">
+            <div class="stock-search">
+                <input
+                    type="search"
+                    id="stockSearch"
+                    placeholder="Buscar por produto, SKU ou posição..."
+                    aria-label="Buscar no estoque"
+                >
+            </div>
+        </div>
+
+        <div class="stock-table-container">
+            <table class="stock-table">
+                <thead>
+                    <tr>
+                        <th>SKU</th>
+                        <th>Produto</th>
+                        <th>Posição</th>
+                        <th>Quantidade</th>
+                        <th>Última atualização</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+
+                <tbody id="stockTableBody"></tbody>
+            </table>
+
+            <div class="stock-message" id="stockMessage">
+                Carregando estoque...
+            </div>
+        </div>
+
     </div>
 
-    <div class="stock-table-container">
-        <table class="stock-table">
-            <thead>
-                <tr>
-                    <th>SKU</th>
-                    <th>Produto</th>
-                    <th>Posição</th>
-                    <th>Quantidade</th>
-                    <th>Última atualização</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
+    <!-- RELATÓRIO DE MOVIMENTAÇÕES -->
+    <div
+        id="stockMovementsPanel"
+        role="tabpanel"
+        aria-labelledby="stockMovementsTab"
+        hidden
+    >
 
-            <tbody id="stockTableBody"></tbody>
-        </table>
+        <section class="picking-report-page stock-movements-page">
 
-        <div class="stock-message" id="stockMessage">
-            Carregando estoque...
-        </div>
+            <header class="report-header">
+                <div>
+                    <h1>Movimentações de Estoque</h1>
+                    <p>
+                        Consulte as entradas e saídas
+                        associadas aos pedidos.
+                    </p>
+                </div>
+
+                <button
+                    id="exportMovementsCsv"
+                    type="button"
+                    class="report-export-button"
+                >
+                    Exportar CSV
+                </button>
+            </header>
+
+            <!-- INDICADORES -->
+            <div class="report-stats movements-stats">
+
+                <article class="report-stat-card">
+                    <span>Total de movimentações</span>
+                    <strong id="movementsTotal">—</strong>
+                </article>
+
+                <article class="report-stat-card">
+                    <span>Unidades de entrada</span>
+                    <strong id="movementsInbound">—</strong>
+                </article>
+
+                <article class="report-stat-card">
+                    <span>Unidades de saída</span>
+                    <strong id="movementsOutbound">—</strong>
+                </article>
+
+                <article class="report-stat-card">
+                    <span>Saldo líquido</span>
+                    <strong id="movementsBalance">—</strong>
+                </article>
+
+            </div>
+
+            <!-- HISTÓRICO -->
+            <section class="report-panel">
+
+                <div class="report-panel-header">
+                    <div>
+                        <h2>Histórico de movimentações</h2>
+                        <p>
+                            Registros associados aos itens de pedidos.
+                        </p>
+                    </div>
+
+                    <span id="movementsResultsCount">
+                        0 registros
+                    </span>
+                </div>
+
+                <!-- FILTROS -->
+                <div class="report-filters movements-filters">
+
+                    <label>
+                        Data inicial
+                        <input
+                            type="date"
+                            id="movementsStartDate"
+                        >
+                    </label>
+
+                    <label>
+                        Data final
+                        <input
+                            type="date"
+                            id="movementsEndDate"
+                        >
+                    </label>
+
+                    <label>
+                        Tipo
+                        <select id="movementsType">
+                            <option value="">Todos</option>
+                            <option value="INBOUND">Entrada</option>
+                            <option value="OUTBOUND">Saída</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        Status do pedido
+                        <select id="movementsStatus">
+                            <option value="">Todos os status</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        ID do produto
+                        <input
+                            type="number"
+                            id="movementsProduct"
+                            min="1"
+                            step="1"
+                            placeholder="Ex.: 5"
+                        >
+                    </label>
+
+                    <div class="movements-filter-actions">
+
+                        <button
+                            id="applyMovementsFilters"
+                            type="button"
+                        >
+                            Filtrar
+                        </button>
+
+                        <button
+                            id="clearMovementsFilters"
+                            type="button"
+                        >
+                            Limpar filtros
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <!-- MENSAGENS -->
+                <p
+                    id="movementsReportMessage"
+                    role="status"
+                    aria-live="polite"
+                >
+                    Carregando movimentações...
+                </p>
+
+                <!-- TABELA -->
+                <div class="report-table-wrapper">
+
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Pedido</th>
+                                <th>Produto</th>
+                                <th>SKU</th>
+                                <th>Tipo</th>
+                                <th>Quantidade</th>
+                                <th>Saldo</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="movementsTableBody"></tbody>
+                    </table>
+
+                </div>
+
+                <!-- PAGINAÇÃO -->
+                <div class="movements-pagination">
+
+                    <span id="movementsPageInfo">
+                        Página 1
+                    </span>
+
+                    <div class="movements-pagination-actions">
+
+                        <button
+                            id="movementsPrevious"
+                            type="button"
+                        >
+                            Anterior
+                        </button>
+
+                        <button
+                            id="movementsNext"
+                            type="button"
+                        >
+                            Próxima
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </section>
+
     </div>
 
 </section>
 
+
+<!-- MODAL DE ESTOQUE -->
 <div class="stock-modal-overlay" id="stockModal">
     <div class="stock-modal">
 
         <div class="modal-header">
             <div>
-                <h2 id="stockModalTitle">Adicionar ao estoque</h2>
-                <p>Informe o produto, a posição e a quantidade.</p>
+                <h2 id="stockModalTitle">
+                    Adicionar ao estoque
+                </h2>
+
+                <p>
+                    Informe o produto, a posição e a quantidade.
+                </p>
             </div>
 
-            <button 
-            type="button"
-            class="modal-close"
-            id="closeStockModal"
-            aria-label="Fechar"
+            <button
+                type="button"
+                class="modal-close"
+                id="closeStockModal"
+                aria-label="Fechar"
             >
-            ×
+                ×
             </button>
         </div>
-        
+
         <form id="stockForm">
+
             <div class="form-group">
-    <label for="stockProduct">Produto *</label>
+                <label for="stockProduct">
+                    Produto *
+                </label>
 
-    <select id="stockProduct" required>
-        <option value="">Selecione um produto</option>
-    </select>
-</div>
-
-        <div class="form-group">
-            <label for="stockLocation">Posição *</label>
-
-            <select id="stockLocation" required>
-                <option value="">Selecione uma posição</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="stockQuantity" id="stockQuantityLabel">Quantidade a adicionar *</label>
-
-        <input
-            type="number"
-            id="stockQuantity"
-            min="0"
-            step="1"
-            required
-        >
-
-            <small class="form-hint" id="stockQuantityHint">
-                A quantidade informada será adicionada ao estoque atual.
-            </small>
+                <select id="stockProduct" required>
+                    <option value="">
+                        Selecione um produto
+                    </option>
+                </select>
             </div>
 
-            <div class="form-message" id="stockFormMessage"></div>
+            <div class="form-group">
+                <label for="stockLocation">
+                    Posição *
+                </label>
+
+                <select id="stockLocation" required>
+                    <option value="">
+                        Selecione uma posição
+                    </option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label
+                    for="stockQuantity"
+                    id="stockQuantityLabel"
+                >
+                    Quantidade a adicionar *
+                </label>
+
+                <input
+                    type="number"
+                    id="stockQuantity"
+                    min="0"
+                    step="1"
+                    required
+                >
+
+                <small
+                    class="form-hint"
+                    id="stockQuantityHint"
+                >
+                    A quantidade informada será
+                    adicionada ao estoque atual.
+                </small>
+            </div>
+
+            <div
+                class="form-message"
+                id="stockFormMessage"
+            ></div>
 
             <div class="modal-actions">
+
                 <button
-                type="button"
-                class="button-secondary"
-                id="cancelStockButton"
+                    type="button"
+                    class="button-secondary"
+                    id="cancelStockButton"
                 >
                     Cancelar
                 </button>
 
                 <button
-                type="submit"
-                class="button-primary"
-                id="saveStockButton"
+                    type="submit"
+                    class="button-primary"
+                    id="saveStockButton"
                 >
                     Salvar
                 </button>
+
             </div>
-            
+
         </form>
+
     </div>
 </div>
 
+
+<!-- MODAL DE MOVIMENTAÇÃO -->
 <div class="stock-modal-overlay" id="movementModal">
     <div class="stock-modal">
 
         <div class="modal-header">
             <div>
-                <h2 id="movementModalTitle">Movimentar estoque</h2>
+                <h2 id="movementModalTitle">
+                    Movimentar estoque
+                </h2>
+
                 <p id="movementModalDescription">
                     Informe a quantidade.
                 </p>
@@ -177,6 +456,7 @@
             ></div>
 
             <div class="modal-actions">
+
                 <button
                     type="button"
                     class="button-secondary"
@@ -192,6 +472,7 @@
                 >
                     Confirmar
                 </button>
+
             </div>
 
         </form>
@@ -203,4 +484,6 @@
 
 {% block scripts %}
 <script src="/static/js/stock.js"></script>
+<script src="/static/js/stock-movements.js"></script>
+<script src="/static/js/stock-tabs.js"></script>
 {% endblock %}
