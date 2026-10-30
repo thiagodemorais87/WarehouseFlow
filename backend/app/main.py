@@ -21,6 +21,7 @@ from .routers import (
     optimization,
     orders,
     products,
+    reports, 
     stock,
     tasks,
     users,
@@ -73,6 +74,7 @@ app.include_router(orders.router)
 app.include_router(stock.router)
 app.include_router(users.router)
 app.include_router(locations.router)
+app.include_router(reports.router)  
 
 # Motor de otimização de picking
 app.include_router(optimization_engine_router)
@@ -296,6 +298,48 @@ if FRONTEND_DIR.exists():
                 "user": user,
                 "active_page": "optimization",
             },
+        )
+
+    @app.get(
+        "/relatorios/picking",
+        response_class=HTMLResponse,
+        tags=["Frontend"],
+    )
+    def picking_report_page(request: Request):
+        user = {
+            "name": "Usuário Teste",
+            "initials": "UT",
+            "role": "Administrador",
+        }
+
+        return templates.TemplateResponse(
+            request=request,
+            name="reports/picking.html",
+            context={
+                "user": user,
+                "active_page": "picking_report",
+            },
+        )
+
+    @app.get(
+        "/relatorios/movimentacoes",
+        response_class=HTMLResponse,
+        tags=["Frontend"]
+    )
+    def stock_movements_report_page(request: Request):
+        user = {
+            "name": "Usuário Teste",
+            "initials": "UT",
+            "role": "Administrador"
+        }
+
+        return templates.TemplateResponse(
+            request=request,
+            name="reports/stock-movements.html",
+            context={
+                "user": user,
+                "active_page": "stock_movements_report"
+            }
         )
 
 else:

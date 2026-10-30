@@ -68,12 +68,34 @@ A API FastAPI adapta JSON → `Location` e chama `optimize_route`:
 | `POST /optimization/route` | Body com `locations` explícitas |
 | `POST /optimization/route/by-order` | `order_id` → provider → mesmo motor |
 | `GET /optimization/orders/{id}/pick-locations` | Lista posições do pedido (helper) |
+| `GET /optimization/reports/summary` | `runs_count` + redução média |
+| `GET /optimization/reports/picking` | Histórico das execuções |
+| `GET /optimization/reports/picking.csv` | Export CSV do picking |
 
 `POST /optimization/route/by-order` usa `SqlAlchemyOrderRouteProvider` (OUTBOUND → itens → stock → location).  
-Coordenadas `(x, y)` são derivadas de aisle/rack/shelf/code — **sem alterar o schema do banco**.  
-`MemoryOrderRouteProvider` permanece para testes e overrides.
+Coordenadas `(x, y)` são derivadas de aisle/rack/shelf/code.  
+`MemoryOrderRouteProvider` permanece para testes e overrides (pedido sem posições → `KeyError` / HTTP 404).
 
-Contrato completo: [`docs/optimization.md`](../../docs/optimization.md) (seções 15 e 17).
+Histórico: cada otimização bem-sucedida tenta gravar em `optimization_runs`. Falha de persistência **não** quebra o POST (ainda retorna 200).
+
+Contrato estável para o frontend: [`docs/contrato_api_otimizacao.md`](../../docs/contrato_api_otimizacao.md).  
+Detalhes técnicos: [`docs/optimization.md`](../../docs/optimization.md).
+
+### DDL do histórico
+
+Arquivo dedicado (só a tabela do motor):
+
+[`backend/database/optimization_runs.sql`](../database/optimization_runs.sql)
+
+### Evidência ponta a ponta
+
+```bash
+# Na raiz do repositório
+$env:PYTHONPATH = "backend"   # PowerShell; no bash: export PYTHONPATH=backend
+python -m optimization.evidence_flow
+```
+
+Imprime otimização + summary (redução média) + picking + CSV e sai com código 0 se tudo ok.
 
 ### Cenários manuais rápidos
 
@@ -82,5 +104,7 @@ Contrato completo: [`docs/optimization.md`](../../docs/optimization.md) (seçõe
 | Coordenadas no body (UI atual) | `POST /optimization/route` com `locations` |
 | Pedido seed OUTBOUND `id=1` | `POST /optimization/route/by-order` `{"order_id":1}` |
 | Listar posições antes de otimizar | `GET /optimization/orders/1/pick-locations` |
-| Pedido inexistente / INBOUND | HTTP 404 |
+| Pedido inexistente / INBOUND / sem posições | HTTP 404 |
+| IDs duplicados no body | HTTP 400 |
 | 0 posições no body | `locations: []` → distâncias 0 |
+| Relatório + CSV | `GET /optimization/reports/summary` e `/picking` / `/picking.csv` |

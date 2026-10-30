@@ -1,0 +1,136 @@
+
+{% extends "base.html" %}
+
+{% block title %}Movimentações de Estoque | WarehouseFlow{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/static/css/picking-report.css">
+<link rel="stylesheet" href="/static/css/stock-movements.css">
+{% endblock %}
+
+{% block content %}
+<section class="picking-report-page stock-movements-page">
+    <header class="report-header">
+        <div>
+            <h1>Movimentações de Estoque</h1>
+            <p>Consulte as entradas e saídas associadas aos pedidos.</p>
+        </div>
+
+        <button id="exportMovementsCsv" type="button"
+                class="report-export-button">
+            Exportar CSV
+        </button>
+    </header>
+
+    <div class="report-stats movements-stats">
+        <article class="report-stat-card">
+            <span>Total de movimentações</span>
+            <strong id="movementsTotal">—</strong>
+        </article>
+        <article class="report-stat-card">
+            <span>Unidades de entrada</span>
+            <strong id="movementsInbound">—</strong>
+        </article>
+        <article class="report-stat-card">
+            <span>Unidades de saída</span>
+            <strong id="movementsOutbound">—</strong>
+        </article>
+        <article class="report-stat-card">
+            <span>Saldo líquido</span>
+            <strong id="movementsBalance">—</strong>
+        </article>
+    </div>
+
+    <section class="report-panel">
+        <div class="report-panel-header">
+            <div>
+                <h2>Histórico de movimentações</h2>
+                <p>Registros associados aos itens de pedidos.</p>
+            </div>
+            <span id="movementsResultsCount">0 registros</span>
+        </div>
+
+        <div class="report-filters movements-filters">
+            <label>
+                Data inicial
+                <input type="date" id="movementsStartDate">
+            </label>
+
+            <label>
+                Data final
+                <input type="date" id="movementsEndDate">
+            </label>
+
+            <label>
+                Tipo
+                <select id="movementsType">
+                    <option value="">Todos</option>
+                    <option value="INBOUND">Entrada</option>
+                    <option value="OUTBOUND">Saída</option>
+                </select>
+            </label>
+
+            <label>
+                Status do pedido
+                <select id="movementsStatus">
+                    <option value="">Todos os status</option>
+                </select>
+            </label>
+
+            <label>
+                ID do produto
+                <input type="number" id="movementsProduct"
+                        min="1" step="1" placeholder="Ex.: 5">
+            </label>
+
+            <div class="movements-filter-actions">
+                <button id="applyMovementsFilters" type="button">
+                    Filtrar
+                </button>
+
+                <button id="clearMovementsFilters" type="button">
+                    Limpar filtros
+                </button>
+            </div>
+        </div>
+
+        <p id="movementsReportMessage" role="status" aria-live="polite">
+            Carregando movimentações...
+        </p>
+
+        <div class="report-table-wrapper">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Pedido</th>
+                        <th>Produto</th>
+                        <th>SKU</th>
+                        <th>Tipo</th>
+                        <th>Quantidade</th>
+                        <th>Saldo</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="movementsTableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="movements-pagination">
+            <span id="movementsPageInfo">Página 1</span>
+            <div class="movements-pagination-actions">
+                <button id="movementsPrevious" type="button">
+                    Anterior
+                </button>
+                <button id="movementsNext" type="button">
+                    Próxima
+                </button>
+            </div>
+        </div>
+    </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/stock-movements.js"></script>
+{% endblock %}

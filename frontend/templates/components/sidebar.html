@@ -1,44 +1,76 @@
+
 <aside class="sidebar">
 
     <div class="sidebar-brand">
         <div class="sidebar-logo">
             WF
         </div>
-        
+
         <span>WarehouseFlow</span>
     </div>
 
     <nav class="sidebar-nav">
 
-        <a href="/dashboard" class="sidebar-link {% if active_page == 'dashboard' %}active{% endif %}">
+        <a
+            href="/dashboard"
+            class="sidebar-link {% if active_page == 'dashboard' %}active{% endif %}"
+        >
             Dashboard
         </a>
 
-        <a href="/produtos" class="sidebar-link {% if active_page == 'products' %}active{% endif %}">
+        <a
+            href="/produtos"
+            class="sidebar-link {% if active_page == 'products' %}active{% endif %}"
+        >
             Produtos
         </a>
 
-        <a href="/estoque" class="sidebar-link {% if active_page == 'stock' %}active{% endif %}">
+        <a
+            href="/estoque"
+            class="sidebar-link {% if active_page == 'stock' %}active{% endif %}"
+        >
             Estoque
         </a>
 
-        <a href="/posicoes" class="sidebar-link {% if active_page == 'locations' %}active{% endif %}">
+        <a
+            href="/posicoes"
+            class="sidebar-link {% if active_page == 'locations' %}active{% endif %}"
+        >
             Posições
         </a>
 
-        <a href="/pedidos" class="sidebar-link {% if active_page == 'orders' %}active{% endif %}">
+        <a
+            href="/pedidos"
+            class="sidebar-link {% if active_page == 'orders' %}active{% endif %}"
+        >
             Pedidos
         </a>
 
-        <a href="/tarefas" class="sidebar-link {% if active_page == 'tasks' %}active{% endif %}">
+        <a
+            href="/tarefas"
+            class="sidebar-link {% if active_page == 'tasks' %}active{% endif %}"
+        >
             Tarefas
         </a>
 
-        <a href="/otimizacao" class="sidebar-link {% if active_page == 'optimization' %}active{% endif %}">
+        <a
+            href="/otimizacao"
+            class="sidebar-link {% if active_page == 'optimization' %}active{% endif %}"
+        >
             Otimização
         </a>
 
-        <a href="#" class="sidebar-link {% if active_page == 'users' %}active{% endif %}">
+        <a
+            href="/relatorios/picking"
+            class="sidebar-link {% if active_page == 'picking_report' %}active{% endif %}"
+        >
+            Relatório
+        </a>
+
+        <a
+            href="#"
+            class="sidebar-link {% if active_page == 'users' %}active{% endif %}"
+        >
             Usuários
         </a>
 
@@ -51,7 +83,7 @@
         </a>
 
         <a href="/login" class="sidebar-link">
-        Sair
+            Sair
         </a>
 
     </div>

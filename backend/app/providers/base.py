@@ -10,7 +10,6 @@ class OrderRouteProvider(Protocol):
 
     Produção (S06): SqlAlchemyOrderRouteProvider (OUTBOUND → order_items
     → estoque → location; x,y derivados de aisle/rack/shelf).
-    Testes: MemoryOrderRouteProvider (catálogo em memória).
 
     Implementações não devem acoplar o pacote ``optimization`` ao FastAPI.
     """
