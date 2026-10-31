@@ -1,17 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session, joinedload
 
 from ..database import get_db
 from ..deps import get_current_user
 from ..models import User
 from ..schemas.user import AuthUserResponse, LoginRequest, TokenResponse
-from ..security import create_access_token, verify_password
+from ..security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, verify_password
+
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/login", response_model=TokenResponse, summary="Autenticar usuário")
-def login(login_data: LoginRequest, db: Session = Depends(get_db)):
+def login(login_data: LoginRequest, response: Response, db: Session = Depends(get_db)):
     """
     Realiza o login do usuário validando e-mail e senha.
     Retorna o Token JWT caso as credenciais estejam corretas.
@@ -52,6 +53,15 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     role_name = user.role_name or "OPERADOR"
     access_token = create_access_token(
         data={"sub": str(user.id), "email": user.email, "role": role_name}
+    )
+
+    # Grava o token também em cookie, para o servidor reconhecer o usuário nas páginas HTML
+    response.set_cookie(
+        "access_token",
+        access_token,
+        httponly=True,
+        samesite="lax",
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
