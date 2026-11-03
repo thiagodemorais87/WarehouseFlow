@@ -27,3 +27,19 @@ if (sidebarToggle && sidebar) {
         }
     });
 }
+
+document.querySelectorAll(".logout-link").forEach(function (link) {
+    link.addEventListener("click", async function (event) {
+        event.preventDefault();
+
+        // Apaga o token do navegador e o cookie no servidor
+        localStorage.removeItem("access_token");
+        try {
+            await fetch("/logout", { method: "POST" });
+        } catch (erro) {
+            // se falhar, o redirecionamento abaixo segue mesmo assim
+        }
+
+        window.location.href = "/login";
+    });
+});
