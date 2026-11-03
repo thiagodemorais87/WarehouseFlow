@@ -24,6 +24,7 @@ class ReportFilters:
     order_status: Optional[OrderStatus] = None
     task_status: Optional[TaskStatus] = None
     role: Optional[UserRole] = None
+    user_id: Optional[int] = None
 
     @property
     def start_dt(self) -> Optional[datetime]:

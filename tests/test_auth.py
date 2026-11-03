@@ -388,3 +388,12 @@ def test_logout_apaga_o_cookie(client):
     assert resp.status_code == 303
     assert resp.headers["location"] == "/login"
     assert client.get("/inicio", follow_redirects=False).status_code == 303
+
+def test_menu_lateral_esconde_usuarios_do_operador(client):
+    entrar_pela_tela(client, "operador")
+    assert "Usuários" not in client.get("/produtos").text
+
+
+def test_menu_lateral_mostra_usuarios_ao_admin(client):
+    entrar_pela_tela(client, "admin")
+    assert "Usuários" in client.get("/produtos").text    

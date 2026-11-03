@@ -67,12 +67,14 @@
             Relatório
         </a>
 
+        {% if user.role == 'ADMIN' %}
         <a
             href="#"
             class="sidebar-link {% if active_page == 'users' %}active{% endif %}"
         >
             Usuários
         </a>
+        {% endif %}
 
     </nav>
 
@@ -82,7 +84,7 @@
             Configurações
         </a>
 
-        <a href="/login" class="sidebar-link">
+              <a href="/login" class="sidebar-link logout-link">
             Sair
         </a>
 
