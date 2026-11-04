@@ -67,24 +67,17 @@
             Relatório de Picking
         </a>
 
-        <!-- Reservado para a futura página de usuários.
-                Somente ADMIN poderá visualizar a funcionalidade. -->
-        <!--
-        <a
-            href="/usuarios"
-            data-roles="ADMIN"
-            class="sidebar-link {% if active_page == 'users' %}active{% endif %}"
-            hidden
-        >
-            Usuários
-        </a>
-        -->
+        {# A página de usuários ainda não foi implementada.
+            Quando estiver disponível, manter o acesso exclusivo ao ADMIN. #}
 
     </nav>
 
     <div class="sidebar-footer">
 
-        <a href="/login" class="sidebar-link logout-link">
+        <a
+            href="/login"
+            class="sidebar-link logout-link"
+        >
             Sair
         </a>
 
