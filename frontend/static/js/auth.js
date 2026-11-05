@@ -25,13 +25,39 @@
         return ROLE_ALIASES[String(role).trim().toUpperCase()] || null;
     }
 
-    function logout() {
-        localStorage.removeItem("access_token");
+    let logoutPromise = null;
 
-        currentUser = null;
-        userPromise = null;
+    async function logout() {
+        if (logoutPromise) {
+            return logoutPromise;
+        }
 
-        window.location.replace("/login");
+        logoutPromise = (async function () {
+            localStorage.removeItem("access_token");
+
+            currentUser = null;
+            userPromise = null;
+
+            try {
+                const response = await fetch("/logout", {
+                    method: "POST",
+                    credentials: "same-origin",
+                    cache: "no-store"
+                });
+
+                if (!response.ok) {
+                    console.error(
+                        "Não foi possível encerrar a sessão no servidor."
+                    );
+                }
+            } catch (error) {
+                console.error("Erro ao realizar logout:", error);
+            } finally {
+                window.location.replace("/login");
+            }
+        })();
+
+        return logoutPromise;
     }
 
     async function getCurrentUser() {

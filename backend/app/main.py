@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from fastapi import Depends, FastAPI, Form, Request
+from fastapi import Depends, FastAPI, Form, Request, HTTPException, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -164,17 +164,41 @@ if FRONTEND_DIR.exists():
         return {"name": user.name, "initials": iniciais, "role": user.role_name or ""}
 
     def _register_page(path: str, template: str, active_page: str) -> None:
-        @app.get(path, response_class=HTMLResponse, tags=["Frontend"], include_in_schema=False)
+        @app.get(
+            path,
+            response_class=HTMLResponse,
+            tags=["Frontend"],
+            include_in_schema=False,
+        )
         def page(
             request: Request,
             user: Optional[models.User] = Depends(get_current_user_or_none),
         ):
+            # Usuários não autenticados devem retornar ao login.
             if user is None:
                 return RedirectResponse(url="/login", status_code=303)
+
+            # Relatório de movimentações: exclusivo para ADMIN e GESTOR.
+            if path == "/relatorios/movimentacoes":
+                role = (user.role_name or "").strip().upper()
+
+                # Compatibilidade com perfis antigos do banco.
+                if role == "MANAGER":
+                    role = "GESTOR"
+
+                if role not in ("ADMIN", "GESTOR"):
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Acesso negado: seu perfil não possui permissão para visualizar este relatório.",
+                    )
+
             return templates.TemplateResponse(
                 request=request,
                 name=template,
-                context={"user": _user_context(user), "active_page": active_page},
+                context={
+                    "user": _user_context(user),
+                    "active_page": active_page,
+                },
             )
 
     for _path, _template, _active in [
