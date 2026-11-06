@@ -99,6 +99,17 @@ def delete_product(
     if not db_product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Produto não encontrado.")
 
+    dependencias = []
+    if db.query(models.Stock.id).filter(models.Stock.product_id == product_id).first():
+        dependencias.append("registros de estoque")
+    if db.query(models.OrderItem.id).filter(models.OrderItem.product_id == product_id).first():
+        dependencias.append("itens de pedidos")
+    if dependencias:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Não é possível excluir o produto: existem {' e '.join(dependencias)} vinculados.",
+        )
+
     db.delete(db_product)
     db.commit()
     return None

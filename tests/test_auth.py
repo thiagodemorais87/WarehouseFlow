@@ -264,6 +264,55 @@ def test_gestor_cria_produto(client):
     assert resp.status_code == 201
 
 
+def test_excluir_produto_com_dependencias_devolve_409(client):
+    headers = auth(client, "admin")
+    product = client.post(
+        "/products/",
+        json={"sku": "DEPEND-001", "name": "Produto com dependências"},
+        headers=headers,
+    ).json()
+    warehouse = client.post(
+        "/locations/warehouses",
+        json={"name": "Armazém de teste"},
+        headers=headers,
+    ).json()
+    location = client.post(
+        "/locations/",
+        json={
+            "warehouse_id": warehouse["id"],
+            "code": "DEPEND-LOC",
+            "is_active": True,
+        },
+        headers=headers,
+    ).json()
+    stock = client.post(
+        "/stock/",
+        json={
+            "product_id": product["id"],
+            "location_id": location["id"],
+            "quantity": 5,
+        },
+        headers=headers,
+    )
+    order = client.post(
+        "/orders/",
+        json={
+            "type": "OUTBOUND",
+            "items": [{"product_id": product["id"], "quantity": 1}],
+        },
+        headers=headers,
+    )
+
+    assert stock.status_code == 201
+    assert order.status_code == 201
+
+    response = client.delete(f"/products/{product['id']}", headers=headers)
+
+    assert response.status_code == 409
+    assert "estoque" in response.json()["detail"].lower()
+    assert client.get(f"/products/{product['id']}", headers=headers).status_code == 200
+
+
 # ---------------------------------------------------------------------------
 # Tarefas: operador só vê e altera as próprias
 # ---------------------------------------------------------------------------

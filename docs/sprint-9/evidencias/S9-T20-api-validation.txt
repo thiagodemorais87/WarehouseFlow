@@ -1,0 +1,12 @@
+Resultados observados no servidor local da Sprint 9 (base SQLite descartável):
+
+GET /products/ sem credencial
+  HTTP 401
+
+POST /orders/ com item quantity=0
+  HTTP 400
+  {"detail":"Erro de validação nos dados enviados.","errors":["Campo 'items -> 0 -> quantity': O valor deve ser greater than 0"]}
+
+POST /optimization/route com IDs de localização duplicados
+  HTTP 400
+  {"detail":"Posição com id duplicado: 'DUP'. Cada posição deve aparecer apenas uma vez na rota."}
