@@ -238,9 +238,19 @@
     cursor: not-allowed;
 }
 
+/* controle de visibilidade por perfil */
+.stock-tabs [hidden],
+#stockMovementsPanel[hidden] {
+    display: none !important;
+}
+
+.stock-tabs [hidden],
+#stockMovementsPanel[hidden] {
+    display: none !important;
+}
 
 /* ======================================================
-   AÇÕES DOS FILTROS
+    AÇÕES DOS FILTROS
    ====================================================== */
 
 .stock-movements-page .movements-filter-actions {

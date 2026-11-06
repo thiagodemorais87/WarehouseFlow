@@ -32,6 +32,8 @@
             role="tab"
             aria-controls="ordersReportPanel"
             aria-selected="false"
+            data-roles="ADMIN,GESTOR"
+            hidden
         >
             Relatório de pedidos
         </button>
@@ -112,11 +114,12 @@
 
     <!-- RELATÓRIO DE PEDIDOS -->
     <section
-        id="ordersReportPanel"
-        class="orders-report"
-        role="tabpanel"
-        aria-labelledby="ordersReportTab"
-        hidden
+    id="ordersReportPanel"
+    class="orders-report"
+    role="tabpanel"
+    aria-labelledby="ordersReportTab"
+    data-roles="ADMIN,GESTOR"
+    hidden
     >
 
         <header class="orders-report-heading">

@@ -581,6 +581,12 @@
     }
 }
 
+/* respeitar elementos ocultos por permissão */
+.orders-tabs [hidden],
+.orders-report[hidden] {
+    display: none !important;
+}
+
 @media (max-width: 380px) {
 
     .orders-report-stats {

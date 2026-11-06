@@ -1,3 +1,4 @@
+
 const token = localStorage.getItem("access_token");
 
 const locationsTableBody = document.getElementById("locationsTableBody");
@@ -23,12 +24,74 @@ const locationActive = document.getElementById("locationActive");
 let locations = [];
 let warehouses = [];
 let editingLocationId = null;
+let canManageLocations = false;
+
+// ======================================================
+// AUTENTICAÇÃO
+// ======================================================
 
 function authHeaders() {
     return {
         "Authorization": `Bearer ${token}`
     };
 }
+
+// ======================================================
+// PERMISSÕES
+// ======================================================
+
+async function initializeLocationPermissions() {
+    canManageLocations = false;
+
+    newLocationBtn.hidden = true;
+    newLocationBtn.style.display = "none";
+
+    try {
+        if (!window.WarehouseAuth?.getCurrentUser) {
+            console.warn("WarehouseAuth não está disponível.");
+            return;
+        }
+
+        const user = await window.WarehouseAuth.getCurrentUser();
+
+        const role = String(user?.role || "")
+            .trim()
+            .toUpperCase();
+
+        canManageLocations = [
+            "ADMIN",
+            "GESTOR",
+            "MANAGER"
+        ].includes(role);
+
+        if (canManageLocations) {
+            newLocationBtn.hidden = false;
+            newLocationBtn.style.display = "";
+        }
+
+    } catch (error) {
+        console.error(
+            "Não foi possível verificar as permissões de posições:",
+            error
+        );
+    }
+}
+
+function ensureLocationPermission() {
+    if (canManageLocations) {
+        return true;
+    }
+
+    alert(
+        "Seu perfil não tem permissão para cadastrar, editar ou excluir posições."
+    );
+
+    return false;
+}
+
+// ======================================================
+// CARREGAR ARMAZÉNS
+// ======================================================
 
 async function loadWarehouses() {
     try {
@@ -38,7 +101,12 @@ async function loadWarehouses() {
 
         if (!response.ok) {
             const data = await response.json().catch(() => ({}));
-            throw new Error(data.detail || "Erro ao carregar armazéns.");
+
+            throw new Error(
+                typeof data.detail === "string"
+                    ? data.detail
+                    : "Erro ao carregar armazéns."
+            );
         }
 
         warehouses = await response.json();
@@ -68,6 +136,10 @@ async function loadWarehouses() {
     }
 }
 
+// ======================================================
+// CARREGAR POSIÇÕES
+// ======================================================
+
 async function loadLocations() {
     try {
         const response = await fetch("/locations/", {
@@ -76,7 +148,12 @@ async function loadLocations() {
 
         if (!response.ok) {
             const data = await response.json().catch(() => ({}));
-            throw new Error(data.detail || "Erro ao carregar posições.");
+
+            throw new Error(
+                typeof data.detail === "string"
+                    ? data.detail
+                    : "Erro ao carregar posições."
+            );
         }
 
         locations = await response.json();
@@ -92,6 +169,10 @@ async function loadLocations() {
         `;
     }
 }
+
+// ======================================================
+// RENDERIZAR POSIÇÕES
+// ======================================================
 
 function renderLocations() {
     const search = locationSearch.value.trim().toLowerCase();
@@ -137,30 +218,44 @@ function renderLocations() {
         return `
             <tr>
                 <td data-label="Código">${location.code}</td>
-                <td data-label="Armazém">${warehouse ? warehouse.name : "-"}</td>
+                <td data-label="Armazém">
+                    ${warehouse ? warehouse.name : "-"}
+                </td>
                 <td data-label="Corredor">${location.aisle || "-"}</td>
                 <td data-label="Rack">${location.rack || "-"}</td>
                 <td data-label="Prateleira">${location.shelf || "-"}</td>
 
                 <td data-label="Status">
-                    <span class="${location.is_active ? "status-active" : "status-inactive"}">
+                    <span class="${
+                        location.is_active
+                            ? "status-active"
+                            : "status-inactive"
+                    }">
                         ${location.is_active ? "Ativa" : "Inativa"}
                     </span>
                 </td>
 
                 <td data-label="Ações">
                     <div class="location-actions">
-                        <button
-                            class="btn-edit"
-                            data-id="${location.id}">
-                            Editar
-                        </button>
+                        ${
+                            canManageLocations
+                                ? `
+                                    <button
+                                        type="button"
+                                        class="btn-edit"
+                                        data-id="${location.id}">
+                                        Editar
+                                    </button>
 
-                        <button
-                            class="btn-delete"
-                            data-id="${location.id}">
-                            Excluir
-                        </button>
+                                    <button
+                                        type="button"
+                                        class="btn-delete"
+                                        data-id="${location.id}">
+                                        Excluir
+                                    </button>
+                                `
+                                : ""
+                        }
                     </div>
                 </td>
             </tr>
@@ -168,7 +263,15 @@ function renderLocations() {
     }).join("");
 }
 
+// ======================================================
+// MODAL DE NOVA POSIÇÃO
+// ======================================================
+
 function openNewLocationModal() {
+    if (!ensureLocationPermission()) {
+        return;
+    }
+
     editingLocationId = null;
 
     locationForm.reset();
@@ -184,7 +287,15 @@ function openNewLocationModal() {
     locationModal.classList.add("show");
 }
 
+// ======================================================
+// MODAL DE EDIÇÃO
+// ======================================================
+
 function openEditLocationModal(id) {
+    if (!ensureLocationPermission()) {
+        return;
+    }
+
     const location = locations.find(item => item.id === id);
 
     if (!location) {
@@ -212,7 +323,15 @@ function openEditLocationModal(id) {
     locationModal.classList.add("show");
 }
 
+// ======================================================
+// EXCLUIR POSIÇÃO
+// ======================================================
+
 async function deleteLocation(id) {
+    if (!ensureLocationPermission()) {
+        return;
+    }
+
     const location = locations.find(item => item.id === id);
 
     if (!location) {
@@ -231,16 +350,16 @@ async function deleteLocation(id) {
     try {
         const response = await fetch(`/locations/${id}`, {
             method: "DELETE",
-            headers: {
-                "Authorization": `Bearer ${token}`
-            }
+            headers: authHeaders()
         });
 
         if (!response.ok) {
             const data = await response.json().catch(() => ({}));
 
             throw new Error(
-                data.detail || "Não foi possível excluir a posição."
+                typeof data.detail === "string"
+                    ? data.detail
+                    : "Não foi possível excluir a posição."
             );
         }
 
@@ -256,12 +375,24 @@ async function deleteLocation(id) {
     }
 }
 
+// ======================================================
+// FECHAR MODAL
+// ======================================================
+
 function closeModal() {
     locationModal.classList.remove("show");
 }
 
+// ======================================================
+// CADASTRAR / EDITAR POSIÇÃO
+// ======================================================
+
 locationForm.addEventListener("submit", async event => {
     event.preventDefault();
+
+    if (!ensureLocationPermission()) {
+        return;
+    }
 
     const formMessage = document.getElementById("locationFormMessage");
 
@@ -281,31 +412,31 @@ locationForm.addEventListener("submit", async event => {
     }
 
     const location = {
-    code: locationCode.value.trim(),
-    aisle: locationAisle.value.trim() || null,
-    rack: locationRack.value.trim() || null,
-    shelf: locationShelf.value.trim() || null,
-    is_active: locationActive.checked
-};
+        code: locationCode.value.trim(),
+        aisle: locationAisle.value.trim() || null,
+        rack: locationRack.value.trim() || null,
+        shelf: locationShelf.value.trim() || null,
+        is_active: locationActive.checked
+    };
 
-if (!editingLocationId) {
-    location.warehouse_id = Number(locationWarehouse.value);
-}
+    const isEditing = editingLocationId !== null;
 
-const isEditing = editingLocationId !== null;
+    if (!isEditing) {
+        location.warehouse_id = Number(locationWarehouse.value);
+    }
 
-const url = isEditing
-    ? `/locations/${editingLocationId}`
-    : "/locations/";
+    const url = isEditing
+        ? `/locations/${editingLocationId}`
+        : "/locations/";
 
-const method = isEditing ? "PUT" : "POST";
+    const method = isEditing ? "PUT" : "POST";
 
     try {
         const response = await fetch(url, {
             method: method,
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
+                ...authHeaders()
             },
             body: JSON.stringify(location)
         });
@@ -314,7 +445,11 @@ const method = isEditing ? "PUT" : "POST";
 
         if (!response.ok) {
             throw new Error(
-                data.detail || "Não foi possível cadastrar a posição."
+                typeof data.detail === "string"
+                    ? data.detail
+                    : isEditing
+                        ? "Não foi possível atualizar a posição."
+                        : "Não foi possível cadastrar a posição."
             );
         }
 
@@ -322,10 +457,10 @@ const method = isEditing ? "PUT" : "POST";
 
         showMessage(
             isEditing
-        ? "Posição atualizada com sucesso."
-        : "Posição cadastrada com sucesso.",
-    "success"
-);
+                ? "Posição atualizada com sucesso."
+                : "Posição cadastrada com sucesso.",
+            "success"
+        );
 
         await loadLocations();
 
@@ -335,10 +470,18 @@ const method = isEditing ? "PUT" : "POST";
     }
 });
 
+// ======================================================
+// MENSAGENS
+// ======================================================
+
 function showMessage(message, type) {
     locationMessage.textContent = message;
     locationMessage.className = `location-message ${type}`;
 }
+
+// ======================================================
+// EVENTOS
+// ======================================================
 
 newLocationBtn.addEventListener("click", openNewLocationModal);
 
@@ -355,6 +498,10 @@ locationSearch.addEventListener("input", renderLocations);
 warehouseFilter.addEventListener("change", renderLocations);
 
 locationsTableBody.addEventListener("click", event => {
+    if (!canManageLocations) {
+        return;
+    }
+
     const editButton = event.target.closest(".btn-edit");
     const deleteButton = event.target.closest(".btn-delete");
 
@@ -370,7 +517,12 @@ locationsTableBody.addEventListener("click", event => {
     }
 });
 
+// ======================================================
+// INICIALIZAÇÃO
+// ======================================================
+
 async function initializePage() {
+    await initializeLocationPermissions();
     await loadWarehouses();
     await loadLocations();
 }
