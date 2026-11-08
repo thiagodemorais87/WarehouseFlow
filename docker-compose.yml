@@ -13,8 +13,9 @@ services:
       - warehouseflow_pgdata:/var/lib/postgresql/data
       - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./backend/database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - ./backend/database/migrations:/migrations:ro     
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U warehouse -d warehouseflow"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U warehouse -d warehouseflow"]
       interval: 5s
       timeout: 5s
       retries: 10
