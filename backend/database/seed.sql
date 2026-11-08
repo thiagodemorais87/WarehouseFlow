@@ -35,11 +35,11 @@ INSERT INTO products (id, sku, name, description, weight, volume) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- 6. Stock
-INSERT INTO stock (product_id, location_id, quantity) VALUES
-(1, 1, 15), -- 15 Monitores na posição A1-01-A
-(2, 2, 40), -- 40 Teclados na posição A1-01-B
-(3, 3, 100) -- 100 Cabos na posição A1-02-A
-ON CONFLICT DO NOTHING;
+INSERT INTO stock (id, product_id, location_id, quantity) VALUES
+(1, 1, 1, 15), -- 15 Monitores na posição A1-01-A
+(2, 2, 2, 40), -- 40 Teclados na posição A1-01-B
+(3, 3, 3, 100) -- 100 Cabos na posição A1-02-A
+ON CONFLICT (id) DO NOTHING;
 
 -- 7. Orders
 INSERT INTO orders (id, type, status) VALUES
@@ -48,11 +48,11 @@ INSERT INTO orders (id, type, status) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- 8. Order Items
-INSERT INTO order_items (order_id, product_id, quantity) VALUES
-(1, 1, 2), -- Pedido 1 precisa de 2 Monitores
-(1, 2, 1), -- Pedido 1 precisa de 1 Teclado
-(2, 3, 50) -- Pedido 2 recebeu 50 Cabos
-ON CONFLICT DO NOTHING;
+INSERT INTO order_items (id, order_id, product_id, quantity) VALUES
+(1, 1, 1, 2),  -- Pedido 1 precisa de 2 Monitores
+(2, 1, 2, 1),  -- Pedido 1 precisa de 1 Teclado
+(3, 2, 3, 50)  -- Pedido 2 recebeu 50 Cabos
+ON CONFLICT (id) DO NOTHING;
 
 -- 9. Tasks
 INSERT INTO tasks (id, type, status, order_id, assigned_user_id) VALUES
@@ -60,15 +60,18 @@ INSERT INTO tasks (id, type, status, order_id, assigned_user_id) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- 10. Optimization Results (Exemplo com Rota Sugerida em JSON)
-INSERT INTO optimization_results (task_id, suggested_location_id, suggested_route, score) VALUES
-(1, 1, '{"steps": ["A1-01-A", "A1-01-B"], "total_distance_meters": 12.5}', 0.9450)
-ON CONFLICT DO NOTHING;
+INSERT INTO optimization_results (id, task_id, suggested_location_id, suggested_route, score) VALUES
+(1, 1, 1, '{"steps": ["A1-01-A", "A1-01-B"], "total_distance_meters": 12.5}', 0.9450)
+ON CONFLICT (id) DO NOTHING;
 
--- Ajustar a sequência dos IDS após as inserções manuais
+-- Ajustar a sequência dos IDs de TODAS as tabelas após as inserções manuais
 SELECT setval('roles_id_seq', (SELECT MAX(id) FROM roles));
 SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
 SELECT setval('warehouses_id_seq', (SELECT MAX(id) FROM warehouses));
 SELECT setval('locations_id_seq', (SELECT MAX(id) FROM locations));
 SELECT setval('products_id_seq', (SELECT MAX(id) FROM products));
+SELECT setval('stock_id_seq', (SELECT MAX(id) FROM stock));
 SELECT setval('orders_id_seq', (SELECT MAX(id) FROM orders));
+SELECT setval('order_items_id_seq', (SELECT MAX(id) FROM order_items));
 SELECT setval('tasks_id_seq', (SELECT MAX(id) FROM tasks));
+SELECT setval('optimization_results_id_seq', (SELECT MAX(id) FROM optimization_results));
