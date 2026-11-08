@@ -1,8 +1,13 @@
-from sqlalchemy import Column, Integer, String, Numeric, Boolean, ForeignKey, DateTime, JSON, Text, UniqueConstraint, Enum as SQLEnum
+from sqlalchemy import (Column,Integer,String,Numeric,Boolean,ForeignKey,DateTime,JSON,Text,UniqueConstraint,CheckConstraint,Enum as SQLEnum,)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..database import Base
 from ..enums import OrderType, OrderStatus, TaskType, TaskStatus
+
+
+def _in_list(column: str, enum_cls) -> str:
+    """Gera `coluna IN ('A','B')` a partir de um Enum (CHECK no banco)."""
+    return f"{column} IN ({', '.join(repr(e.value) for e in enum_cls)})"
 
 
 class Role(Base):
@@ -34,6 +39,11 @@ class User(Base):
 
 class Product(Base):
     __tablename__ = "products"
+    __table_args__ = (
+        CheckConstraint("weight IS NULL OR weight >= 0", name="ck_products_weight_non_negative"),
+        CheckConstraint("volume IS NULL OR volume >= 0", name="ck_products_volume_non_negative"),
+    )
+
     id = Column(Integer, primary_key=True, index=True)
     sku = Column(String(50), unique=True, nullable=False)
     name = Column(String(150), nullable=False)
@@ -41,7 +51,7 @@ class Product(Base):
     weight = Column(Numeric(10, 2), nullable=True)  # em kg
     volume = Column(Numeric(10, 2), nullable=True)  # em m3 ou cm3
 
-    stocks = relationship("Stock", back_populates="product")
+    stocks = relationship("Stock", back_populates="product", cascade="all, delete-orphan")
     order_items = relationship("OrderItem", back_populates="product")
 
 
@@ -65,13 +75,16 @@ class Location(Base):
     is_active = Column(Boolean, default=True, nullable=False)
 
     warehouse = relationship("Warehouse", back_populates="locations")
-    stocks = relationship("Stock", back_populates="location")
+    stocks = relationship("Stock", back_populates="location", cascade="all, delete-orphan")
     optimization_results = relationship("OptimizationResult", back_populates="suggested_location")
 
 
 class Stock(Base):
     __tablename__ = "stock"
-    __table_args__ = (UniqueConstraint("product_id", "location_id", name="uq_stock_product_location"),)
+    __table_args__ = (
+        UniqueConstraint("product_id", "location_id", name="uq_stock_product_location"),
+        CheckConstraint("quantity >= 0", name="ck_stock_quantity_non_negative"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
@@ -85,6 +98,11 @@ class Stock(Base):
 
 class Order(Base):
     __tablename__ = "orders"
+    __table_args__ = (
+        CheckConstraint(_in_list("type", OrderType), name="ck_orders_type"),
+        CheckConstraint(_in_list("status", OrderStatus), name="ck_orders_status"),
+    )
+
     id = Column(Integer, primary_key=True, index=True)
     type = Column(SQLEnum(OrderType), nullable=False)
     status = Column(SQLEnum(OrderStatus), nullable=False, default=OrderStatus.PENDING)
@@ -96,9 +114,13 @@ class Order(Base):
 
 class OrderItem(Base):
     __tablename__ = "order_items"
+    __table_args__ = (
+        CheckConstraint("quantity > 0", name="ck_order_items_quantity_positive"),
+    )
+
     id = Column(Integer, primary_key=True, index=True)
     order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="RESTRICT"), nullable=False)
     quantity = Column(Integer, nullable=False)
 
     order = relationship("Order", back_populates="items")
@@ -107,6 +129,11 @@ class OrderItem(Base):
 
 class Task(Base):
     __tablename__ = "tasks"
+    __table_args__ = (
+        CheckConstraint(_in_list("type", TaskType), name="ck_tasks_type"),
+        CheckConstraint(_in_list("status", TaskStatus), name="ck_tasks_status"),
+    )
+
     id = Column(Integer, primary_key=True, index=True)
     type = Column(SQLEnum(TaskType), nullable=False)
     status = Column(SQLEnum(TaskStatus), nullable=False, default=TaskStatus.PENDING)
