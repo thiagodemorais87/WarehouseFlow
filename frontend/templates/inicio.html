@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Início | WarehouseFlow</title>
+
+    <link rel="stylesheet" href="/static/css/global.css">
+    <link rel="stylesheet" href="/static/css/inicio.css">
+</head>
+
+<body>
+    <main class="inicio">
+
+        <header class="inicio-topo">
+            <div>
+                <h1>Olá, {{ user.name }}</h1>
+                <p>Perfil: <strong>{{ role }}</strong></p>
+            </div>
+
+            <form method="post" action="/logout">
+                <button type="submit" class="btn-sair">Sair</button>
+            </form>
+        </header>
+
+        <!-- Quando a Pessoa 4 criar as telas, troque estes links pelas páginas dela -->
+        <nav class="inicio-menu">
+            <a href="/products/">Produtos</a>
+            <a href="/stock/">Estoque</a>
+            <a href="/orders/">Pedidos</a>
+
+            {% if role == "OPERADOR" %}
+            <a href="/tasks/">Minhas tarefas</a>
+            {% else %}
+            <a href="/tasks/">Tarefas</a>
+            {% endif %}
+
+            {% if role in ("ADMIN", "GESTOR") %}
+            <a href="/locations/">Locais</a>
+            {% endif %}
+
+            {% if role == "ADMIN" %}
+            <a href="/users/">Usuários</a>
+            {% endif %}
+        </nav>
+
+    </main>
+</body>
+</html>

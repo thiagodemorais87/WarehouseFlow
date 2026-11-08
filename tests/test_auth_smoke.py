@@ -3,6 +3,8 @@
 import os
 
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
+os.environ.setdefault("SECRET_KEY", "test-secret")
+
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session

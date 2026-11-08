@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class LocationSchema(BaseModel):
@@ -83,3 +85,37 @@ class RouteOptimizeResponse(BaseModel):
         ...,
         description="Quantidade de posições em locations (sem contar START).",
     )
+
+
+class OptimizationSummaryResponse(BaseModel):
+    runs_count: int = Field(..., description="Quantidade de execuções gravadas.")
+    average_distance_reduction: float = Field(
+        ...,
+        description="Média de distance_reduction. 0 se não houver execuções.",
+    )
+    average_reduction_percent: float = Field(
+        ...,
+        description="Média de reduction_percent. 0 se não houver execuções.",
+    )
+
+
+class OptimizationRunResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    user_id: int
+    user_email: str
+    executed_at: datetime
+    source: str
+    order_id: int | None = None
+    original_route: list[str]
+    nearest_neighbor_route: list[str]
+    two_opt_route: list[str]
+    distance_before: float
+    nearest_neighbor_distance: float
+    two_opt_distance: float
+    distance_after: float
+    distance_reduction: float
+    reduction_percent: float
+    execution_time_ms: float
+    locations_count: int

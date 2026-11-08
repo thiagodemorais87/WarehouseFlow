@@ -58,16 +58,21 @@
                 <p>Gerencie seu armazém de forma simples e eficiente</p>
             </div>
 
-            <form class="login-form">
+            <form class="login-form" method="post" action="/login">
+
+            {% if error %}
+            <p class="form-error" role="alert">{{ error }}</p>
+            {% endif %}
 
                 <div class="form-group">
                     <label for="email">Email</label>
                     <input 
-                    type="email" 
-                    id="email" 
-                    name="email" 
-                    placeholder="Digite seu email" required
-                    >
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            value="{{ email or '' }}"
+                            placeholder="Digite seu email" required
+                            >
                 </div>
 
                 <div class="form-group">

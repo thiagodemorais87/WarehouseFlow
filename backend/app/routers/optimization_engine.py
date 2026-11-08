@@ -6,13 +6,13 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from optimization.types import Location
 
 from ..database import get_db
 from ..deps import get_current_user
-from ..filters import ReportFilters, run_filters  
 from ..models import User
 from ..models.optimization_run import OptimizationRun
 from ..providers.base import OrderRouteProvider
@@ -26,7 +26,6 @@ from ..schemas.optimization import (
     RouteOptimizeRequest,
     RouteOptimizeResponse,
 )
-from ..services import report_service  
 from ..services.optimization_service import (
     get_pick_locations_for_order,
     optimize_from_order_id,
@@ -152,24 +151,44 @@ def optimize_route_by_order_endpoint(
     )
     return _to_response(result)
 
+
+def _summary(db: Session) -> OptimizationSummaryResponse:
+    runs_count, avg_reduction, avg_percent = db.query(
+        func.count(OptimizationRun.id),
+        func.avg(OptimizationRun.distance_reduction),
+        func.avg(OptimizationRun.reduction_percent),
+    ).one()
+    return OptimizationSummaryResponse(
+        runs_count=int(runs_count or 0),
+        average_distance_reduction=float(avg_reduction or 0),
+        average_reduction_percent=float(avg_percent or 0),
+    )
+
+
+def _picking_runs(db: Session) -> list[OptimizationRun]:
+    return (
+        db.query(OptimizationRun)
+        .order_by(OptimizationRun.executed_at.desc(), OptimizationRun.id.desc())
+        .all()
+    )
+
+
 @router.get("/reports/summary", response_model=OptimizationSummaryResponse)
 def optimization_summary(
     _: User = Depends(get_current_user),
-    filters: ReportFilters = Depends(run_filters),  
     db: Session = Depends(get_db),
 ) -> OptimizationSummaryResponse:
-    """Redução média de distância (filtros opcionais: período e perfil)."""  
-    return OptimizationSummaryResponse(**report_service.optimization_summary(db, filters))  
+    """Redução média de distância a partir das execuções já gravadas."""
+    return _summary(db)
 
 
 @router.get("/reports/picking", response_model=list[OptimizationRunResponse])
 def optimization_picking_report(
     _: User = Depends(get_current_user),
-    filters: ReportFilters = Depends(run_filters),  
     db: Session = Depends(get_db),
 ) -> list[OptimizationRun]:
     """Relatório de picking: rotas, distâncias, tempo e quem executou."""
-    return report_service.picking_runs(db, filters)  
+    return _picking_runs(db)
 
 
 def _route_cell(route: list[str] | None) -> str:
@@ -179,7 +198,6 @@ def _route_cell(route: list[str] | None) -> str:
 @router.get("/reports/picking.csv")
 def optimization_picking_csv(
     _: User = Depends(get_current_user),
-    filters: ReportFilters = Depends(run_filters),  
     db: Session = Depends(get_db),
 ) -> StreamingResponse:
     """Exporta o relatório de picking em CSV."""
@@ -206,7 +224,7 @@ def optimization_picking_csv(
             "locations_count",
         ]
     )
-    for run in report_service.picking_runs(db, filters): 
+    for run in _picking_runs(db):
         executed_at = run.executed_at.isoformat() if run.executed_at else ""
         writer.writerow(
             [

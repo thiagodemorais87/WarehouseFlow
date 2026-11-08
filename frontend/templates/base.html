@@ -40,7 +40,9 @@
 
     </div>
 
-    {% block scripts %}{% endblock %}
+<script src="{{ url_for('static', path='js/layout.js') }}"></script>
+
+{% block scripts %}{% endblock %}
 
 </body>
 </html>

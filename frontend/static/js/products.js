@@ -74,12 +74,12 @@ function renderProducts(products) {
         const row = document.createElement("tr");
 
         row.innerHTML = `
-            <td>${product.sku}</td>
-            <td>${product.name}</td>
-            <td>${product.description || "—"}</td>
-            <td>${formatWeight(product.weight)}</td>
-            <td>${formatVolume(product.volume)}</td>
-            <td>
+            <td data-label="SKU">${product.sku}</td>
+            <td data-label="Nome">${product.name}</td>
+            <td data-label="Descrição">${product.description || "—"}</td>
+            <td data-label="Peso">${formatWeight(product.weight)}</td>
+            <td data-label="Volume">${formatVolume(product.volume)}</td>
+            <td data-label="Ações">
                 <div class="product-actions">
                     <button
                         type="button"

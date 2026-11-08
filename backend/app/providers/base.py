@@ -8,9 +8,8 @@ from optimization.types import Location
 class OrderRouteProvider(Protocol):
     """Contrato: pedido → posições de picking na ordem dos itens.
 
-    Sprint 05: MemoryOrderRouteProvider (catálogo em memória).
-    Sprint 06: SqlAlchemyOrderRouteProvider (pedido OUTBOUND → order_items
-    → produto → estoque → location com x,y).
+    Produção (S06): SqlAlchemyOrderRouteProvider (OUTBOUND → order_items
+    → estoque → location; x,y derivados de aisle/rack/shelf).
 
     Implementações não devem acoplar o pacote ``optimization`` ao FastAPI.
     """

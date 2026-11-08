@@ -51,7 +51,7 @@ def create_order(
         status=order_data.status,
     )
     db.add(new_order)
-    db.flush()  # Gera o ID do pedido antes de inserir os itens
+    db.flush()
 
     for product_id, quantidade in quantidades.items():
         order_item = models.OrderItem(
@@ -171,7 +171,6 @@ def add_order_item(
             detail=f"Produto ID {item.product_id} não encontrado.",
         )
 
-    # Verifica se já existe o mesmo produto no pedido
     existing_item = (
         db.query(models.OrderItem)
         .filter(
@@ -250,7 +249,6 @@ def delete_order_item(
             detail="Item não encontrado no pedido informado.",
         )
 
-    # Validação da regra de negócio: não remover o último item
     total_items = (
         db.query(models.OrderItem).filter(models.OrderItem.order_id == order_id).count()
     )
