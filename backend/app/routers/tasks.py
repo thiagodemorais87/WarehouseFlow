@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from ..database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
+
 from .. import models, schemas
+from ..database import get_db
 from ..deps import get_current_user, require_role
+from ..enums import TaskStatus, TaskType
 from ..models.user import UserRole
 
 router = APIRouter(
@@ -47,8 +49,8 @@ def create_task(
 
 @router.get("/", response_model=List[schemas.TaskResponse])
 def list_tasks(
-    task_type: Optional[str] = Query(None, alias="type", description="Filtra por tipo (PICKING, PUTAWAY, etc.)"),
-    status_filter: Optional[str] = Query(None, alias="status", description="Filtra por status (PENDING, IN_PROGRESS, etc.)"),
+    task_type: Optional[TaskType] = Query(None, alias="type", description="Filtra por tipo (PICKING, PUTAWAY, etc.)"),
+    status_filter: Optional[TaskStatus] = Query(None, alias="status", description="Filtra por status (PENDING, IN_PROGRESS, etc.)"),
     assigned_user_id: Optional[int] = Query(None, description="Filtra por operador atribuído"),
     order_id: Optional[int] = Query(None, description="Filtra tarefas de um pedido específico"),
     skip: int = Query(0, ge=0),
@@ -66,7 +68,7 @@ def list_tasks(
     if order_id:
         query = query.filter(models.Task.order_id == order_id)
         
-    return query.offset(skip).limit(limit).all()
+    return query.order_by(models.Task.id).offset(skip).limit(limit).all()
 
 @router.get("/{task_id}", response_model=schemas.TaskResponse)
 def get_task(task_id: int, db: Session = Depends(get_db)):
