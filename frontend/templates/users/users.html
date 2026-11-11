@@ -1,0 +1,214 @@
+
+{% extends "base.html" %}
+
+{% block title %}Usuários | WarehouseFlow{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/static/css/users.css">
+{% endblock %}
+
+{% block content %}
+<section class="users-page">
+
+    <div class="users-header">
+        <div>
+            <h1>Usuários</h1>
+            <p>Gerencie os usuários e seus perfis de acesso.</p>
+        </div>
+
+        <button type="button" class="button-primary" id="newUserButton" hidden>
+            <span>+</span>
+            Novo usuário
+        </button>
+    </div>
+
+    <div class="users-toolbar">
+        <div class="users-search">
+            <input
+                type="search"
+                id="userSearch"
+                placeholder="Buscar por e-mail..."
+                aria-label="Buscar usuários por e-mail"
+            >
+        </div>
+
+        <select id="userRoleFilter" aria-label="Filtrar por perfil">
+            <option value="">Todos os perfis</option>
+            <option value="ADMIN">ADMIN</option>
+            <option value="GESTOR">GESTOR</option>
+            <option value="OPERADOR">OPERADOR</option>
+        </select>
+    </div>
+
+    <div class="users-table-container">
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>E-mail</th>
+                    <th>Perfil</th>
+                    <th>Situação</th>
+                    <th>Cadastro</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+
+            <tbody id="usersTableBody"></tbody>
+        </table>
+
+        <div class="users-message" id="usersMessage" role="status">
+            Carregando usuários...
+        </div>
+    </div>
+
+</section>
+
+<!-- Modal de cadastro e edição -->
+<div class="modal-overlay" id="userModal">
+    <div class="user-modal" role="dialog" aria-modal="true" aria-labelledby="userModalTitle">
+
+        <div class="modal-header">
+            <div>
+                <h2 id="userModalTitle">Novo usuário</h2>
+                <p>Preencha os dados do usuário.</p>
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                id="closeUserModal"
+                aria-label="Fechar"
+            >×</button>
+        </div>
+
+        <form id="userForm">
+            <div class="form-group">
+                <label for="userName">Nome *</label>
+                <input
+                    type="text"
+                    id="userName"
+                    maxlength="100"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="userEmail">E-mail *</label>
+                <input
+                    type="email"
+                    id="userEmail"
+                    maxlength="100"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="userPassword">Senha *</label>
+                <input
+                    type="password"
+                    id="userPassword"
+                    minlength="6"
+                    maxlength="72"
+                    autocomplete="new-password"
+                    required
+                >
+                <small id="userPasswordHint">
+                    A senha deve conter entre 6 e 72 caracteres.
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="userRole">Perfil *</label>
+                <select id="userRole" required>
+                    <option value="">Selecione um perfil</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="userActiveGroup" hidden>
+                <label for="userActive">Situação</label>
+                <select id="userActive">
+                    <option value="true">Ativo</option>
+                    <option value="false">Inativo</option>
+                </select>
+            </div>
+
+            <div class="form-message" id="userFormMessage" role="status"></div>
+
+            <div class="modal-actions">
+                <button
+                    type="button"
+                    class="button-secondary"
+                    id="cancelUserButton"
+                >
+                    Cancelar
+                </button>
+
+                <button
+                    type="submit"
+                    class="button-primary"
+                    id="saveUserButton"
+                >
+                    Cadastrar usuário
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de confirmação de exclusão -->
+<div class="modal-overlay" id="deleteUserModal">
+    <div class="delete-modal" role="dialog" aria-modal="true" aria-labelledby="deleteUserModalTitle">
+
+        <div class="modal-header">
+            <div>
+                <h2 id="deleteUserModalTitle">Excluir usuário</h2>
+                <p>Confirme a exclusão do usuário.</p>
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                id="closeDeleteUserModal"
+                aria-label="Fechar"
+            >×</button>
+        </div>
+
+        <div class="delete-modal-content">
+            <p>
+                Tem certeza que deseja excluir
+                <strong id="deleteUserName"></strong>?
+            </p>
+
+            <span class="delete-warning">
+                Essa ação não poderá ser desfeita.
+            </span>
+        </div>
+
+        <div class="form-message" id="deleteUserMessage" role="status"></div>
+
+        <div class="modal-actions">
+            <button
+                type="button"
+                class="button-secondary"
+                id="cancelDeleteUserButton"
+            >
+                Cancelar
+            </button>
+
+            <button
+                type="button"
+                class="button-danger"
+                id="confirmDeleteUserButton"
+            >
+                Excluir
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/users.js"></script>
+{% endblock %}

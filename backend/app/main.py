@@ -209,7 +209,26 @@ if FRONTEND_DIR.exists():
                 if role not in ("ADMIN", "GESTOR"):
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Acesso negado: seu perfil não possui permissão para visualizar este relatório.",
+                        detail=(
+                            "Acesso negado: seu perfil não possui permissão "
+                            "para visualizar este relatório."
+                        ),
+                    )
+
+            # Gerenciamento de usuários: exclusivo para ADMIN.
+            if path == "/usuarios":
+                role = (
+                    user.role_name
+                    or (user.role.name if user.role else "")
+                ).strip().upper()
+
+                if role != "ADMIN":
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail=(
+                            "Acesso negado: somente administradores "
+                            "podem gerenciar usuários."
+                        ),
                     )
 
             return templates.TemplateResponse(
@@ -231,6 +250,7 @@ if FRONTEND_DIR.exists():
         ("/otimizacao", "optimization/optimization.html", "optimization"),
         ("/relatorios/picking", "reports/picking.html", "picking_report"),
         ("/relatorios/movimentacoes", "reports/stock-movements.html", "stock_movements_report"),
+        ("/usuarios", "users/users.html", "users"),
     ]:
         _register_page(_path, _template, _active)
 

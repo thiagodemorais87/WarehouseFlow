@@ -117,10 +117,13 @@
     color: #ffffff;
 }
 
+/* Respeitar as permissões de visibilidade da sidebar */
+.sidebar-link[hidden] {
+    display: none !important;
+}
 
-/* ==========================================
-   RODAPÉ DA SIDEBAR
-========================================== */
+
+/* RODAPÉ DA SIDEBAR */
 
 .sidebar-footer {
     margin-top: auto;
