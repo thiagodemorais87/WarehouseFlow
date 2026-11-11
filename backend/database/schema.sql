@@ -22,7 +22,9 @@ CREATE TABLE products (
     name VARCHAR(150) NOT NULL,
     description TEXT,
     weight DECIMAL(10,2), -- em kg
-    volume DECIMAL(10,2)  -- em m3 ou cm3
+    volume DECIMAL(10,2), -- em m3 ou cm3
+    CONSTRAINT ck_products_weight_non_negative CHECK (weight IS NULL OR weight >= 0),
+    CONSTRAINT ck_products_volume_non_negative CHECK (volume IS NULL OR volume >= 0)
 );
 
 -- 4. Warehouses (Armazéns)
@@ -46,11 +48,12 @@ CREATE TABLE locations (
 -- 6. Stock (Estoque)
 CREATE TABLE stock (
     id SERIAL PRIMARY KEY,
-    product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
-    location_id INTEGER REFERENCES locations(id) ON DELETE CASCADE,
+    product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    location_id INTEGER NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
     quantity INTEGER NOT NULL DEFAULT 0,
     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(product_id, location_id)
+    UNIQUE(product_id, location_id),
+    CONSTRAINT ck_stock_quantity_non_negative CHECK (quantity >= 0)
 );
 
 -- 7. Orders (Pedidos de Entrada/Saída)
@@ -58,15 +61,18 @@ CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
     type VARCHAR(20) NOT NULL, -- INBOUND (Recebimento) ou OUTBOUND (Expedição)
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_orders_type CHECK (type IN ('INBOUND', 'OUTBOUND')),
+    CONSTRAINT ck_orders_status CHECK (status IN ('PENDING', 'PROCESSING', 'COMPLETED', 'CANCELLED'))
 );
 
 -- 8. Order Items (Itens do Pedido)
 CREATE TABLE order_items (
     id SERIAL PRIMARY KEY,
-    order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
-    product_id INTEGER REFERENCES products(id),
-    quantity INTEGER NOT NULL
+    order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+    quantity INTEGER NOT NULL,
+    CONSTRAINT ck_order_items_quantity_positive CHECK (quantity > 0)
 );
 
 -- 9. Tasks (Tarefas Operacionais: Separação, Movimentação)
@@ -74,15 +80,17 @@ CREATE TABLE tasks (
     id SERIAL PRIMARY KEY,
     type VARCHAR(30) NOT NULL, -- PICKING, PUTAWAY, REPLENISHMENT
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-    order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
+    order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
     assigned_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_tasks_type CHECK (type IN ('PICKING', 'PUTAWAY', 'REPLENISHMENT')),
+    CONSTRAINT ck_tasks_status CHECK (status IN ('PENDING', 'IN_PROGRESS', 'COMPLETED'))
 );
 
 -- 10. Optimization Results (Resultados do Motor de Otimização)
 CREATE TABLE optimization_results (
     id SERIAL PRIMARY KEY,
-    task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+    task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
     suggested_location_id INTEGER REFERENCES locations(id),
     suggested_route JSONB, -- Rota sugerida armazenada em formato JSON
     score DECIMAL(10,4), -- Pontuação/Custo calculado pelo algoritmo

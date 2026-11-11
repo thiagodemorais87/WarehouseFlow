@@ -64,27 +64,20 @@
             href="/relatorios/picking"
             class="sidebar-link {% if active_page == 'picking_report' %}active{% endif %}"
         >
-            Relatório
+            Relatório de Picking
         </a>
 
-        {% if user.role == 'ADMIN' %}
-        <a
-            href="#"
-            class="sidebar-link {% if active_page == 'users' %}active{% endif %}"
-        >
-            Usuários
-        </a>
-        {% endif %}
+        {# A página de usuários ainda não foi implementada.
+            Quando estiver disponível, manter o acesso exclusivo ao ADMIN. #}
 
     </nav>
 
     <div class="sidebar-footer">
 
-        <a href="#" class="sidebar-link">
-            Configurações
-        </a>
-
-              <a href="/login" class="sidebar-link logout-link">
+        <a
+            href="/login"
+            class="sidebar-link logout-link"
+        >
             Sair
         </a>
 

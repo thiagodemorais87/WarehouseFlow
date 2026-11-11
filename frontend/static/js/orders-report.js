@@ -13,6 +13,7 @@
         !managementPanel || !reportPanel) return;
 
     const PAGE_SIZE = 20;
+
     let currentPage = 1;
     let totalRecords = 0;
     let loadedOnce = false;
@@ -20,13 +21,20 @@
     let currentController = null;
     let filters = {};
 
+    // Sprint 08 — controle de permissões
+    let canAccessReport = false;
+
     const fmt = new Intl.NumberFormat("pt-BR");
 
-    // ==========================================
-    // ABAS
-    // ==========================================
+
+    // ABAS E PERMISSÕES — SPRINT 08
+
 
     function setTab(report) {
+        if (report && !canAccessReport) {
+            return;
+        }
+
         managementPanel.hidden = report;
         reportPanel.hidden = !report;
 
@@ -54,24 +62,66 @@
         "click", () => setTab(true)
     );
 
-    setTab(false);
+    async function initializeReportPermissions() {
+        reportTab.hidden = true;
+        reportPanel.hidden = true;
 
-    // ==========================================
+        setTab(false);
+
+        try {
+            if (!window.WarehouseAuth) {
+                throw new Error(
+                    "Módulo de autenticação indisponível."
+                );
+            }
+
+            canAccessReport = await window.WarehouseAuth.hasRole(
+                "ADMIN",
+                "GESTOR"
+            );
+
+            reportTab.hidden = !canAccessReport;
+
+            if (!canAccessReport) {
+                setTab(false);
+            }
+        } catch (error) {
+            console.error(
+                "Erro ao verificar permissões do relatório:",
+                error
+            );
+
+            canAccessReport = false;
+            reportTab.hidden = true;
+            setTab(false);
+        }
+    }
+
+    initializeReportPermissions();
+
+
     // AUTENTICAÇÃO
-    // ==========================================
+
 
     function getToken() {
-        return localStorage.getItem("access_token");
+        return window.WarehouseAuth
+            ? window.WarehouseAuth.getToken()
+            : localStorage.getItem("access_token");
     }
 
     function redirectUnauthorized() {
+        if (window.WarehouseAuth) {
+            window.WarehouseAuth.logout();
+            return;
+        }
+
         localStorage.removeItem("access_token");
-        window.location.href = "/login";
+        window.location.replace("/login");
     }
 
-    // ==========================================
+
     // MENSAGENS E PARÂMETROS
-    // ==========================================
+
 
     function showMessage(message) {
         $("ordersReportMessage").textContent = message;
@@ -91,6 +141,7 @@
                 "skip",
                 String((currentPage - 1) * PAGE_SIZE)
             );
+
             params.set("limit", String(PAGE_SIZE));
         }
 
@@ -115,9 +166,9 @@
         };
     }
 
-    // ==========================================
+
     // FORMATAÇÃO
-    // ==========================================
+
 
     function formatDate(value) {
         if (!value) return "—";
@@ -159,8 +210,11 @@
 
     function cell(row, value) {
         const td = document.createElement("td");
+
         td.textContent = String(value ?? "—");
+
         row.appendChild(td);
+
         return td;
     }
 
@@ -177,12 +231,13 @@
 
     function numericValue(value) {
         const number = Number(value);
+
         return Number.isFinite(number) ? number : 0;
     }
 
-    // ==========================================
+
     // RENDERIZAÇÃO DO RELATÓRIO
-    // ==========================================
+
 
     function render(data) {
         const items = Array.isArray(data.items)
@@ -195,6 +250,7 @@
         );
 
         const body = $("reportOrdersTableBody");
+
         body.replaceChildren();
 
         let itemsOnPage = 0;
@@ -249,7 +305,11 @@
             const row = document.createElement("tr");
 
             cell(row, `#${id}`);
-            cell(row, formatDate(order.created_at));
+
+            cell(
+                row,
+                formatDate(order.created_at)
+            );
 
             pillCell(
                 row,
@@ -340,15 +400,16 @@
         });
 
         $("reportOrdersCount").textContent = "0 registros";
+
         $("reportOrdersPageInfo").textContent = "Página 1 de 1";
 
         $("reportOrdersPrevious").disabled = true;
         $("reportOrdersNext").disabled = true;
     }
 
-    // ==========================================
+
     // TRATAMENTO DE ERROS
-    // ==========================================
+
 
     async function errorText(response) {
         if (response.status === 404) {
@@ -381,11 +442,15 @@
         );
     }
 
-    // ==========================================
+
     // CONSULTA À API
-    // ==========================================
+
 
     async function loadReport() {
+        if (!canAccessReport) {
+            return;
+        }
+
         if (currentController) {
             currentController.abort();
         }
@@ -454,14 +519,18 @@
         }
     }
 
-    // ==========================================
+
     // FILTROS
-    // ==========================================
+
 
     $("ordersReportFilters").addEventListener(
         "submit",
         event => {
             event.preventDefault();
+
+            if (!canAccessReport) {
+                return;
+            }
 
             try {
                 filters = readFilters();
@@ -476,6 +545,10 @@
     $("clearOrdersReportFilters").addEventListener(
         "click",
         () => {
+            if (!canAccessReport) {
+                return;
+            }
+
             $("ordersReportFilters").reset();
 
             filters = {};
@@ -485,14 +558,16 @@
         }
     );
 
-    // ==========================================
     // PAGINAÇÃO
-    // ==========================================
 
     $("reportOrdersPrevious").addEventListener(
         "click",
         () => {
-            if (loading || currentPage <= 1) {
+            if (
+                !canAccessReport ||
+                loading ||
+                currentPage <= 1
+            ) {
                 return;
             }
 
@@ -505,6 +580,7 @@
         "click",
         () => {
             if (
+                !canAccessReport ||
                 loading ||
                 currentPage * PAGE_SIZE >= totalRecords
             ) {
@@ -516,13 +592,17 @@
         }
     );
 
-    // ==========================================
+
     // EXPORTAÇÃO CSV
-    // ==========================================
+
 
     $("exportOrdersCsv").addEventListener(
         "click",
         async () => {
+            if (!canAccessReport) {
+                return;
+            }
+
             const button = $("exportOrdersCsv");
 
             try {
@@ -580,6 +660,9 @@
             }
         }
     );
+
+    // INICIALIZAÇÃO
+
 
     resetDisplay();
 })();

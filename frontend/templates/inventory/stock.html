@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 
 {% block title %}Estoque | WarehouseFlow{% endblock %}
@@ -13,9 +14,11 @@
 <section class="stock-page">
 
     <!-- ABAS DE NAVEGAÇÃO -->
-    <nav class="stock-tabs" role="tablist"
-            aria-label="Seções de estoque">
-
+    <nav
+        class="stock-tabs"
+        role="tablist"
+        aria-label="Seções de estoque"
+    >
         <button
             type="button"
             class="stock-tab active"
@@ -34,10 +37,11 @@
             role="tab"
             aria-controls="stockMovementsPanel"
             aria-selected="false"
+            data-roles="ADMIN,GESTOR"
+            hidden
         >
             Relatório de movimentações
         </button>
-
     </nav>
 
     <!-- GERENCIAMENTO DE ESTOQUE -->
@@ -46,7 +50,6 @@
         role="tabpanel"
         aria-labelledby="stockManagementTab"
     >
-
         <div class="stock-header">
             <div>
                 <h1>Estoque</h1>
@@ -97,17 +100,16 @@
                 Carregando estoque...
             </div>
         </div>
-
     </div>
 
     <!-- RELATÓRIO DE MOVIMENTAÇÕES -->
+    <!-- O painel é controlado pelo stock-tabs.js. -->
     <div
         id="stockMovementsPanel"
         role="tabpanel"
         aria-labelledby="stockMovementsTab"
         hidden
     >
-
         <section class="picking-report-page stock-movements-page">
 
             <header class="report-header">
@@ -150,7 +152,6 @@
                     <span>Saldo líquido</span>
                     <strong id="movementsBalance">—</strong>
                 </article>
-
             </div>
 
             <!-- HISTÓRICO -->
@@ -201,6 +202,10 @@
                         Status do pedido
                         <select id="movementsStatus">
                             <option value="">Todos os status</option>
+                            <option value="PENDING">Pendente</option>
+                            <option value="PROCESSING">Em processamento</option>
+                            <option value="COMPLETED">Concluído</option>
+                            <option value="CANCELLED">Cancelado</option>
                         </select>
                     </label>
 
@@ -216,7 +221,6 @@
                     </label>
 
                     <div class="movements-filter-actions">
-
                         <button
                             id="applyMovementsFilters"
                             type="button"
@@ -230,9 +234,7 @@
                         >
                             Limpar filtros
                         </button>
-
                     </div>
-
                 </div>
 
                 <!-- MENSAGENS -->
@@ -246,7 +248,6 @@
 
                 <!-- TABELA -->
                 <div class="report-table-wrapper">
-
                     <table class="report-table">
                         <thead>
                             <tr>
@@ -263,18 +264,15 @@
 
                         <tbody id="movementsTableBody"></tbody>
                     </table>
-
                 </div>
 
                 <!-- PAGINAÇÃO -->
                 <div class="movements-pagination">
-
                     <span id="movementsPageInfo">
                         Página 1
                     </span>
 
                     <div class="movements-pagination-actions">
-
                         <button
                             id="movementsPrevious"
                             type="button"
@@ -288,19 +286,14 @@
                         >
                             Próxima
                         </button>
-
                     </div>
-
                 </div>
 
             </section>
-
         </section>
-
     </div>
 
 </section>
-
 
 <!-- MODAL DE ESTOQUE -->
 <div class="stock-modal-overlay" id="stockModal">
@@ -311,7 +304,6 @@
                 <h2 id="stockModalTitle">
                     Adicionar ao estoque
                 </h2>
-
                 <p>
                     Informe o produto, a posição e a quantidade.
                 </p>
@@ -384,7 +376,6 @@
             ></div>
 
             <div class="modal-actions">
-
                 <button
                     type="button"
                     class="button-secondary"
@@ -400,14 +391,11 @@
                 >
                     Salvar
                 </button>
-
             </div>
 
         </form>
-
     </div>
 </div>
-
 
 <!-- MODAL DE MOVIMENTAÇÃO -->
 <div class="stock-modal-overlay" id="movementModal">
@@ -456,7 +444,6 @@
             ></div>
 
             <div class="modal-actions">
-
                 <button
                     type="button"
                     class="button-secondary"
@@ -472,11 +459,9 @@
                 >
                     Confirmar
                 </button>
-
             </div>
 
         </form>
-
     </div>
 </div>
 

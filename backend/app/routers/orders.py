@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..deps import get_current_user, require_role
+from ..enums import OrderStatus, OrderType, TaskStatus
 from ..models.user import UserRole
 
 router = APIRouter(
@@ -17,12 +18,34 @@ router = APIRouter(
 _write = Depends(require_role(UserRole.ADMIN, UserRole.GESTOR, UserRole.OPERADOR))
 
 
+def _exigir_limite(quantidade: int) -> None:
+    if quantidade > schemas.MAX_QUANTITY:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"A quantidade resultante excede o limite permitido ({schemas.MAX_QUANTITY}).",
+        )
+
+
 @router.post("/", response_model=schemas.OrderResponse, status_code=status.HTTP_201_CREATED)
 def create_order(
     order_data: schemas.OrderCreate,
     db: Session = Depends(get_db),
     _: models.User = _write,
 ):
+    # Linhas repetidas do mesmo produto viram um único item consolidado
+    quantidades: dict[int, int] = {}
+    for item in order_data.items:
+        quantidades[item.product_id] = quantidades.get(item.product_id, 0) + item.quantity
+
+    for product_id, quantidade in quantidades.items():
+        _exigir_limite(quantidade)
+        if not db.query(models.Product.id).filter(models.Product.id == product_id).first():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Produto ID {product_id} não encontrado.",
+            )
+
+    # Todas as referências foram validadas: só então o pedido é gravado
     new_order = models.Order(
         type=order_data.type,
         status=order_data.status,
@@ -30,19 +53,11 @@ def create_order(
     db.add(new_order)
     db.flush()
 
-    for item in order_data.items:
-        product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
-        if not product:
-            db.rollback()
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Produto ID {item.product_id} não encontrado.",
-            )
-
+    for product_id, quantidade in quantidades.items():
         order_item = models.OrderItem(
             order_id=new_order.id,
-            product_id=item.product_id,
-            quantity=item.quantity,
+            product_id=product_id,
+            quantity=quantidade,
         )
         db.add(order_item)
 
@@ -53,12 +68,8 @@ def create_order(
 
 @router.get("/", response_model=List[schemas.OrderResponse])
 def list_orders(
-    order_type: Optional[str] = Query(
-        None, alias="type", description="Filtra por tipo (INBOUND, OUTBOUND)"
-    ),
-    status_filter: Optional[str] = Query(
-        None, alias="status", description="Filtra por status (PENDING, PROCESSING, etc.)"
-    ),
+    order_type: Optional[OrderType] = Query(None, alias="type", description="Filtra por tipo (INBOUND, OUTBOUND)"),
+    status_filter: Optional[OrderStatus] = Query(None, alias="status", description="Filtra por status (PENDING, PROCESSING, COMPLETED, CANCELLED)"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
@@ -68,7 +79,7 @@ def list_orders(
         query = query.filter(models.Order.type == order_type)
     if status_filter:
         query = query.filter(models.Order.status == status_filter)
-    return query.offset(skip).limit(limit).all()
+    return query.order_by(models.Order.id).offset(skip).limit(limit).all()
 
 
 @router.get("/{order_id}", response_model=schemas.OrderResponse)
@@ -115,6 +126,19 @@ def delete_order(
             status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado."
         )
 
+    # Validação: impedir exclusão se houver tarefas não concluídas vinculadas
+    abertas = (
+        db.query(models.Task)
+        .filter(models.Task.order_id == order_id, models.Task.status != TaskStatus.COMPLETED)
+        .count()
+    )
+    if abertas > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Não é possível excluir o pedido: há {abertas} tarefa(s) não concluída(s). "
+                   "Conclua ou exclua as tarefas antes.",
+        )
+
     db.delete(db_order)
     db.commit()
     return None
@@ -157,11 +181,13 @@ def add_order_item(
     )
 
     if existing_item:
+        _exigir_limite(existing_item.quantity + item.quantity)
         existing_item.quantity += item.quantity
         db.commit()
         db.refresh(existing_item)
         return existing_item
 
+    _exigir_limite(item.quantity)
     new_item = models.OrderItem(
         order_id=order_id, product_id=item.product_id, quantity=item.quantity
     )
@@ -194,6 +220,7 @@ def update_order_item(
             detail="Item não encontrado no pedido informado.",
         )
 
+    _exigir_limite(item_update.quantity)
     db_item.quantity = item_update.quantity
     db.commit()
     db.refresh(db_item)
