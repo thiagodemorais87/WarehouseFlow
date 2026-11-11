@@ -190,3 +190,7 @@ def test_api_by_order_with_sqlalchemy_provider(db: Session):
     missing = client.post("/optimization/route/by-order", json={"order_id": 999})
     assert missing.status_code == 404
     assert "999" in missing.json()["detail"]
+
+    empty = client.post("/optimization/route/by-order", json={"order_id": 3})
+    assert empty.status_code == 404
+    assert "não possui itens" in empty.json()["detail"].lower()

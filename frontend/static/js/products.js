@@ -1,3 +1,4 @@
+
 const productsTableBody = document.getElementById("productsTableBody");
 const productsMessage = document.getElementById("productsMessage");
 const productSearch = document.getElementById("productSearch");
@@ -22,6 +23,64 @@ const token = localStorage.getItem("access_token");
 
 let productToDelete = null;
 let editingProductId = null;
+let canManageProducts = false;
+
+// ======================================================
+// PERMISSÕES
+// ======================================================
+
+async function initializeProductPermissions() {
+    canManageProducts = false;
+
+    // O botão permanece oculto até a permissão ser verificada.
+    newProductButton.hidden = true;
+    newProductButton.style.display = "none";
+
+    try {
+        if (!window.WarehouseAuth?.getCurrentUser) {
+            console.warn("WarehouseAuth não está disponível.");
+            return;
+        }
+
+        const user = await window.WarehouseAuth.getCurrentUser();
+
+        const role = String(user?.role || "")
+            .trim()
+            .toUpperCase();
+
+        canManageProducts = [
+            "ADMIN",
+            "GESTOR",
+            "MANAGER"
+        ].includes(role);
+
+        if (canManageProducts) {
+            newProductButton.hidden = false;
+            newProductButton.style.display = "";
+        }
+    } catch (error) {
+        console.error(
+            "Não foi possível verificar as permissões de produtos:",
+            error
+        );
+    }
+}
+
+function ensureProductPermission() {
+    if (canManageProducts) {
+        return true;
+    }
+
+    alert(
+        "Seu perfil não tem permissão para cadastrar, editar ou excluir produtos."
+    );
+
+    return false;
+}
+
+// ======================================================
+// CARREGAR PRODUTOS
+// ======================================================
 
 async function loadProducts(search = "") {
     productsMessage.textContent = "Carregando produtos...";
@@ -37,15 +96,17 @@ async function loadProducts(search = "") {
 
         const response = await fetch(url, {
             headers: {
-        "Authorization": `Bearer ${token}`
-    }
-});
+                "Authorization": `Bearer ${token}`
+            }
+        });
 
         if (!response.ok) {
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
 
             throw new Error(
-                data.detail || "Não foi possível carregar os produtos."
+                typeof data.detail === "string"
+                    ? data.detail
+                    : "Não foi possível carregar os produtos."
             );
         }
 
@@ -58,6 +119,10 @@ async function loadProducts(search = "") {
         productsMessage.style.display = "block";
     }
 }
+
+// ======================================================
+// RENDERIZAR PRODUTOS
+// ======================================================
 
 function renderProducts(products) {
     productsTableBody.innerHTML = "";
@@ -81,52 +146,62 @@ function renderProducts(products) {
             <td data-label="Volume">${formatVolume(product.volume)}</td>
             <td data-label="Ações">
                 <div class="product-actions">
-                    <button
-                        type="button"
-                        class="product-action-button edit-product-button"
-                        data-id="${product.id}"
-                    >
-                        Editar
-                    </button>
+                    ${
+                        canManageProducts
+                            ? `
+                                <button
+                                    type="button"
+                                    class="product-action-button edit-product-button"
+                                    data-id="${product.id}"
+                                >
+                                    Editar
+                                </button>
 
-                    <button
-                        type="button"
-                        class="product-action-button delete-product-button"
-                        data-id="${product.id}"
-                    >
-                        Excluir
-                    </button>
+                                <button
+                                    type="button"
+                                    class="product-action-button delete-product-button"
+                                    data-id="${product.id}"
+                                >
+                                    Excluir
+                                </button>
+                            `
+                            : ""
+                    }
                 </div>
             </td>
         `;
 
         productsTableBody.appendChild(row);
 
-    const editButton = row.querySelector(".edit-product-button");
+        if (canManageProducts) {
+            const editButton = row.querySelector(
+                ".edit-product-button"
+            );
 
-editButton.addEventListener("click", function () {
-    openEditProductModal(product);
-    });
+            const deleteButton = row.querySelector(
+                ".delete-product-button"
+            );
 
-    const deleteButton = row.querySelector(".delete-product-button");
+            editButton.addEventListener("click", function () {
+                openEditProductModal(product);
+            });
 
-deleteButton.addEventListener("click", function () {
-    openDeleteModal(product);
-});
-
-closeDeleteModal.addEventListener("click", closeDeleteProductModal);
-
-cancelDeleteButton.addEventListener("click", closeDeleteProductModal);
-
-deleteProductModal.addEventListener("click", function (event) {
-    if (event.target === deleteProductModal) {
-        closeDeleteProductModal();
-    }
-});
+            deleteButton.addEventListener("click", function () {
+                openDeleteModal(product);
+            });
+        }
     });
 }
 
+// ======================================================
+// MODAL DE EDIÇÃO
+// ======================================================
+
 function openEditProductModal(product) {
+    if (!ensureProductPermission()) {
+        return;
+    }
+
     editingProductId = product.id;
 
     productModalTitle.textContent = "Editar produto";
@@ -134,9 +209,12 @@ function openEditProductModal(product) {
 
     document.getElementById("sku").value = product.sku;
     document.getElementById("name").value = product.name;
-    document.getElementById("description").value = product.description || "";
-    document.getElementById("weight").value = product.weight ?? "";
-    document.getElementById("volume").value = product.volume ?? "";
+    document.getElementById("description").value =
+        product.description || "";
+    document.getElementById("weight").value =
+        product.weight ?? "";
+    document.getElementById("volume").value =
+        product.volume ?? "";
 
     productFormMessage.textContent = "";
     productFormMessage.className = "form-message";
@@ -144,7 +222,15 @@ function openEditProductModal(product) {
     productModal.classList.add("open");
 }
 
+// ======================================================
+// MODAL DE EXCLUSÃO
+// ======================================================
+
 function openDeleteModal(product) {
+    if (!ensureProductPermission()) {
+        return;
+    }
+
     productToDelete = product;
 
     deleteProductName.textContent = `"${product.name}"`;
@@ -160,7 +246,31 @@ function closeDeleteProductModal() {
     productToDelete = null;
 }
 
+closeDeleteModal.addEventListener(
+    "click",
+    closeDeleteProductModal
+);
+
+cancelDeleteButton.addEventListener(
+    "click",
+    closeDeleteProductModal
+);
+
+deleteProductModal.addEventListener("click", function (event) {
+    if (event.target === deleteProductModal) {
+        closeDeleteProductModal();
+    }
+});
+
+// ======================================================
+// EXCLUIR PRODUTO
+// ======================================================
+
 confirmDeleteButton.addEventListener("click", async function () {
+    if (!ensureProductPermission()) {
+        return;
+    }
+
     if (!productToDelete) {
         return;
     }
@@ -169,12 +279,15 @@ confirmDeleteButton.addEventListener("click", async function () {
         confirmDeleteButton.disabled = true;
         confirmDeleteButton.textContent = "Excluindo...";
 
-        const response = await fetch(`/products/${productToDelete.id}`, {
-            method: "DELETE",
-            headers: {
-        "Authorization": `Bearer ${token}`
-    }
-});
+        const response = await fetch(
+            `/products/${productToDelete.id}`,
+            {
+                method: "DELETE",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            }
+        );
 
         if (!response.ok) {
             let message = "Não foi possível excluir o produto.";
@@ -206,6 +319,10 @@ confirmDeleteButton.addEventListener("click", async function () {
     }
 });
 
+// ======================================================
+// FORMATAÇÃO
+// ======================================================
+
 function formatWeight(weight) {
     if (weight === null || weight === undefined) {
         return "—";
@@ -222,6 +339,10 @@ function formatVolume(volume) {
     return `${volume} m³`;
 }
 
+// ======================================================
+// PESQUISA
+// ======================================================
+
 let searchTimeout;
 
 productSearch.addEventListener("input", function () {
@@ -232,7 +353,15 @@ productSearch.addEventListener("input", function () {
     }, 300);
 });
 
+// ======================================================
+// MODAL DE CADASTRO
+// ======================================================
+
 function openProductModal() {
+    if (!ensureProductPermission()) {
+        return;
+    }
+
     editingProductId = null;
 
     productForm.reset();
@@ -250,9 +379,20 @@ function closeModal() {
     productModal.classList.remove("open");
 }
 
-newProductButton.addEventListener("click", openProductModal);
-closeProductModal.addEventListener("click", closeModal);
-cancelProductButton.addEventListener("click", closeModal);
+newProductButton.addEventListener(
+    "click",
+    openProductModal
+);
+
+closeProductModal.addEventListener(
+    "click",
+    closeModal
+);
+
+cancelProductButton.addEventListener(
+    "click",
+    closeModal
+);
 
 productModal.addEventListener("click", function (event) {
     if (event.target === productModal) {
@@ -260,8 +400,16 @@ productModal.addEventListener("click", function (event) {
     }
 });
 
+// ======================================================
+// CADASTRAR / EDITAR PRODUTO
+// ======================================================
+
 productForm.addEventListener("submit", async function (event) {
     event.preventDefault();
+
+    if (!ensureProductPermission()) {
+        return;
+    }
 
     productFormMessage.textContent = "";
     productFormMessage.className = "form-message";
@@ -288,34 +436,36 @@ productForm.addEventListener("submit", async function (event) {
     try {
         saveProductButton.disabled = true;
 
-saveProductButton.textContent = editingProductId
-    ? "Salvando..."
-    : "Cadastrando...";
+        saveProductButton.textContent = editingProductId
+            ? "Salvando..."
+            : "Cadastrando...";
 
         const url = editingProductId
-    ? `/products/${editingProductId}`
-    : "/products/";
+            ? `/products/${editingProductId}`
+            : "/products/";
 
-const method = editingProductId
-    ? "PUT"
-    : "POST";
+        const method = editingProductId
+            ? "PUT"
+            : "POST";
 
-const response = await fetch(url, {
-    method: method,
-    headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-    },
-    body: JSON.stringify(product)
-});
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(product)
+        });
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
             throw new Error(
                 typeof data.detail === "string"
                     ? data.detail
-                    : "Não foi possível cadastrar o produto."
+                    : editingProductId
+                        ? "Não foi possível atualizar o produto."
+                        : "Não foi possível cadastrar o produto."
             );
         }
 
@@ -329,9 +479,9 @@ const response = await fetch(url, {
     } finally {
         saveProductButton.disabled = false;
 
-saveProductButton.textContent = editingProductId
-    ? "Salvar alterações"
-    : "Cadastrar produto";
+        saveProductButton.textContent = editingProductId
+            ? "Salvar alterações"
+            : "Cadastrar produto";
     }
 });
 
@@ -340,4 +490,13 @@ function showFormError(message) {
     productFormMessage.className = "form-message error";
 }
 
-loadProducts();
+// ======================================================
+// INICIALIZAÇÃO
+// ======================================================
+
+async function initializeProducts() {
+    await initializeProductPermissions();
+    await loadProducts();
+}
+
+initializeProducts();

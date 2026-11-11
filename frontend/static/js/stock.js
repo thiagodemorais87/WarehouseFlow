@@ -1,3 +1,4 @@
+
 const token = localStorage.getItem("access_token");
 
 const stockTableBody = document.getElementById("stockTableBody");
@@ -38,6 +39,29 @@ let productsData = [];
 let locationsData = [];
 let editingStockId = null;
 
+// Permissões da Sprint 08
+let canDeleteStock = false;
+
+async function initializeStockPermissions() {
+    canDeleteStock = false;
+
+    try {
+        if (!window.WarehouseAuth) {
+            throw new Error("Módulo de autenticação indisponível.");
+        }
+
+        canDeleteStock = await window.WarehouseAuth.hasRole(
+            "ADMIN",
+            "GESTOR"
+        );
+    } catch (error) {
+        console.error(
+            "Erro ao verificar permissões do estoque:",
+            error
+        );
+    }
+}
+
 async function loadStock() {
     stockMessage.textContent = "Carregando estoque...";
     stockMessage.style.display = "block";
@@ -45,25 +69,25 @@ async function loadStock() {
 
     try {
         const [stockResponse, productsResponse, locationsResponse] =
-    await Promise.all([
-        fetch("/stock/", {
-            headers: {
-                "Authorization": `Bearer ${token}`
-            }
-        }),
+            await Promise.all([
+                fetch("/stock/", {
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                }),
 
-        fetch("/products/", {
-            headers: {
-                "Authorization": `Bearer ${token}`
-            }
-        }),
+                fetch("/products/", {
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                }),
 
-        fetch("/locations/", {
-            headers: {
-                "Authorization": `Bearer ${token}`
-            }
-        })
-    ]);
+                fetch("/locations/", {
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                })
+            ]);
 
         if (!stockResponse.ok) {
             throw new Error("Não foi possível carregar o estoque.");
@@ -113,7 +137,8 @@ function renderStock(items) {
     stockTableBody.innerHTML = "";
 
     if (items.length === 0) {
-        stockMessage.textContent = "Nenhum registro de estoque encontrado.";
+        stockMessage.textContent =
+            "Nenhum registro de estoque encontrado.";
         stockMessage.style.display = "block";
         return;
     }
@@ -134,7 +159,9 @@ function renderStock(items) {
                 </span>
             </td>
 
-            <td data-label="Última atualização">${formatDate(item.last_updated)}</td>
+            <td data-label="Última atualização">
+                ${formatDate(item.last_updated)}
+            </td>
 
             <td data-label="Ações">
                 <div class="stock-actions">
@@ -146,40 +173,43 @@ function renderStock(items) {
                         Entrada
                     </button>
 
-                <button
-                    type="button"
-                    class="stock-exit-button"
-                    data-id="${item.id}"
-                >
-                    Saída
-                </button>
+                    <button
+                        type="button"
+                        class="stock-exit-button"
+                        data-id="${item.id}"
+                    >
+                        Saída
+                    </button>
 
-                <button
-                    type="button"
-                    class="stock-action-button"
-                    data-id="${item.id}"
-                >
-                    Ajustar
-                </button>
+                    <button
+                        type="button"
+                        class="stock-action-button"
+                        data-id="${item.id}"
+                    >
+                        Ajustar
+                    </button>
 
-                <button
-                    type="button"
-                    class="stock-delete-button"
-                    data-id="${item.id}"
-                >
-                    Excluir
-                </button>
-
-            </div>
-        </td>
+                    ${canDeleteStock ? `
+                        <button
+                            type="button"
+                            class="stock-delete-button"
+                            data-id="${item.id}"
+                        >
+                            Excluir
+                        </button>
+                    ` : ""}
+                </div>
+            </td>
         `;
 
         stockTableBody.appendChild(row);
-        
-        const adjustButton = row.querySelector(".stock-action-button");
 
-    adjustButton.addEventListener("click", function () {
-    openEditStockModal(item.id);
+        const adjustButton = row.querySelector(
+            ".stock-action-button"
+        );
+
+        adjustButton.addEventListener("click", function () {
+            openEditStockModal(item.id);
         });
     });
 }
@@ -216,7 +246,7 @@ function openNewStockModal() {
     stockModalTitle.textContent = "Adicionar ao estoque";
     stockQuantityLabel.textContent = "Quantidade a adicionar *";
     stockQuantityHint.textContent =
-    "A quantidade informada será adicionada ao estoque atual.";
+        "A quantidade informada será adicionada ao estoque atual.";
     saveStockButton.textContent = "Salvar";
 
     stockProduct.disabled = false;
@@ -275,7 +305,7 @@ function populateStockSelects() {
 
 function openEditStockModal(stockId) {
     const item = stockData.find(
-        (item) => item.id === stockId
+        (item) => Number(item.id) === Number(stockId)
     );
 
     if (!item) {
@@ -290,7 +320,7 @@ function openEditStockModal(stockId) {
     stockModalTitle.textContent = "Ajustar saldo";
     stockQuantityLabel.textContent = "Novo saldo *";
     stockQuantityHint.textContent =
-    "Informe a quantidade total que deverá permanecer nesta posição.";
+        "Informe a quantidade total que deverá permanecer nesta posição.";
     saveStockButton.textContent = "Salvar alteração";
 
     stockProduct.value = item.product_id;
@@ -432,16 +462,23 @@ function closeMovement() {
 }
 
 stockTableBody.addEventListener("click", function (event) {
-    const deleteButton = event.target.closest(".stock-delete-button");
-    const entryButton = event.target.closest(".stock-entry-button");
-    const exitButton = event.target.closest(".stock-exit-button");
+    const deleteButton = event.target.closest(
+        ".stock-delete-button"
+    );
+
+    const entryButton = event.target.closest(
+        ".stock-entry-button"
+    );
+
+    const exitButton = event.target.closest(
+        ".stock-exit-button"
+    );
 
     if (entryButton) {
         openMovementModal(
             entryButton.dataset.id,
             "inbound"
         );
-
         return;
     }
 
@@ -450,11 +487,12 @@ stockTableBody.addEventListener("click", function (event) {
             exitButton.dataset.id,
             "outbound"
         );
+        return;
     }
 
     if (deleteButton) {
-    deleteStock(deleteButton.dataset.id);
-}
+        deleteStock(deleteButton.dataset.id);
+    }
 });
 
 movementForm.addEventListener("submit", async function (event) {
@@ -493,7 +531,8 @@ movementForm.addEventListener("submit", async function (event) {
             const error = await response.json();
 
             throw new Error(
-                error.detail || "Não foi possível movimentar o estoque."
+                error.detail ||
+                "Não foi possível movimentar o estoque."
             );
         }
 
@@ -517,6 +556,13 @@ movementModal.addEventListener("click", function (event) {
 });
 
 async function deleteStock(stockId) {
+    // Proteção adicional no frontend.
+    // A autorização definitiva continua sendo feita pelo backend.
+    if (!canDeleteStock) {
+        alert("Seu perfil não tem permissão para excluir registros de estoque.");
+        return;
+    }
+
     const stock = stockData.find(
         item => Number(item.id) === Number(stockId)
     );
@@ -543,13 +589,14 @@ async function deleteStock(stockId) {
         });
 
         if (!response.ok) {
-            let message = "Não foi possível excluir o registro de estoque.";
+            let message =
+                "Não foi possível excluir o registro de estoque.";
 
             try {
                 const error = await response.json();
                 message = error.detail || message;
             } catch {
-                // mantém a mensagem padrão
+                // Mantém a mensagem padrão.
             }
 
             throw new Error(message);
@@ -562,6 +609,11 @@ async function deleteStock(stockId) {
     }
 }
 
+// Aguarda a identificação do perfil antes de montar a tabela.
+// Assim, os botões são criados com as permissões corretas.
+async function initializeStock() {
+    await initializeStockPermissions();
+    await loadStock();
+}
 
-
-loadStock();
+initializeStock();

@@ -49,4 +49,9 @@ class MemoryOrderRouteProvider:
             raise KeyError(
                 f"Pedido {order_id} não encontrado no catálogo de picking"
             )
-        return list(self._catalog[order_id])
+        locations = list(self._catalog[order_id])
+        if not locations:
+            raise KeyError(
+                f"Pedido {order_id} não possui itens com posição de picking"
+            )
+        return locations

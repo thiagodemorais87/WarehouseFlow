@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from fastapi import Depends, FastAPI, Form, Request
+from fastapi import Depends, FastAPI, Form, Request, HTTPException, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -22,7 +22,7 @@ from .routers import (
     optimization,
     orders,
     products,
-    reports, 
+    reports,
     stock,
     tasks,
     users,
@@ -94,7 +94,7 @@ app.include_router(orders.router)
 app.include_router(stock.router)
 app.include_router(users.router)
 app.include_router(locations.router)
-app.include_router(reports.router)  
+app.include_router(reports.router)
 
 # Motor de otimização de picking
 app.include_router(optimization_engine_router)
@@ -177,148 +177,62 @@ if FRONTEND_DIR.exists():
         response.delete_cookie("access_token")
         return response
 
-    @app.get(
-        "/dashboard",
-        response_class=HTMLResponse,
-        tags=["Frontend"],
-    )
-    def dashboard_page(request: Request):
-        user = {
-            "name": "Usuário Teste",
-            "initials": "UT",
-            "role": "Administrador",
-        }
+    def _user_context(user: models.User) -> dict:
+        """Dados do usuário logado para o topo e o menu das páginas."""
+        partes = (user.name or "").split()
+        iniciais = "".join(p[0] for p in partes[:2]).upper() or "U"
+        return {"name": user.name, "initials": iniciais, "role": user.role_name or ""}
 
-        return templates.TemplateResponse(
-            request=request,
-            name="dashboard/dashboard.html",
-            context={
-                "user": user,
-                "active_page": "dashboard",
-            },
+    def _register_page(path: str, template: str, active_page: str) -> None:
+        @app.get(
+            path,
+            response_class=HTMLResponse,
+            tags=["Frontend"],
+            include_in_schema=False,
         )
+        def page(
+            request: Request,
+            user: Optional[models.User] = Depends(get_current_user_or_none),
+        ):
+            # Usuários não autenticados devem retornar ao login.
+            if user is None:
+                return RedirectResponse(url="/login", status_code=303)
 
-    @app.get(
-        "/produtos",
-        response_class=HTMLResponse,
-        tags=["Frontend"],
-    )
-    def products_page(request: Request):
-        user = {
-            "name": "Usuário Teste",
-            "initials": "UT",
-            "role": "Administrador",
-        }
+            # Relatório de movimentações: exclusivo para ADMIN e GESTOR.
+            if path == "/relatorios/movimentacoes":
+                role = (user.role_name or "").strip().upper()
 
-        return templates.TemplateResponse(
-            request=request,
-            name="products/products.html",
-            context={
-                "user": user,
-                "active_page": "products",
-            },
-        )
+                # Compatibilidade com perfis antigos do banco.
+                if role == "MANAGER":
+                    role = "GESTOR"
 
-    @app.get(
-        "/estoque",
-        response_class=HTMLResponse,
-        tags=["Frontend"],
-    )
-    def stock_page(request: Request):
-        user = {
-            "name": "Usuário Teste",
-            "initials": "UT",
-            "role": "Administrador",
-        }
+                if role not in ("ADMIN", "GESTOR"):
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Acesso negado: seu perfil não possui permissão para visualizar este relatório.",
+                    )
 
-        return templates.TemplateResponse(
-            request=request,
-            name="inventory/stock.html",
-            context={
-                "user": user,
-                "active_page": "stock",
-            },
-        )
+            return templates.TemplateResponse(
+                request=request,
+                name=template,
+                context={
+                    "user": _user_context(user),
+                    "active_page": active_page,
+                },
+            )
 
-    @app.get(
-        "/posicoes",
-        response_class=HTMLResponse,
-        tags=["Frontend"],
-    )
-    def locations_page(request: Request):
-        user = {
-            "name": "Usuário Teste",
-            "initials": "UT",
-            "role": "Administrador",
-        }
-
-        return templates.TemplateResponse(
-            request=request,
-            name="locations/locations.html",
-            context={
-                "user": user,
-                "active_page": "locations",
-            },
-        )
-
-    @app.get(
-        "/pedidos",
-        response_class=HTMLResponse,
-        tags=["Frontend"],
-    )
-    def orders_page(request: Request):
-        user = {
-            "name": "Usuário Teste",
-            "initials": "UT",
-            "role": "Administrador",
-        }
-
-        return templates.TemplateResponse(
-            request=request,
-            name="orders/orders.html",
-            context={
-                "user": user,
-                "active_page": "orders",
-            },
-        )
-
-    @app.get("/tarefas", response_class=HTMLResponse, tags=["Frontend"])
-    def tasks_page(request: Request):
-        user = {
-            "name": "Usuário Teste",
-            "initials": "UT",
-            "role": "Administrador",
-        }
-
-        return templates.TemplateResponse(
-            request=request,
-            name="tasks/tasks.html",
-            context={
-                "user": user,
-                "active_page": "tasks",
-            },
-        )
-
-    @app.get(
-        "/otimizacao",
-        response_class=HTMLResponse,
-        tags=["Frontend"],
-    )
-    def optimization_page(request: Request):
-        user = {
-            "name": "Usuário Teste",
-            "initials": "UT",
-            "role": "Administrador",
-        }
-
-        return templates.TemplateResponse(
-            request=request,
-            name="optimization/optimization.html",
-            context={
-                "user": user,
-                "active_page": "optimization",
-            },
-        )
+    for _path, _template, _active in [
+        ("/dashboard", "dashboard/dashboard.html", "dashboard"),
+        ("/produtos", "products/products.html", "products"),
+        ("/estoque", "inventory/stock.html", "stock"),
+        ("/posicoes", "locations/locations.html", "locations"),
+        ("/pedidos", "orders/orders.html", "orders"),
+        ("/tarefas", "tasks/tasks.html", "tasks"),
+        ("/otimizacao", "optimization/optimization.html", "optimization"),
+        ("/relatorios/picking", "reports/picking.html", "picking_report"),
+        ("/relatorios/movimentacoes", "reports/stock-movements.html", "stock_movements_report"),
+    ]:
+        _register_page(_path, _template, _active)
 
 else:
     logger.warning(

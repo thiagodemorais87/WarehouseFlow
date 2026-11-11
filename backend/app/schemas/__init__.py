@@ -173,11 +173,12 @@ class UserBase(BaseModel):
     role_id: Optional[int] = None
 
 class UserCreate(UserBase):
+    email: EmailStr
     password: str = Field(..., min_length=6, max_length=72, description="Senha do usuário")
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
     role_id: Optional[int] = None
     password: Optional[str] = None
     is_active: Optional[bool] = None

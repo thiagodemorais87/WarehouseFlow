@@ -57,11 +57,53 @@ PAYLOAD = {
     "start": {"id": "START", "x": 0, "y": 0},
 }
 
+SUMMARY_KEYS = {
+    "runs_count",
+    "average_distance_reduction",
+    "average_reduction_percent",
+}
+
+PICKING_RUN_KEYS = {
+    "id",
+    "user_id",
+    "user_email",
+    "executed_at",
+    "source",
+    "order_id",
+    "original_route",
+    "nearest_neighbor_route",
+    "two_opt_route",
+    "distance_before",
+    "nearest_neighbor_distance",
+    "two_opt_distance",
+    "distance_after",
+    "distance_reduction",
+    "reduction_percent",
+    "execution_time_ms",
+    "locations_count",
+}
+
+# Campos que picking-report.js / dashboard.js leem (contrato FE estável).
+FE_SUMMARY_KEYS = SUMMARY_KEYS
+FE_PICKING_TABLE_KEYS = {
+    "executed_at",
+    "user_id",
+    "order_id",
+    "source",
+    "locations_count",
+    "distance_before",
+    "distance_after",
+    "reduction_percent",
+    "execution_time_ms",
+    "two_opt_route",
+}
+
 
 def test_route_is_recorded_and_reported():
     empty = client.get("/optimization/reports/summary")
     assert empty.status_code == 200
     empty_body = empty.json()
+    assert set(empty_body.keys()) == SUMMARY_KEYS
     assert empty_body["runs_count"] == 0
     assert empty_body["average_distance_reduction"] == 0
     assert empty_body["average_reduction_percent"] == 0
@@ -73,6 +115,8 @@ def test_route_is_recorded_and_reported():
     summary = client.get("/optimization/reports/summary")
     assert summary.status_code == 200
     summary_body = summary.json()
+    assert set(summary_body.keys()) == SUMMARY_KEYS
+    assert FE_SUMMARY_KEYS <= set(summary_body.keys())
     assert summary_body["runs_count"] == 1
     assert summary_body["average_distance_reduction"] == metrics["distance_reduction"]
     assert summary_body["average_reduction_percent"] == metrics["reduction_percent"]
@@ -82,6 +126,8 @@ def test_route_is_recorded_and_reported():
     rows = report.json()
     assert len(rows) == 1
     row = rows[0]
+    assert set(row.keys()) == PICKING_RUN_KEYS
+    assert FE_PICKING_TABLE_KEYS <= set(row.keys())
     assert row["user_id"] == 7
     assert row["user_email"] == "operador@warehouseflow.com"
     assert row["source"] == "route"
@@ -98,3 +144,15 @@ def test_route_is_recorded_and_reported():
     assert "two_opt_route" in text.splitlines()[0]
     assert " > ".join(metrics["two_opt_route"]) in text
     assert "operador@warehouseflow.com" in text
+
+
+def test_reports_contract_keys_stable_for_frontend():
+    """Garante shape JSON consumido por picking-report.js / dashboard."""
+    client.post("/optimization/route", json=PAYLOAD)
+
+    summary = client.get("/optimization/reports/summary").json()
+    assert FE_SUMMARY_KEYS <= set(summary.keys())
+
+    rows = client.get("/optimization/reports/picking").json()
+    assert rows
+    assert FE_PICKING_TABLE_KEYS <= set(rows[0].keys())

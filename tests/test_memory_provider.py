@@ -28,6 +28,12 @@ def test_missing_order_raises_key_error():
         provider.get_pick_locations(999)
 
 
+def test_empty_positions_raises_key_error():
+    provider = MemoryOrderRouteProvider(catalog={5: []})
+    with pytest.raises(KeyError, match="não possui itens"):
+        provider.get_pick_locations(5)
+
+
 def test_custom_catalog_overrides_default():
     catalog = {10: [Location(id="X1", x=0, y=1)]}
     provider = MemoryOrderRouteProvider(catalog=catalog)
