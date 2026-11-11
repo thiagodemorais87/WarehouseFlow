@@ -394,6 +394,64 @@ def test_menu_lateral_esconde_usuarios_do_operador(client):
     assert "Usuários" not in client.get("/produtos").text
 
 
+@pytest.mark.skip(reason="Link de Usuários comentado no sidebar até a página existir")
 def test_menu_lateral_mostra_usuarios_ao_admin(client):
     entrar_pela_tela(client, "admin")
-    assert "Usuários" in client.get("/produtos").text    
+    assert "Usuários" in client.get("/produtos").text
+
+    # ---------------------------------------------------------------------------
+# Validação, usuário inativo e token ausente
+# ---------------------------------------------------------------------------
+
+def test_me_sem_token_devolve_401(client):
+    assert client.get("/auth/me").status_code == 401
+
+
+def test_login_usuario_inativo_e_bloqueado(client):
+    db = TestingSession()
+    db.query(models.User).filter(models.User.id == IDS["operador"]).update({"is_active": False})
+    db.commit()
+    db.close()
+
+    resp = client.post(
+        "/auth/login",
+        json={"email": "operador@teste.com", "password": "operador123"},
+    )
+    assert resp.status_code in (400, 401, 403)
+    assert "access_token" not in resp.json()
+
+
+def test_login_email_invalido_e_rejeitado(client):
+    resp = client.post(
+        "/auth/login",
+        json={"email": "isso-nao-e-email", "password": "admin123"},
+    )
+    assert resp.status_code in (400, 422)
+
+
+def test_admin_nao_cria_usuario_com_email_invalido(client):
+    novo = {"name": "X", "email": "sem-arroba", "password": "senha123"}
+    resp = client.post("/users/", json=novo, headers=auth(client, "admin"))
+    assert resp.status_code in (400, 422)
+
+
+def test_admin_nao_cria_usuario_com_senha_curta(client):
+    novo = {"name": "X", "email": "curta@teste.com", "password": "123"}
+    resp = client.post("/users/", json=novo, headers=auth(client, "admin"))
+    assert resp.status_code in (400, 422)
+
+
+# ---------------------------------------------------------------------------
+# Evidência: mesma rota, perfis diferentes
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("quem,esperado", [
+    ("admin", 201), ("gestor", 201), ("operador", 403),
+])
+def test_evidencia_criar_produto_por_perfil(client, quem, esperado):
+    resp = client.post(
+        "/products/",
+        json={"sku": f"EV-{quem}", "name": "Evidência"},
+        headers=auth(client, quem),
+    )
+    assert resp.status_code == esperado
