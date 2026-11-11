@@ -1,3 +1,6 @@
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -26,7 +29,7 @@ def create_product(
     db_product = db.query(models.Product).filter(models.Product.sku == product.sku).first()
     if db_product:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_409_CONFLICT,
             detail="Já existe um produto cadastrado com este SKU.",
         )
 
@@ -50,7 +53,7 @@ def list_products(
             (models.Product.sku.ilike(f"%{search}%"))
             | (models.Product.name.ilike(f"%{search}%"))
         )
-    return query.offset(skip).limit(limit).all()
+    return query.order_by(models.Product.id).offset(skip).limit(limit).all()
 
 
 @router.get("/{product_id}", response_model=schemas.ProductResponse)
@@ -77,7 +80,7 @@ def update_product(
         existing_sku = db.query(models.Product).filter(models.Product.sku == update_data["sku"]).first()
         if existing_sku:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_409_CONFLICT,
                 detail="O novo SKU informado já está em uso por outro produto.",
             )
 
@@ -98,6 +101,27 @@ def delete_product(
     db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
     if not db_product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Produto não encontrado.")
+
+    # Validação de estoque existente
+    unidades = (
+        db.query(func.coalesce(func.sum(models.Stock.quantity), 0))
+        .filter(models.Stock.product_id == product_id)
+        .scalar()
+    )
+    if unidades > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Não é possível excluir o produto: há {unidades} unidade(s) em estoque. "
+                   "Zere ou remova o estoque antes.",
+        )
+
+    # Validação de pedidos vinculados
+    itens = db.query(models.OrderItem).filter(models.OrderItem.product_id == product_id).count()
+    if itens > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Não é possível excluir o produto: ele consta em {itens} item(ns) de pedido.",
+        )
 
     db.delete(db_product)
     db.commit()

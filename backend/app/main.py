@@ -10,6 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from . import models
@@ -63,6 +64,25 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             "errors": erros_formatados,
         },
     )
+
+
+def _integrity_response(exc: IntegrityError) -> tuple[int, str]:
+    """Classifica a violação: duplicidade/vínculo = 409; NOT NULL/CHECK = 400."""
+    orig = getattr(exc, "orig", None)
+    pgcode = getattr(orig, "pgcode", None)
+    texto = str(orig).lower()
+    if pgcode == "23505" or "unique" in texto or "duplicate key" in texto:
+        return 409, "Registro duplicado: já existe um registro com estes dados."
+    if pgcode == "23503" or "foreign key" in texto:
+        return 409, "Operação bloqueada: o registro possui vínculos ou referencia um registro inexistente."
+    return 400, "Os dados enviados violam uma regra de integridade do banco."
+
+
+@app.exception_handler(IntegrityError)
+async def integrity_exception_handler(request: Request, exc: IntegrityError):
+    status_code, detail = _integrity_response(exc)
+    logger.warning("IntegrityError em %s %s: %s", request.method, request.url.path, exc.orig)
+    return JSONResponse(status_code=status_code, content={"detail": detail})
 
 
 # Registro de todas as rotas modularizadas (CRUD + persistência)
