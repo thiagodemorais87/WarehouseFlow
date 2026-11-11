@@ -87,6 +87,8 @@ Arquivo dedicado (só a tabela do motor):
 
 [`backend/database/optimization_runs.sql`](../database/optimization_runs.sql)
 
+Também incluída em [`backend/database/schema.sql`](../database/schema.sql) e no init Docker como `03-optimization_runs.sql` (`IF NOT EXISTS`).
+
 ### Evidência ponta a ponta
 
 ```bash
