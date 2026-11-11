@@ -149,3 +149,5 @@ Lista `{id, x, y}` na ordem dos itens. `404` se o provider falhar (mesmo critér
 ## 8. DDL do histórico
 
 Tabela `optimization_runs`: ver [`backend/database/optimization_runs.sql`](../backend/database/optimization_runs.sql).
+
+Também faz parte do DDL oficial em [`backend/database/schema.sql`](../backend/database/schema.sql) e do init Docker (`03-optimization_runs.sql`).
