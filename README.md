@@ -327,10 +327,10 @@ O serviço `frontend` (nginx) faz proxy de tudo em `:8080` para a API, mantendo 
 
 A imagem da API e o endpoint `/health` expõem a versão alinhada à tag/GitHub Release.
 
-1. No `.env`, defina `APP_VERSION` igual à tag da release (ex.: `v1.0.0`). Sem release, use `dev` (padrão do `.env.example`).
-2. No GitHub: crie uma tag `vX.Y.Z` e uma **Release** (*Releases → New release*).
+1. No `.env`, defina `APP_VERSION` igual à tag da release (ex.: `v2.0.0-rc.1` na Sprint 10 RC). Sem release, use `dev`.
+2. No GitHub: crie uma tag `vX.Y.Z` (RC: `v2.0.0-rc.1` como **Pre-release**; entrega final: `v2.0.0`) e uma **Release**.
 3. Suba de novo com `docker compose up --build` e confira:
-   * `GET http://127.0.0.1:8000/health` → `{"status":"ok","version":"v1.0.0"}`
+   * `GET http://127.0.0.1:8000/health` → `{"status":"ok","version":"v2.0.0-rc.1"}`
    * Swagger (`/docs`) mostra a mesma versão no título da API
    * Labels da imagem: `org.opencontainers.image.version` (via `docker inspect warehouseflow-api`)
 
