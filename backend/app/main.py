@@ -7,6 +7,7 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, Form, Request, HTTPException, status
 from fastapi.exceptions import RequestValidationError
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -250,3 +251,46 @@ def root():
 @app.get("/health", tags=["Healthcheck"])
 def health() -> dict[str, str]:
     return {"status": "ok", "version": APP_VERSION}
+
+
+def custom_openapi() -> dict:
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    validation_error = {
+        "description": "Erro de validação nos dados enviados.",
+        "content": {
+            "application/json": {
+                "schema": {
+                    "type": "object",
+                    "required": ["detail", "errors"],
+                    "properties": {
+                        "detail": {"type": "string"},
+                        "errors": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                    },
+                }
+            }
+        },
+    }
+
+    for path in schema["paths"].values():
+        for operation in path.values():
+            responses = operation.get("responses", {})
+            if "422" in responses:
+                responses.pop("422")
+                responses["400"] = validation_error
+
+    app.openapi_schema = schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi

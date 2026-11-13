@@ -1,0 +1,3 @@
+﻿docker compose config --quiet exit=0
+docker compose up --build -d exit=1
+failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine; check if the path is correct and if the daemon is running: open //./pipe/dockerDesktopLinuxEngine: O sistema não pode encontrar o arquivo especificado.

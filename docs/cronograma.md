@@ -5,7 +5,7 @@ Use este arquivo ao montar o **PDF acumulado** de cada sprint (Sprints anteriore
 
 > Proposta: [proposta.md](proposta.md) · Motor: [optimization.md](optimization.md) · PDF Sprint 01: [Sprint01_WarehouseFlow_8MB.pdf](Sprint01_WarehouseFlow_8MB.pdf)
 
-**Turma:** 8MA — Manhã · **Projeto:** WarehouseFlow  
+**Turma:** 8MB · **Projeto:** WarehouseFlow
 **Entrega no Teams:** 1 PDF por sprint, identificado com **número do grupo + nome do projeto**, enviado pelo **Scrum Master**.
 
 ---
@@ -15,15 +15,15 @@ Use este arquivo ao montar o **PDF acumulado** de cada sprint (Sprints anteriore
 | Sprint | Título (Teams) | Prazo final | Foco WarehouseFlow | Status |
 |--------|----------------|-------------|--------------------|--------|
 | 01 | Planejamento do projeto | **05/09/2026** 23:59 | Documento de planejamento + GitHub + Forms | Concluída |
-| 02 | Arquitetura e modelagem | **19/09/2026** 23:59 | Arquitetura, diagramas, MER, protótipo, DB criado | Em andamento |
-| 03 | Estrutura inicial funcionando | **19/09/2026** 23:59 | DB conectado, auth, CRUD, deploy local | Em andamento |
-| 04 | Primeiro módulo completo | **26/09/2026** 23:59 | Módulo **Produtos e Estoque** (fluxo completo + telas) | Planejada |
-| 05 | Segundo módulo funcionando | **03/10/2026** 23:59 | Módulo **Pedidos e Tarefas** | Planejada |
-| 06 | Aprimoramento do sistema | **17/10/2026** 23:59 | Módulo **Otimização de picking** + correções Pré-Banca | Planejada |
-| 07 | Sistema quase completo | **24/10/2026** 23:59 | Dashboard, relatórios, pesquisa, filtros, logs | Planejada |
-| 08 | Sistema praticamente concluído | **31/10/2026** 23:59 | Funcionalidades fechadas + permissões + usabilidade | Planejada |
-| 09 | Testes completos | **07/11/2026** 23:59 | Testes funcionais, validação, navegação, docs | Planejada |
-| 10 | Versão Release Candidate | **14/11/2026** 23:59 | Sistema estável, interface/DB finais, APIs, README | Planejada |
+| 02 | Arquitetura e modelagem | **19/09/2026** 23:59 | Arquitetura, diagramas, MER, protótipo, DB criado | Concluída |
+| 03 | Estrutura inicial funcionando | **19/09/2026** 23:59 | DB conectado, auth, CRUD, deploy local | Concluída |
+| 04 | Primeiro módulo completo | **26/09/2026** 23:59 | Módulo **Produtos e Estoque** (fluxo completo + telas) | Concluída |
+| 05 | Segundo módulo funcionando | **03/10/2026** 23:59 | Módulo **Pedidos e Tarefas** | Concluída |
+| 06 | Aprimoramento do sistema | **17/10/2026** 23:59 | Módulo **Otimização de picking** + correções Pré-Banca | Concluída |
+| 07 | Sistema quase completo | **24/10/2026** 23:59 | Dashboard, relatórios, pesquisa, filtros, logs | Concluída |
+| 08 | Sistema praticamente concluído | **31/10/2026** 23:59 | Funcionalidades fechadas + permissões + usabilidade | Concluída |
+| 09 | Testes completos | **07/11/2026** 23:59 | Testes funcionais, validação, navegação, docs | Entregue; Compose/PostgreSQL pendentes |
+| 10 | Versão Release Candidate | **14/11/2026** 23:59 | Sistema estável, interface/DB finais, APIs, README | RC documentada; validar Compose/PostgreSQL |
 | 11 | Preparação para entrega | **21/11/2026** 23:59 | Manual do usuário, manual técnico, code review | Planejada |
 | 12 | Versão final do sistema | **28/11/2026** 23:59 | Code freeze, bugs, ensaio, vídeos | Planejada |
 | — | **Entrega final** | **05/12/2026** 23:59 | Sistema + docs + vídeos YouTube/Instagram | Planejada |
@@ -151,7 +151,7 @@ PDF acumulado: **Sprint 01 + Sprint 02**. Explicar cada diagrama; não entregar 
 
 * DB conectado + CRUD `/products`, `/stock`, `/orders`, `/tasks`, `/locations`, `/users`
 * Deploy: Compose API + Postgres
-* **Pendente crítico Sprint 03:** login JWT real, hash bcrypt, enforcement de perfis (branch `feature/auth-users`)
+* **Registro histórico da Sprint 03:** login JWT, hash bcrypt e enforcement de perfis constavam como pendentes nessa etapa; foram implementados depois e são verificados na matriz de permissões e no relatório da Sprint 09.
 
 ### Para o PDF do relatório
 

@@ -1,0 +1,268 @@
+{
+  "base_url": "http://127.0.0.1:8000",
+  "database": "disposable SQLite under TEMP",
+  "checks": [
+    {
+      "name": "Health check",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Swagger UI",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "OpenAPI JSON",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "JWT login",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Authenticated user profile",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Dashboard page",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Create outbound order",
+      "expected_status": 201,
+      "status": 201,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "List orders with filters",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Create picking task",
+      "expected_status": 201,
+      "status": 201,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "List picking tasks",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Dashboard report",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Orders report",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Orders CSV report",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Stock movements report",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Users list",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Roles list",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Optimize explicit route",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Optimization history summary",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Optimization picking report",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Optimization CSV report",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Order pick locations",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Optimize route by order",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Operator login",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Operator can create permitted order",
+      "expected_status": 201,
+      "status": 201,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Operator cannot create product",
+      "expected_status": 403,
+      "status": 403,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Operator sees assigned task list",
+      "expected_status": 200,
+      "status": 200,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Unauthenticated orders denied",
+      "expected_status": 401,
+      "status": 401,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Logout clears cookie",
+      "expected_status": 303,
+      "status": 303,
+      "passed": true,
+      "detail": null,
+      "cookie_cleared": true
+    },
+    {
+      "name": "Dashboard redirects after logout",
+      "expected_status": 303,
+      "status": 303,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Validation rejects zero order quantity",
+      "expected_status": 400,
+      "status": 400,
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "Reports reject reversed date range",
+      "expected_status": 400,
+      "status": 400,
+      "passed": true,
+      "detail": null
+    }
+  ],
+  "passed": 31,
+  "failed": 0,
+  "openapi_path_count": 39,
+  "openapi_paths": [
+    "/auth/login",
+    "/auth/me",
+    "/health",
+    "/inicio",
+    "/locations",
+    "/locations/warehouses",
+    "/locations/warehouses/{warehouse_id}",
+    "/locations/{location_id}",
+    "/login",
+    "/logout",
+    "/optimization-results/",
+    "/optimization-results/task/{task_id}",
+    "/optimization-results/{result_id}",
+    "/optimization/orders/{order_id}/pick-locations",
+    "/optimization/reports/picking",
+    "/optimization/reports/picking.csv",
+    "/optimization/reports/summary",
+    "/optimization/route",
+    "/optimization/route/by-order",
+    "/orders/",
+    "/orders/{order_id}",
+    "/orders/{order_id}/items",
+    "/orders/{order_id}/items/{item_id}",
+    "/products/",
+    "/products/{product_id}",
+    "/reports/dashboard",
+    "/reports/orders",
+    "/reports/orders.csv",
+    "/reports/stock-movements",
+    "/reports/stock-movements.csv",
+    "/stock",
+    "/stock/{stock_id}",
+    "/stock/{stock_id}/inbound",
+    "/stock/{stock_id}/outbound",
+    "/tasks/",
+    "/tasks/{task_id}",
+    "/users/",
+    "/users/roles/",
+    "/users/{user_id}"
+  ]
+}

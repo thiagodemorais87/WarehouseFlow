@@ -1,0 +1,48 @@
+{
+  "http_status": 200,
+  "path_count": 39,
+  "validation_contracts": [
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "400": true,
+      "422": false
+    },
+    {
+      "method": "POST",
+      "path": "/orders/",
+      "400": true,
+      "422": false
+    },
+    {
+      "method": "GET",
+      "path": "/orders/",
+      "400": true,
+      "422": false
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/",
+      "400": true,
+      "422": false
+    },
+    {
+      "method": "GET",
+      "path": "/tasks/",
+      "400": true,
+      "422": false
+    },
+    {
+      "method": "POST",
+      "path": "/users/",
+      "400": true,
+      "422": false
+    },
+    {
+      "method": "GET",
+      "path": "/users/",
+      "400": true,
+      "422": false
+    }
+  ]
+}

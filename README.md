@@ -11,6 +11,10 @@ https://www.figma.com/design/uGceagehdqafcFckYSlWZY/Sem-t%C3%ADtulo?node-id=5-56
 * [Proposta — problema → solução + métricas](docs/proposta.md)
 * [Cronograma oficial — 12 sprints, datas e funcionalidades](docs/cronograma.md)
 * [Motor de otimização (técnico)](docs/optimization.md)
+* [Referência atual da API](docs/Api-doc.md)
+* [Relatório da Sprint 10 — Release Candidate](docs/sprint-10/relatorio_rc_sprint10.md)
+* [PDF acumulado Sprints 1–10 — Release Candidate](docs/Grupo26_WarehouseFlow_Sprint10_RC.pdf)
+* [Repositório oficial no GitHub](https://github.com/thiagodemorais87/WarehouseFlow)
 
 ---
 
@@ -54,7 +58,12 @@ Desenvolver um sistema capaz de gerenciar operações de armazém e utilizar alg
 | Sérgio José de Araújo Júnior        |  01590694 |
 | Thiago de Morais Gonçalves          |  01609695 |
 
-> **Turma:** 8MA - Manha
+> **Turma:** 8MB.
+
+**Responsabilidade desta entrega:** Guilherme Branco Ferrario — Documentação
+e Testes. Os PDFs anteriores registram as atividades como “Pessoa 5 —
+Integração, Testes e Documentação”, mas não identificam nominalmente as
+Pessoas 1 a 4; não atribuímos esses papéis aos demais integrantes sem fonte.
 
 ---
 
@@ -140,7 +149,7 @@ Documentação completa: [docs/optimization.md](docs/optimization.md).
 * HTML
 * CSS
 * Jinja2
-* Bootstrap
+* JavaScript
 
 ### Testes
 
@@ -156,7 +165,8 @@ Documentação completa: [docs/optimization.md](docs/optimization.md).
 * Git
 * GitHub
 
-> O projeto não utilizará JavaScript.
+* JavaScript é utilizado na interface para consumir a API e apoiar login,
+  navegação e formulários.
 
 ---
 
@@ -213,52 +223,48 @@ Documentação completa: [docs/optimization.md](docs/optimization.md).
 
 ### Pedidos
 
-* Cadastro de pedidos;
-* Itens dos pedidos;
-* Status dos pedidos;
-* Prioridade.
+* Criação, consulta, atualização e exclusão de pedidos de entrada/saída;
+* Gerenciamento de itens com quantidade positiva;
+* Status `PENDING`, `PROCESSING`, `COMPLETED` e `CANCELLED`.
 
 ### Tarefas
 
-* Separação;
-* Movimentação;
-* Distribuição;
-* Priorização;
-* Controle de status.
+* Criação e consulta de tarefas `PICKING`, `PUTAWAY` e `REPLENISHMENT`;
+* Atribuição a usuário e atualização de status;
+* OPERADOR limitado às tarefas atribuídas a si.
 
 ### Otimização
 
-* Sugestão de posição;
-* Priorização de tarefas;
-* Sequenciamento de separação;
-* Otimização de deslocamentos.
+* Sequenciamento de picking pelo motor Nearest Neighbor + 2-opt;
+* Otimização por lista de posições ou por pedido OUTBOUND;
+* Histórico, métricas e relatório CSV de otimizações.
+
+### Usuários e relatórios
+
+* Cadastro/consulta/atualização/exclusão de usuários e cargos pela API, com
+  senha armazenada como hash e regras RBAC;
+* Dashboard autenticado, relatórios de pedidos e movimentações de estoque;
+* Exportação CSV dos relatórios. Não há página de administração de usuários.
 
 ---
 
 ## 📊 Status do projeto
 
-**Em andamento — Sprints 02 e 03** (prazo comum **19/09/2026**) · [cronograma oficial completo](docs/cronograma.md)
+**Sprint 10 — Release Candidate (documentação e testes).** O repositório
+contém JWT/RBAC, módulos de produtos/estoque/posições, pedidos e tarefas,
+dashboard, relatórios com CSV e motor de picking NN + 2-opt. A administração
+de usuários está disponível pela API; não há tela de usuários no menu atual.
 
-### Entregas da disciplina (visão rápida)
+Na validação local de 13/11/2026, a API e as páginas foram exercitadas contra
+uma base SQLite descartável. O Pytest concluiu com **101 passed, 2 skipped**.
+O Swagger/OpenAPI respondeu em `/docs` e `/openapi.json`. O Compose foi
+validado estaticamente, mas não iniciado: o daemon Docker não estava
+disponível; portanto a integração real com PostgreSQL e Nginx permanece
+pendente. Evidências e ressalvas: [relatório RC](docs/sprint-10/relatorio_rc_sprint10.md).
 
-* [x] Sprint 01 — Planejamento (05/09/2026)
-* [ ] Sprint 02 — Arquitetura e modelagem (19/09/2026)
-* [ ] Sprint 03 — Estrutura inicial (DB, auth, CRUD, deploy) (19/09/2026)
-* [ ] Sprint 04 — Módulo 1: Produtos e Estoque (26/09/2026)
-* [ ] Sprint 05 — Módulo 2: Pedidos e Tarefas (03/10/2026)
-* [ ] Sprint 06 — Módulo 3: Otimização + Pré-Banca (17/10/2026)
-* [ ] Sprints 07–12 + entrega final 05/12/2026 — ver cronograma
-
-### Situação técnica atual no repositório
-
-* [x] Banco de dados conectado (PostgreSQL + SQLAlchemy)
-* [x] Login funcional JWT (`POST /auth/login` + tela `/login`)
-* [x] Cadastro de usuários via API (`/users`)
-* [x] Controle de perfis com enforcement RBAC nas rotas de escrita
-* [x] CRUD principal API (`/products`, `/stock`, `/locations`, etc.)
-* [x] Deploy local (Docker Compose: db 5433 + API 8000 + frontend 8080)
-* [x] Motor de otimização com métricas (`POST /optimization/route`)
-* [x] Proposta + cronograma oficiais ([docs/proposta.md](docs/proposta.md), [docs/cronograma.md](docs/cronograma.md))
+O cronograma mantém Sprints 11 e 12 planejadas: manuais/code review e
+preparação da versão final, code freeze e ensaio, respectivamente. Consulte o
+[cronograma oficial](docs/cronograma.md).
 
 ---
 
@@ -277,7 +283,7 @@ warehouseflow/
 │   │   ├── security.py      # Hash e tokens
 │   │   ├── database.py      # Engine SQLAlchemy
 │   │   └── main.py          # App FastAPI + páginas Jinja
-│   ├── database/            # schema.sql + seed.sql (único local de SQL)
+│   ├── database/            # schema.sql, seed.sql e migrations SQL
 │   └── optimization/        # Motor puro (NN + 2-opt), sem DB
 ├── frontend/                # Templates Jinja + static (CSS/JS)
 ├── docs/
@@ -304,8 +310,18 @@ warehouseflow/
 
 Pré-requisito: Docker Desktop.
 
+Crie `.env` somente se ainda não existir; consulte `.env.example` e ajuste as
+configurações sem substituir um `.env` já existente.
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+docker compose up --build
+```
+
+Em Linux/macOS:
+
 ```bash
-cp .env.example .env
+[ -f .env ] || cp .env.example .env
 docker compose up --build
 ```
 
@@ -313,7 +329,9 @@ Sobe **PostgreSQL** (5433), **API/otimizador** (8000) e **frontend** via nginx (
 
 * Frontend (UI): http://127.0.0.1:8080/ (redireciona para `/login`)
 * Login / Dashboard / Produtos / Estoque / Posições: http://127.0.0.1:8080/login , `/dashboard`, `/produtos`, `/estoque`, `/posicoes`
-* API / Swagger / otimizador: http://127.0.0.1:8000/docs
+* Backend API: http://127.0.0.1:8000
+* Swagger UI: http://127.0.0.1:8000/docs
+* OpenAPI JSON: http://127.0.0.1:8000/openapi.json
 * Health: http://127.0.0.1:8000/health
 * Postgres (host): `localhost:5433` (user/senha/db: `warehouse` / `warehouse` / `warehouseflow`)
 
@@ -336,13 +354,25 @@ A imagem da API e o endpoint `/health` expõem a versão alinhada à tag/GitHub 
 
 ### Opção B — API no host + banco no Docker
 
-```bash
-cp .env.example .env
+PowerShell:
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 docker compose up -d db
 python -m venv .venv
-# Windows: .venv\Scripts\activate
-# Linux/macOS: source .venv/bin/activate
-pip install -r requirements.txt
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --app-dir backend --reload
+```
+
+Linux/macOS:
+
+```bash
+[ -f .env ] || cp .env.example .env
+docker compose up -d db
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
 uvicorn app.main:app --app-dir backend --reload
 ```
 
@@ -351,8 +381,12 @@ No `.env`, use `localhost:5433` (não `db`) na `DATABASE_URL`. A UI fica em http
 ### Testes do motor
 
 ```bash
-pytest -q
+python -m pytest -q
 ```
+
+Os testes usam a configuração definida em `pytest.ini`; os testes de integração
+não exigem que o Docker esteja ativo. Em PowerShell, ative
+`.venv\Scripts\Activate.ps1` antes de executar.
 
 ### Endpoints principais
 
@@ -369,7 +403,9 @@ pytest -q
 
 Documentação do motor: [docs/optimization.md](docs/optimization.md) · [backend/optimization/README.md](backend/optimization/README.md)
 
-> **Auth:** login JWT, hash bcrypt e enforcement de perfis serão entregues em `feature/auth-users`.
+Contrato de autenticação, pedidos, tarefas, usuários, relatórios e otimização:
+[docs/Api-doc.md](docs/Api-doc.md). A API de usuários existe; uma tela de
+administração de usuários não está implementada no menu atual.
 
 ---
 
@@ -432,6 +468,8 @@ Incluindo:
 * [Proposta oficial](docs/proposta.md);
 * [Cronograma com sprints semanais e datas](docs/cronograma.md);
 * [Motor de otimização](docs/optimization.md);
+* [Referência da API](docs/Api-doc.md) e Swagger em `http://127.0.0.1:8000/docs`;
+* [Relatório da Sprint 10 — Release Candidate](docs/sprint-10/relatorio_rc_sprint10.md);
 * Requisitos e PDF da Sprint 01;
 * Banco de dados;
 * Documentação técnica.
