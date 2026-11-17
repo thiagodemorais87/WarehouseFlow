@@ -1,3 +1,10 @@
+"""CRUD legado de resultados por tarefa (`optimization_results`).
+
+DEPRECATED: não faz parte do pipeline do motor NN + 2-opt.
+Caminho oficial: ``/optimization/*`` + tabela ``optimization_runs``.
+Rotas mantidas por compatibilidade; não remover nesta sprint.
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -9,7 +16,7 @@ from ..models.user import UserRole
 
 router = APIRouter(
     prefix="/optimization-results",
-    tags=["Optimization"],
+    tags=["Optimization (deprecated)"],
     dependencies=[Depends(get_current_user)],
 )
 

@@ -32,8 +32,8 @@ O banco foi projetado no **PostgreSQL** para suportar a gestão operacional de a
 7. **`orders`**: Pedidos de operação de entrada (`INBOUND`) ou saída (`OUTBOUND`).
 8. **`order_items`**: Itens solicitados em cada pedido.
 9. **`tasks`**: Tarefas operacionais vinculadas aos pedidos (ex: `PICKING`, `PUTAWAY`, `REPLENISHMENT`).
-10. **`optimization_results`**: Resultados gerados pelo motor de otimização (rotas sugeridas em formato JSON, posições recomendadas e pontuação de eficiência).
-11. **`optimization_runs`**: Histórico de cada execução do motor (NN + 2-opt), com rotas intermediárias, métricas de distância/redução e vínculo lógico a usuário/pedido.
+10. **`optimization_results`** (**legado / deprecated**): CRUD de resultados ligados a `task_id` (JSON/score). **Não** é alimentado pelo pipeline NN + 2-opt. Preferir `optimization_runs`.
+11. **`optimization_runs`** (**oficial — motor**): Histórico de cada execução do motor (NN + 2-opt), com rotas intermediárias, métricas de distância/redução e vínculo lógico a usuário/pedido. Gravado pelos POSTs em `/optimization/*`.
 
 ---
 
@@ -119,7 +119,10 @@ O banco foi projetado no **PostgreSQL** para suportar a gestão operacional de a
 | `assigned_user_id` | INTEGER | FK -> users(id) | Operador atribuído |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Data de criação |
 
-### 10. `optimization_results`
+### 10. `optimization_results` (legado / deprecated)
+
+CRUD por `task_id` via `/optimization-results`. **Não** recebe gravações do motor NN + 2-opt. Mantida por compatibilidade; caminho oficial é `optimization_runs`.
+
 | Coluna | Tipo | Restrições | Descrição |
 | :--- | :--- | :--- | :--- |
 | `id` | SERIAL | PK | Identificador único |
@@ -129,8 +132,9 @@ O banco foi projetado no **PostgreSQL** para suportar a gestão operacional de a
 | `score` | DECIMAL(10,4) | NULL | Métrica de eficiência / custo da solução |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Data de geração do cálculo |
 
-### 11. `optimization_runs`
-Histórico do motor de rota (persistência best-effort após `POST /optimization/route` e `/route/by-order`).  
+### 11. `optimization_runs` (oficial — motor)
+
+Histórico oficial do motor de rota (persistência best-effort após `POST /optimization/route` e `/route/by-order`).  
 Referências a `users` (`user_id`) e `orders` (`order_id`) são **lógicas** (sem FK CASCADE no DDL atual), alinhadas ao model SQLAlchemy.
 
 | Coluna | Tipo | Restrições | Descrição |
