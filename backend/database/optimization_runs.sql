@@ -1,6 +1,6 @@
--- Histórico das execuções do motor de otimização (Sprint 07 / Thiago).
--- Artefato dedicado: não altera tabelas de outras pessoas.
--- Aplicar no Postgres após o schema base, ou deixar o ORM criar via Base.metadata.create_all.
+-- Histórico das execuções do motor de otimização (Sprint 07 / Thiago; alinhado Sprint 10 RC).
+-- Artefato dedicado + mesmo DDL incluído em schema.sql.
+-- Init Docker: 03-optimization_runs.sql (IF NOT EXISTS). ORM também cria via Base.metadata.create_all.
 
 CREATE TABLE IF NOT EXISTS optimization_runs (
     id SERIAL PRIMARY KEY,

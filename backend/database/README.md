@@ -8,9 +8,11 @@ Esta pasta contém a modelagem, scripts DDL/DML e instruções de execução par
 
 ```text
 backend/database/
-├── schema.sql    # Script DDL: Criação das tabelas, chaves e relacionamentos
-├── seed.sql      # Script DML: Dados iniciais de teste (massa de dados)
-└── README.md     # Documentação do modelo de dados e instruções
+├── schema.sql              # Script DDL: tabelas, chaves e relacionamentos (inclui optimization_runs)
+├── seed.sql                # Script DML: dados iniciais de teste
+├── optimization_runs.sql   # DDL dedicado do histórico do motor (também no schema + init Docker 03)
+├── migrations/             # Scripts auxiliares de constraints
+└── README.md               # Documentação do modelo de dados e instruções
 ```
 
 ---
@@ -31,6 +33,7 @@ O banco foi projetado no **PostgreSQL** para suportar a gestão operacional de a
 8. **`order_items`**: Itens solicitados em cada pedido.
 9. **`tasks`**: Tarefas operacionais vinculadas aos pedidos (ex: `PICKING`, `PUTAWAY`, `REPLENISHMENT`).
 10. **`optimization_results`**: Resultados gerados pelo motor de otimização (rotas sugeridas em formato JSON, posições recomendadas e pontuação de eficiência).
+11. **`optimization_runs`**: Histórico de cada execução do motor (NN + 2-opt), com rotas intermediárias, métricas de distância/redução e vínculo lógico a usuário/pedido.
 
 ---
 
@@ -126,6 +129,34 @@ O banco foi projetado no **PostgreSQL** para suportar a gestão operacional de a
 | `score` | DECIMAL(10,4) | NULL | Métrica de eficiência / custo da solução |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Data de geração do cálculo |
 
+### 11. `optimization_runs`
+Histórico do motor de rota (persistência best-effort após `POST /optimization/route` e `/route/by-order`).  
+Referências a `users` (`user_id`) e `orders` (`order_id`) são **lógicas** (sem FK CASCADE no DDL atual), alinhadas ao model SQLAlchemy.
+
+| Coluna | Tipo | Restrições | Descrição |
+| :--- | :--- | :--- | :--- |
+| `id` | SERIAL | PK | Identificador único |
+| `user_id` | INTEGER | NOT NULL | Usuário que disparou a otimização |
+| `user_email` | VARCHAR(100) | NOT NULL | E-mail do usuário no momento da execução |
+| `executed_at` | TIMESTAMP | NOT NULL DEFAULT CURRENT_TIMESTAMP | Data/hora da execução |
+| `source` | VARCHAR(20) | NOT NULL | Origem (`route` ou `by-order`) |
+| `order_id` | INTEGER | NULL | Pedido associado (quando `by-order`) |
+| `original_route` | JSONB | NOT NULL | Rota original (antes do algoritmo) |
+| `nearest_neighbor_route` | JSONB | NOT NULL | Rota após Nearest Neighbor |
+| `two_opt_route` | JSONB | NOT NULL | Rota final após 2-opt |
+| `distance_before` | DOUBLE PRECISION | NOT NULL | Distância da rota original |
+| `nearest_neighbor_distance` | DOUBLE PRECISION | NOT NULL | Distância após NN |
+| `two_opt_distance` | DOUBLE PRECISION | NOT NULL | Distância após 2-opt |
+| `distance_after` | DOUBLE PRECISION | NOT NULL | Distância final (= `two_opt_distance`) |
+| `distance_reduction` | DOUBLE PRECISION | NOT NULL | Ganho absoluto de distância |
+| `reduction_percent` | DOUBLE PRECISION | NOT NULL | Ganho percentual |
+| `execution_time_ms` | DOUBLE PRECISION | NOT NULL | Tempo de execução do motor (ms) |
+| `locations_count` | INTEGER | NOT NULL | Quantidade de posições na rota |
+
+Índices: `ix_optimization_runs_id`, `ix_optimization_runs_executed_at` (DESC).
+
+DDL dedicado: [`optimization_runs.sql`](optimization_runs.sql) (também embutido em `schema.sql` e montado no Compose como `03-optimization_runs.sql`).
+
 ---
 
 ## Como Executar o Banco de Dados
@@ -149,10 +180,16 @@ createdb -U postgres warehouseflow
 *(Caso peça senha, informe a senha cadastrada na instalação do seu PostgreSQL).*
 
 ### 2. Executar o DDL (`schema.sql`)
-Estando na raiz do projeto, rode o script para criar a estrutura completa de tabelas:
+Estando na raiz do projeto, rode o script para criar a estrutura completa de tabelas (já inclui `optimization_runs`):
 
 ```bash
 psql -U postgres -d warehouseflow -f backend/database/schema.sql
+```
+
+Opcional (idempotente com `IF NOT EXISTS`):
+
+```bash
+psql -U postgres -d warehouseflow -f backend/database/optimization_runs.sql
 ```
 
 ### 3. Popular com a Massa de Testes (`seed.sql`)

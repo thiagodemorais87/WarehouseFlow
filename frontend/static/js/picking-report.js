@@ -29,60 +29,69 @@ document.addEventListener("DOMContentLoaded", () => {
         return Number.isFinite(number) ? numberFormat.format(number) : "—";
     }
 
+    const REPORT_TIME_ZONE = "America/Sao_Paulo";
 
-const REPORT_TIME_ZONE = "America/Sao_Paulo";
+    function parseExecutionDate(value) {
+        if (!value) return null;
 
-function parseExecutionDate(value) {
-    if (!value) return null;
+        let dateString = String(value).trim();
 
-    let dateString = String(value).trim();
+        if (!/(Z|[+-]\d{2}:\d{2})$/i.test(dateString)) {
+            dateString += "Z";
+        }
 
-    if (!/(Z|[+-]\d{2}:\d{2})$/i.test(dateString)) {
-        dateString += "Z";
+        const date = new Date(dateString);
+
+        return Number.isNaN(date.getTime()) ? null : date;
     }
 
-    const date = new Date(dateString);
+    function formatDate(value) {
+        const date = parseExecutionDate(value);
 
-    return Number.isNaN(date.getTime()) ? null : date;
-}
+        if (!date) return "—";
 
-function formatDate(value) {
-    const date = parseExecutionDate(value);
+        return date.toLocaleString("pt-BR", {
+            timeZone: REPORT_TIME_ZONE,
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+    }
 
-    if (!date) return "—";
+    function getDateKey(value) {
+        const date = parseExecutionDate(value);
 
-    return date.toLocaleString("pt-BR", {
-        timeZone: REPORT_TIME_ZONE,
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-    });
-}
+        if (!date) return "";
 
-function getDateKey(value) {
-    const date = parseExecutionDate(value);
+        const parts = new Intl.DateTimeFormat("en-US", {
+            timeZone: REPORT_TIME_ZONE,
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit"
+        }).formatToParts(date);
 
-    if (!date) return "";
+        const values = Object.fromEntries(
+            parts.map(part => [part.type, part.value])
+        );
 
-    const parts = new Intl.DateTimeFormat("en-US", {
-        timeZone: REPORT_TIME_ZONE,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit"
-    }).formatToParts(date);
-
-    const values = Object.fromEntries(
-        parts.map(part => [part.type, part.value])
-    );
-
-    return `${values.year}-${values.month}-${values.day}`;
-}
-
+        return `${values.year}-${values.month}-${values.day}`;
+    }
 
     function setMessage(text) {
         elements.message.textContent = text;
+    }
+
+    function isDateRangeInvalid() {
+        const startDate = elements.startDate.value;
+        const endDate = elements.endDate.value;
+
+        return Boolean(
+            startDate &&
+            endDate &&
+            startDate > endDate
+        );
     }
 
     async function requestReport(endpoint, responseType = "json") {
@@ -154,9 +163,19 @@ function getDateKey(value) {
     }
 
     function renderTable() {
-        const filteredRuns = getFilteredRuns();
-
         elements.tableBody.replaceChildren();
+
+        if (isDateRangeInvalid()) {
+            elements.resultsCount.textContent = "0 registros";
+
+            setMessage(
+                "A data inicial não pode ser posterior à data final."
+            );
+
+            return;
+        }
+
+        const filteredRuns = getFilteredRuns();
 
         elements.resultsCount.textContent =
             `${filteredRuns.length} registro${filteredRuns.length === 1 ? "" : "s"}`;

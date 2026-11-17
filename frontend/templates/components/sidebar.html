@@ -33,6 +33,15 @@
         </a>
 
         <a
+            href="/relatorios/movimentacoes"
+            class="sidebar-link {% if active_page == 'stock_movements_report' %}active{% endif %}"
+            data-roles="ADMIN,GESTOR"
+            hidden
+        >
+            Movimentações
+        </a>
+
+        <a
             href="/posicoes"
             class="sidebar-link {% if active_page == 'locations' %}active{% endif %}"
         >
@@ -67,8 +76,14 @@
             Relatório de Picking
         </a>
 
-        {# A página de usuários ainda não foi implementada.
-            Quando estiver disponível, manter o acesso exclusivo ao ADMIN. #}
+        <a
+            href="/usuarios"
+            class="sidebar-link {% if active_page == 'users' %}active{% endif %}"
+            data-roles="ADMIN"
+            hidden
+        >
+            Usuários
+        </a>
 
     </nav>
 

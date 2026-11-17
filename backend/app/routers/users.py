@@ -129,11 +129,24 @@ def update_user(
 def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
-    _: models.User = _admin,
+    current_user: models.User = _admin,
 ):
-    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    db_user = db.query(models.User).filter(
+        models.User.id == user_id
+    ).first()
+
     if not db_user:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+        raise HTTPException(
+            status_code=404,
+            detail="Usuário não encontrado."
+        )
+
+    # Impedir que o administrador exclua a própria conta.
+    if db_user.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não pode excluir sua própria conta."
+        )
 
     db.delete(db_user)
     db.commit()
