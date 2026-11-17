@@ -4,8 +4,10 @@
 **Prefixo:** `/optimization`  
 **Auth:** JWT em todos os endpoints abaixo  
 
-Histórico é gravado **implicitamente** em `POST /optimization/route` e `POST /optimization/route/by-order`.  
+Histórico **oficial** é gravado **implicitamente** em `POST /optimization/route` e `POST /optimization/route/by-order` (tabela `optimization_runs`).  
 Não existe `POST /optimization/history`.
+
+**Legado (deprecated):** `/optimization-results` + tabela `optimization_results` (CRUD por `task_id`) — **não** faz parte deste contrato nem do pipeline do motor. Preferir sempre `/optimization/*`.
 
 ---
 
@@ -148,6 +150,8 @@ Lista `{id, x, y}` na ordem dos itens. `404` se o provider falhar (mesmo critér
 
 ## 8. DDL do histórico
 
-Tabela `optimization_runs`: ver [`backend/database/optimization_runs.sql`](../backend/database/optimization_runs.sql).
+Tabela **oficial** `optimization_runs`: ver [`backend/database/optimization_runs.sql`](../backend/database/optimization_runs.sql).
 
 Também faz parte do DDL oficial em [`backend/database/schema.sql`](../backend/database/schema.sql) e do init Docker (`03-optimization_runs.sql`).
+
+Tabela **legado (deprecated)** `optimization_results`: permanece no schema por compatibilidade; não é escrita pelo motor NN + 2-opt.

@@ -12,7 +12,18 @@ Formalmente: partindo de um ponto `START`, visitar cada posição exatamente uma
 
 O sistema gerencia produtos, estoque, pedidos e posições. O motor **não substitui** o CRUD: ele consome localizações (coordenadas `x`, `y`) e devolve uma rota sugerida com métricas.
 
-Nesta versão, o motor é **desacoplado** do PostgreSQL. A API aceita localizações no body; a integração `order_id → posições` fica para sprints futuras.
+O núcleo em `backend/optimization/` é **puro Python** (sem I/O). A API FastAPI:
+
+- aceita localizações explícitas em `POST /optimization/route`;
+- resolve `order_id → posições` em `POST /optimization/route/by-order` via `SqlAlchemyOrderRouteProvider` (pedido OUTBOUND → stock → location; `(x,y)` derivados de aisle/rack/shelf/code);
+- grava histórico best-effort em `optimization_runs`.
+
+### Oficial vs legado (persistência / API)
+
+| Caminho | Status | Uso |
+|---------|--------|-----|
+| `/optimization/*` + tabela `optimization_runs` | **Oficial** | Pipeline NN + 2-opt, UI `/otimizacao`, dashboard e relatórios |
+| `/optimization-results` + tabela `optimization_results` | **Legado (deprecated)** | CRUD por `task_id`; **não** alimentado pelo motor NN + 2-opt. Mantido por compatibilidade |
 
 ## 3. Objetivo
 
@@ -274,26 +285,22 @@ curl -s -X POST http://127.0.0.1:8000/optimization/route \
 
 ---
 
-## 16. Integração com pedidos (motor — sem alterar o banco)
-
-Sprint 06 no **módulo do motor** (schema/seed ficam com a pessoa do banco):
+## 16. Integração com pedidos
 
 1. `SqlAlchemyOrderRouteProvider.get_pick_locations(order_id)`:
    - pedido `OUTBOUND` → `order_items` → `stock` → `location` (`code`, aisle, rack, shelf);
-   - `(x, y)` derivados deterministicamente via `coords_from_warehouse_location` (não exige colunas novas);
+   - `(x, y)` derivados deterministicamente via `coords_from_warehouse_location` (não exige colunas `x`/`y` no DDL);
    - ordem das posições = ordem dos itens; deduplicar por `location.code`.
 2. DI em `optimization_engine.py` injeta o provider SQLAlchemy via `get_db`.
-3. Frontend atual continua em `POST /optimization/route` (coordenadas no body); `by-order` devolve o mesmo `RouteOptimizeResponse`.
+3. UI `/otimizacao` usa `POST /optimization/route` (manual) e `POST /optimization/route/by-order` (pedido); ambos devolvem o mesmo `RouteOptimizeResponse` e gravam em `optimization_runs`.
 
-O núcleo em `backend/optimization/` permanece inalterado. Alterações de DDL/`seed` não fazem parte deste módulo.
+O núcleo em `backend/optimization/` permanece sem I/O. `MemoryOrderRouteProvider` existe só para testes.
 
 ---
 
-## 17. Contrato `order_id` (preparação Sprint 06)
+## 17. Contrato `order_id` (integração atual)
 
-Documento de ponte da Sprint 05: permite testar o fluxo pedido → posições → rota **sem** depender ainda de `x`/`y` no PostgreSQL.
-
-### 17.1 Fluxo alvo (S06) vs ponte atual (S05)
+### 17.1 Fluxo
 
 ```text
 Pedido OUTBOUND
@@ -303,15 +310,16 @@ Pedido OUTBOUND
         → list[Location]
           → optimize_route (NN + 2-opt)
             → RouteOptimizeResponse
+              → optimization_runs (best-effort)
 ```
 
-| Etapa | Sprint 05 | Sprint 06 (atual) |
-|-------|-----------|-------------------|
-| Fonte das posições | `MemoryOrderRouteProvider` (catálogo acadêmico) | `SqlAlchemyOrderRouteProvider` + Postgres |
-| Coordenadas | Fixture em memória (`order_id` 1 e 2) | Derivadas de aisle/rack/shelf/code (sem DDL) |
-| Tipo de pedido | Implícito no catálogo | Apenas **OUTBOUND** (picking); INBOUND fora do escopo |
+| Etapa | Produção (API) | Testes |
+|-------|----------------|--------|
+| Fonte das posições | `SqlAlchemyOrderRouteProvider` + Postgres | `MemoryOrderRouteProvider` (catálogo acadêmico) |
+| Coordenadas | Derivadas de aisle/rack/shelf/code | Fixture em memória (`order_id` 1 e 2) |
+| Tipo de pedido | Apenas **OUTBOUND** (picking) | Implícito no catálogo |
 
-Catálogo acadêmico default:
+Catálogo acadêmico (memória / evidence):
 
 | `order_id` | Posições (ordem original) |
 |------------|---------------------------|
@@ -330,7 +338,7 @@ Authorization: Bearer <access_token>
 
 | Campo | Tipo | Obrigatório | Descrição |
 |-------|------|-------------|-----------|
-| `order_id` | `integer` (≥ 1) | sim | ID do pedido no catálogo / banco |
+| `order_id` | `integer` (≥ 1) | sim | ID do pedido no banco |
 | `start` | `object` | não | Mesmo formato de `/route`; default START (0,0) |
 
 **Response:** idêntico a `RouteOptimizeResponse` (seção 15.3).
@@ -339,7 +347,7 @@ Authorization: Bearer <access_token>
 
 | HTTP | Quando |
 |------|--------|
-| `404` | Pedido ausente no provider (`Pedido {id} não encontrado no catálogo de picking`) |
+| `404` | Pedido inexistente, não OUTBOUND ou sem posições de picking |
 | `400` | IDs de posição duplicados (ou payload inválido) |
 | `401` | Sem JWT válido |
 
@@ -358,146 +366,24 @@ curl -s -X POST http://127.0.0.1:8000/optimization/route/by-order \
 
 ### 17.3 `GET /optimization/orders/{order_id}/pick-locations`
 
-Helper para o front / integração S06: lista as posições **antes** de otimizar.
+Helper: lista as posições **antes** de otimizar.
 
 ```http
 GET /optimization/orders/1/pick-locations
 Authorization: Bearer <access_token>
 ```
 
-**Response (200)**
-
-```json
-[
-  {"id": "FAR1", "x": 10.0, "y": 0.0},
-  {"id": "NEAR1", "x": 1.0, "y": 0.0},
-  {"id": "FAR2", "x": 11.0, "y": 0.0},
-  {"id": "NEAR2", "x": 2.0, "y": 0.0}
-]
-```
-
-**404** se o pedido não existir no catálogo.
+**Response (200)** — array de `{id, x, y}` na ordem dos itens. **404** se o provider falhar.
 
 O front pode: (1) chamar este GET e depois `POST /optimization/route`, ou (2) chamar direto `POST /optimization/route/by-order`.
 
 ### 17.4 Regras de negócio (motor / picking)
 
-1. Escopo de otimização: pedidos **OUTBOUND** (picking). INBOUND / putaway ficam fora deste contrato.
-2. Ordem original da rota = ordem dos itens / posições retornadas pelo provider.
+1. Escopo: pedidos **OUTBOUND** (picking). INBOUND / putaway fora deste contrato.
+2. Ordem original da rota = ordem dos itens / posições do provider.
 3. Cada posição aparece uma vez (`id` único); o motor rejeita duplicados.
 4. Métricas nunca são inventadas — sempre calculadas pelo pipeline NN + 2-opt.
-5. Pedido real no banco → rota: `SqlAlchemyOrderRouteProvider` + grade derivada de aisle/rack/shelf (Sprint 06; sem DDL).
-
-Na Sprint 05 o by-order usa `MemoryOrderRouteProvider`. Para a Sprint 06:
-
-1. Adicionar colunas `x`, `y` em `locations` (migration alinhada ao CRUD de posições).
-2. Implementar `SqlAlchemyOrderRouteProvider.get_pick_locations(order_id)`:
-   - pedido `OUTBOUND` → `order_items` → produto → `stock` → `location` `(code, x, y)`;
-   - ordem das posições = ordem dos itens; deduplicar por `location.code` se o mesmo produto aparecer mais de uma vez.
-3. Substituir o provider injetado em `optimization_engine.py` (mesmo service `optimize_from_order_id`).
-4. Frontend chama `POST /optimization/route/by-order` e exibe rotas/métricas conforme a seção 15.
-
-O núcleo em `backend/optimization/` permanece inalterado.
-
----
-
-## 17. Contrato `order_id` (preparação Sprint 06)
-
-Documento de ponte da Sprint 05: permite testar o fluxo pedido → posições → rota **sem** depender ainda de `x`/`y` no PostgreSQL.
-
-### 17.1 Fluxo alvo (S06) vs ponte atual (S05)
-
-```text
-Pedido OUTBOUND
-  → order_items (produto + quantidade)
-    → stock / location (code, x, y)
-      → list[Location]
-        → optimize_route (NN + 2-opt)
-          → RouteOptimizeResponse
-```
-
-| Etapa | Sprint 05 | Sprint 06 |
-|-------|-----------|-----------|
-| Fonte das posições | `MemoryOrderRouteProvider` (catálogo acadêmico) | `SqlAlchemyOrderRouteProvider` + Postgres |
-| Coordenadas | Fixture em memória (`order_id` 1 e 2) | Colunas `locations.x` / `locations.y` |
-| Tipo de pedido | Implícito no catálogo | Apenas **OUTBOUND** (picking); INBOUND fora do escopo |
-
-Catálogo acadêmico default:
-
-| `order_id` | Posições (ordem original) |
-|------------|---------------------------|
-| `1` | FAR1(10,0), NEAR1(1,0), FAR2(11,0), NEAR2(2,0) |
-| `2` | A01(1,1), C03(5,5), B02(2,2), D04(8,3) |
-
-### 17.2 `POST /optimization/route/by-order`
-
-```http
-POST /optimization/route/by-order
-Content-Type: application/json
-Authorization: Bearer <access_token>
-```
-
-**Request**
-
-| Campo | Tipo | Obrigatório | Descrição |
-|-------|------|-------------|-----------|
-| `order_id` | `integer` (≥ 1) | sim | ID do pedido no catálogo / banco |
-| `start` | `object` | não | Mesmo formato de `/route`; default START (0,0) |
-
-**Response:** idêntico a `RouteOptimizeResponse` (seção 15.3).
-
-**Erros**
-
-| HTTP | Quando |
-|------|--------|
-| `404` | Pedido ausente no provider (`Pedido {id} não encontrado no catálogo de picking`) |
-| `400` | IDs de posição duplicados (ou payload inválido) |
-| `401` | Sem JWT válido |
-
-**Exemplo**
-
-```json
-{ "order_id": 1, "start": { "id": "START", "x": 0, "y": 0 } }
-```
-
-```bash
-curl -s -X POST http://127.0.0.1:8000/optimization/route/by-order \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d "{\"order_id\":1}"
-```
-
-### 17.3 `GET /optimization/orders/{order_id}/pick-locations`
-
-Helper para o front / integração S06: lista as posições **antes** de otimizar.
-
-```http
-GET /optimization/orders/1/pick-locations
-Authorization: Bearer <access_token>
-```
-
-**Response (200)**
-
-```json
-[
-  {"id": "FAR1", "x": 10.0, "y": 0.0},
-  {"id": "NEAR1", "x": 1.0, "y": 0.0},
-  {"id": "FAR2", "x": 11.0, "y": 0.0},
-  {"id": "NEAR2", "x": 2.0, "y": 0.0}
-]
-```
-
-**404** se o pedido não existir no catálogo.
-
-O front pode: (1) chamar este GET e depois `POST /optimization/route`, ou (2) chamar direto `POST /optimization/route/by-order`.
-
-### 17.4 Regras de negócio (motor / picking)
-
-1. Escopo de otimização: pedidos **OUTBOUND** (picking). INBOUND / putaway ficam fora deste contrato.
-2. Ordem original da rota = ordem dos itens / posições retornadas pelo provider.
-3. Cada posição aparece uma vez (`id` único); o motor rejeita duplicados.
-4. Métricas nunca são inventadas — sempre calculadas pelo pipeline NN + 2-opt.
-5. Na S05 o catálogo é em memória; evidências de “pedido real no banco → rota” exigem S06 + `x`/`y` em `locations`.
+5. Histórico oficial: `optimization_runs`. CRUD `/optimization-results` é legado deprecated.
 
 ### 17.5 Código de referência
 
@@ -505,9 +391,10 @@ O front pode: (1) chamar este GET e depois `POST /optimization/route`, ou (2) ch
 |------|---------|
 | Protocolo | `backend/app/providers/base.py` |
 | Provider memória (testes) | `backend/app/providers/memory.py` |
-| Provider Postgres (S06) | `backend/app/providers/sqlalchemy.py` |
+| Provider Postgres | `backend/app/providers/sqlalchemy.py` |
 | Derivação de coordenadas | `backend/app/providers/coords.py` |
 | Service | `backend/app/services/optimization_service.py` (`optimize_from_order_id`) |
-| Router | `backend/app/routers/optimization_engine.py` |
+| Router oficial | `backend/app/routers/optimization_engine.py` |
+| Router legado (deprecated) | `backend/app/routers/optimization.py` (`/optimization-results`) |
 | Schemas | `RouteOptimizeByOrderRequest`, `PickLocationResponse` |
 | Testes | `tests/test_memory_provider.py`, `tests/test_sqlalchemy_provider.py`, `tests/test_api_optimization.py`, `tests/test_coords.py` |

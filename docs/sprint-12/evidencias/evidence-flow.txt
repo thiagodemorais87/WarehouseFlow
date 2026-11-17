@@ -1,0 +1,30 @@
+﻿python : C:\Users\RogÚrio\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-pa
+ckages\Python313\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with 
+`starlette.testclient` is deprecated; install `httpx2` instead.
+No C:\Users\Rogério\AppData\Local\Temp\ps-script-edc9aca0-4417-47f7-8442-c1a1b7525fb8.ps1:103 caractere:518
++ ... ONPATH = "backend"; python -m optimization.evidence_flow 2>&1 | Out-F ...
++                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\RogÚri...ttpx2` instead.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  from starlette.testclient import TestClient as TestClient  # noqa
+=== 1) OtimizaþÒo POST /optimization/route ===
+  distance_before=38.0
+  distance_after=11.0
+  distance_reduction=27.0
+  reduction_percent=71.05263157894737
+  two_opt_route=START > NEAR1 > NEAR2 > FAR1 > FAR2
+=== 2) Summary GET /optimization/reports/summary ===
+  runs_count=1
+  average_distance_reduction=27.0
+  average_reduction_percent=71.05263157894737
+=== 3) Picking GET /optimization/reports/picking ===
+  runs=1 source=route user=evidencia@warehouseflow.com
+=== 4) CSV GET /optimization/reports/picking.csv ===
+  content-type=text/csv; charset=utf-8
+  linhas=2
+
+EVID╩NCIA OK
+  otimizaþÒo: reduction_percent=71.05263157894737
+  reduþÒo mÚdia (summary): 71.05263157894737% em 1 run(s)
+  picking + CSV: ok
