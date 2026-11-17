@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -31,6 +32,8 @@ from ..services.optimization_service import (
     optimize_from_order_id,
     optimize_from_request,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/optimization", tags=["optimization"])
 
@@ -71,6 +74,11 @@ class OptimizationRunRecorder:
             self.db.commit()
         except Exception:
             self.db.rollback()
+            logger.exception(
+                "Falha ao gravar optimization_runs (source=%s order_id=%s)",
+                source,
+                order_id,
+            )
 
 
 def get_run_recorder(db: Session = Depends(get_db)) -> OptimizationRunRecorder:

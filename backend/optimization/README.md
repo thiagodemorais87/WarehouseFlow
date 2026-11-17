@@ -76,10 +76,13 @@ A API FastAPI adapta JSON → `Location` e chama `optimize_route`:
 Coordenadas `(x, y)` são derivadas de aisle/rack/shelf/code.  
 `MemoryOrderRouteProvider` permanece para testes e overrides (pedido sem posições → `KeyError` / HTTP 404).
 
-Histórico: cada otimização bem-sucedida tenta gravar em `optimization_runs`. Falha de persistência **não** quebra o POST (ainda retorna 200).
+Histórico **oficial**: cada otimização bem-sucedida tenta gravar em `optimization_runs`. Falha de persistência **não** quebra o POST (ainda retorna 200; o erro é logado).
+
+A tabela/`/optimization-results` é **legado (deprecated)** — CRUD por `task_id`, fora do pipeline NN + 2-opt. Não remover nesta sprint; não usar na UI do motor.
 
 Contrato estável para o frontend: [`docs/contrato_api_otimizacao.md`](../../docs/contrato_api_otimizacao.md).  
-Detalhes técnicos: [`docs/optimization.md`](../../docs/optimization.md).
+Detalhes técnicos: [`docs/optimization.md`](../../docs/optimization.md).  
+Manual técnico (seção motor): [`docs/manual-tecnico.md`](../../docs/manual-tecnico.md).
 
 ### DDL do histórico
 
