@@ -30,29 +30,42 @@
         </span>
     </div>
 
-    <!-- Seleção do modo de otimização -->
+    <!-- Seleção do modo (lote paralelo = link server-side, sem JS de cálculo) -->
     <div class="optimization-mode-selector">
-        <button
-            type="button"
-            class="optimization-mode-button active"
+        <a
+            href="/otimizacao?mode=manual"
+            class="optimization-mode-button{% if mode == 'manual' or not mode %} active{% endif %}"
             id="manualModeButton"
-            aria-pressed="true"
+            {% if mode == 'manual' or not mode %}aria-current="page"{% endif %}
         >
             Otimização manual
-        </button>
+        </a>
 
-        <button
-            type="button"
-            class="optimization-mode-button"
+        <a
+            href="/otimizacao?mode=order"
+            class="optimization-mode-button{% if mode == 'order' %} active{% endif %}"
             id="orderModeButton"
-            aria-pressed="false"
+            {% if mode == 'order' %}aria-current="page"{% endif %}
         >
             Otimização por pedido
-        </button>
+        </a>
+
+        <a
+            href="/otimizacao?mode=batch"
+            class="optimization-mode-button{% if mode == 'batch' %} active{% endif %}"
+            id="batchModeButton"
+            {% if mode == 'batch' %}aria-current="page"{% endif %}
+        >
+            Lote paralelo
+        </a>
     </div>
 
     <!-- Otimização manual -->
-    <div class="optimization-card" id="manualOptimizationCard">
+    <div
+        class="optimization-card"
+        id="manualOptimizationCard"
+        {% if mode == 'order' or mode == 'batch' %}hidden{% endif %}
+    >
 
         <div class="optimization-card-header">
             <div>
@@ -156,7 +169,7 @@
     <div
         class="optimization-card"
         id="orderOptimizationCard"
-        hidden
+        {% if mode != 'order' %}hidden{% endif %}
     >
 
         <div class="optimization-card-header">
@@ -218,6 +231,171 @@
         </form>
 
     </div>
+
+    <!-- Lote paralelo: POST server-side (Python/C) — sem JS de cálculo -->
+    <div
+        class="optimization-card"
+        id="batchOptimizationCard"
+        {% if mode != 'batch' %}hidden{% endif %}
+    >
+        <div class="optimization-card-header">
+            <div>
+                <h2>Lote paralelo</h2>
+                <p>
+                    O cálculo roda no servidor (Python + C via Cython quando compilado).
+                    Compare T(1), T(p), S(p) e E(p). JavaScript não executa este lote.
+                </p>
+            </div>
+        </div>
+
+        <form
+            id="batchOptimizationForm"
+            method="post"
+            action="/otimizacao/lote"
+        >
+            <div class="optimization-section">
+                <div class="section-title">
+                    <h3>Pedidos e workers</h3>
+                    <p>
+                        Informe IDs de pedidos OUTBOUND separados por vírgula.
+                        Para a demo de speedup, use repeats ≥ 2.
+                    </p>
+                </div>
+
+                <div class="start-location-grid">
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="batchOrderIds">IDs dos pedidos</label>
+                        <input
+                            type="text"
+                            id="batchOrderIds"
+                            name="order_ids"
+                            placeholder="Ex.: 1, 2, 3, 4"
+                            value="{{ batch_form.order_ids if batch_form else '' }}"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="batchWorkers">Workers (p)</label>
+                        <select id="batchWorkers" name="workers">
+                            <option value="1" {% if batch_form and batch_form.workers == '1' %}selected{% endif %}>1</option>
+                            <option value="2" {% if not batch_form or batch_form.workers == '2' %}selected{% endif %}>2</option>
+                            <option value="4" {% if batch_form and batch_form.workers == '4' %}selected{% endif %}>4</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="batchRepeats">Repeats (demo)</label>
+                        <input
+                            type="number"
+                            id="batchRepeats"
+                            name="repeats"
+                            value="{{ batch_form.repeats if batch_form else '4' }}"
+                            min="1"
+                            max="50"
+                            step="1"
+                        >
+                    </div>
+                </div>
+            </div>
+
+            {% if batch_error %}
+            <div class="optimization-message error" role="alert">
+                {{ batch_error }}
+            </div>
+            {% endif %}
+
+            {% if batch_result %}
+            <div class="optimization-message success" role="status">
+                Lote OK — S(p)={{ '%.2f'|format(batch_result.speedup) }}× com {{ batch_result.workers }} workers
+                (servidor Python{% if batch_result.native_compiled %} + Cython/C{% endif %}).
+            </div>
+            {% endif %}
+
+            <div class="optimization-actions">
+                <button
+                    type="submit"
+                    class="button-primary"
+                    id="optimizeBatchButton"
+                >
+                    Otimizar lote
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Métricas de paralelismo (Jinja / servidor) -->
+    {% if batch_result %}
+    <div
+        class="optimization-results parallel-metrics-panel"
+        id="parallelMetricsPanel"
+    >
+        <div class="results-header">
+            <div>
+                <h2>Desempenho do paralelismo</h2>
+                <p>Comparação sequencial × paralelo calculada no backend.</p>
+            </div>
+            <span class="optimization-success" id="nativeCompiledBadge">
+                {% if batch_result.native_compiled %}Motor Cython/C{% else %}Motor Python{% endif %}
+            </span>
+        </div>
+
+        <div class="optimization-metrics">
+            <div class="metric-card">
+                <span>T(1) sequencial</span>
+                <strong>{{ '%.2f'|format(batch_result.sequential_ms) }} ms</strong>
+            </div>
+            <div class="metric-card">
+                <span>T(p) paralelo</span>
+                <strong>{{ '%.2f'|format(batch_result.parallel_ms) }} ms</strong>
+            </div>
+            <div class="metric-card">
+                <span>S(p) speedup</span>
+                <strong>{{ '%.2f'|format(batch_result.speedup) }}×</strong>
+            </div>
+            <div class="metric-card">
+                <span>E(p) eficiência</span>
+                <strong>{{ '%.1f'|format(batch_result.efficiency * 100) }}%</strong>
+            </div>
+        </div>
+
+        <div class="optimization-info">
+            <div>
+                <span>Workers (p)</span>
+                <strong>{{ batch_result.workers }}</strong>
+            </div>
+            <div>
+                <span>Pedidos no lote</span>
+                <strong>{{ batch_result.orders_count }}</strong>
+            </div>
+        </div>
+
+        <div class="batch-results-table-wrap">
+            <table class="batch-results-table" id="batchResultsTable">
+                <thead>
+                    <tr>
+                        <th>Pedido</th>
+                        <th>Dist. antes</th>
+                        <th>Dist. depois</th>
+                        <th>Redução %</th>
+                        <th>Rota 2-opt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in batch_result.rows %}
+                    <tr>
+                        <td>{{ row.order_id }}</td>
+                        <td>{{ '%.2f'|format(row.distance_before) }}</td>
+                        <td>{{ '%.2f'|format(row.distance_after) }}</td>
+                        <td>{{ '%.2f'|format(row.reduction_percent) }}%</td>
+                        <td class="batch-route-cell">{{ row.two_opt_route }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Resultados compartilhados pelos dois modos -->
     <div
