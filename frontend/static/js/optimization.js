@@ -1,8 +1,11 @@
 
 document.addEventListener("DOMContentLoaded", () => {
+    const pageMode =
+        new URLSearchParams(window.location.search).get("mode") || "manual";
     const token = localStorage.getItem("access_token");
 
-    if (!token) {
+    // Lote paralelo é 100% cookie/servidor: não exige token no localStorage.
+    if (!token && pageMode !== "batch") {
         window.location.href = "/login";
         return;
     }
@@ -11,10 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ELEMENTOS DA INTERFACE
     // ==========================================
 
-    // Seleção do modo
-    const manualModeButton = document.getElementById("manualModeButton");
-    const orderModeButton = document.getElementById("orderModeButton");
-
+    // Cards / modos (troca de aba do lote é link server-side; sem JS de cálculo)
     const manualOptimizationCard = document.getElementById("manualOptimizationCard");
     const orderOptimizationCard = document.getElementById("orderOptimizationCard");
 
@@ -136,64 +136,38 @@ document.addEventListener("DOMContentLoaded", () => {
     // ==========================================
 
     function updateActionButtons() {
-        optimizeRouteButton.disabled =
-            !engineOnline || requestInProgress;
+        if (optimizeRouteButton) {
+            optimizeRouteButton.disabled =
+                !engineOnline || requestInProgress;
+        }
 
-        optimizeOrderButton.disabled =
-            !engineOnline ||
-            requestInProgress ||
-            ordersLoading ||
-            optimizationOrderId.disabled ||
-            !optimizationOrderId.value;
+        if (optimizeOrderButton) {
+            optimizeOrderButton.disabled =
+                !engineOnline ||
+                requestInProgress ||
+                ordersLoading ||
+                optimizationOrderId.disabled ||
+                !optimizationOrderId.value;
+        }
     }
 
 
     // ==========================================
-    // ALTERNÂNCIA ENTRE MODOS
+    // MODO INICIAL (servidor define via ?mode=)
     // ==========================================
 
-    function setOptimizationMode(mode) {
-        const isManual = mode === "manual";
+    function syncModeFromServer() {
+        const params = new URLSearchParams(window.location.search);
+        const mode = params.get("mode") || "manual";
+        currentMode = mode;
 
-        currentMode = isManual ? "manual" : "order";
-
-        manualOptimizationCard.hidden = !isManual;
-        orderOptimizationCard.hidden = isManual;
-
-        manualModeButton.classList.toggle("active", isManual);
-        orderModeButton.classList.toggle("active", !isManual);
-
-        manualModeButton.setAttribute(
-            "aria-pressed",
-            String(isManual)
-        );
-
-        orderModeButton.setAttribute(
-            "aria-pressed",
-            String(!isManual)
-        );
-
-        // Não mostra resultados de outro modo
-        optimizationResults.hidden = true;
-
-        clearMessage();
-        clearOrderMessage();
-
-        // Carrega pedidos ao abrir o modo pela primeira vez
-        if (!isManual && !ordersLoaded && !ordersLoading) {
+        // Não esconder o painel Jinja do lote (paraleloMetricsPanel) — é HTML do servidor.
+        if (mode === "order" && !ordersLoaded && !ordersLoading) {
             loadOutboundOrders();
         }
 
         updateActionButtons();
     }
-
-    manualModeButton.addEventListener("click", () => {
-        setOptimizationMode("manual");
-    });
-
-    orderModeButton.addEventListener("click", () => {
-        setOptimizationMode("order");
-    });
 
 
     // ==========================================
@@ -812,52 +786,44 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     // ==========================================
-    // EVENTOS
+    // EVENTOS (manual / por pedido — API)
+    // Lote paralelo: form HTML POST /otimizacao/lote (sem JS)
     // ==========================================
 
-    // Adicionar localização manual
-    addLocationButton.addEventListener("click", () => {
-        createLocationRow();
-        clearMessage();
-        optimizationResults.hidden = true;
-    });
+    if (addLocationButton) {
+        addLocationButton.addEventListener("click", () => {
+            createLocationRow();
+            clearMessage();
+            optimizationResults.hidden = true;
+        });
+    }
 
-    // Enviar otimização manual
-    optimizationForm.addEventListener(
-        "submit",
-        optimizeRoute
-    );
+    if (optimizationForm) {
+        optimizationForm.addEventListener("submit", optimizeRoute);
+    }
 
-    // Selecionar pedido
-    optimizationOrderId.addEventListener("change", () => {
-        clearOrderMessage();
-        optimizationResults.hidden = true;
-        updateActionButtons();
-    });
+    if (optimizationOrderId) {
+        optimizationOrderId.addEventListener("change", () => {
+            clearOrderMessage();
+            optimizationResults.hidden = true;
+            updateActionButtons();
+        });
+    }
 
-    // Enviar otimização por pedido
-    orderOptimizationForm.addEventListener(
-        "submit",
-        optimizeSelectedOrder
-    );
+    if (orderOptimizationForm) {
+        orderOptimizationForm.addEventListener("submit", optimizeSelectedOrder);
+    }
 
 
     // ==========================================
     // INICIALIZAÇÃO
     // ==========================================
 
-    // Localizações iniciais para testes manuais
-    createLocationRow({
-        id: "A01"
-    });
+    if (pageMode !== "batch") {
+        createLocationRow({ id: "A01" });
+        createLocationRow({ id: "B01" });
+    }
 
-    createLocationRow({
-        id: "B01"
-    });
-
-    // Inicia no modo manual
-    setOptimizationMode("manual");
-
-    // Verifica disponibilidade do motor
+    syncModeFromServer();
     checkEngineHealth();
 });

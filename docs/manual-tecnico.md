@@ -96,11 +96,30 @@ Todas calculadas (nunca inventadas):
 
 Auth: JWT em todos. Detalhe de payloads: [`contrato_api_otimizacao.md`](contrato_api_otimizacao.md).
 
-### 1.7 Como verificar o motor
+### 1.7 Paralelismo de lote + núcleo compilável
+
+O WarehouseFlow paraleliza **vários pedidos** (não o 2-opt interno de uma rota):
+
+1. **Cython / C** — hot path em `backend/optimization/_native.pyx` (fallback Python se não compilado).
+2. **ProcessPool** — `optimize_routes_batch` com `T(1)`, `T(p)`, `S(p)`, `E(p)`.
+3. **API JSON** — `POST /optimization/route/batch` (testes/Swagger).
+4. **UI do lote** — `POST /otimizacao/lote` + Jinja (**sem JS de cálculo**). Alinhado aos slides: JS não é o núcleo.
+
+Compilar (Windows: Visual C++ Build Tools):
+
+```powershell
+pip install cython
+cd backend
+python build_optimization_native.py build_ext --inplace
+```
+
+Detalhes: [`docs/paralelismo-lote.md`](paralelismo-lote.md).
+
+### 1.8 Como verificar o motor
 
 ```powershell
 # Suite automatizada (na raiz do repo)
-python -m pytest tests/test_api_optimization.py tests/test_optimization_flow_integration.py tests/test_optimization_reports.py tests/test_engine.py tests/test_distance.py tests/test_nearest_neighbor.py tests/test_two_opt.py -q
+python -m pytest tests/test_api_optimization.py tests/test_api_optimization_batch.py tests/test_parallel_batch.py tests/test_optimization_flow_integration.py tests/test_optimization_reports.py tests/test_engine.py tests/test_distance.py tests/test_nearest_neighbor.py tests/test_two_opt.py -q
 
 # Evidência ponta a ponta (SQLite em memória + TestClient)
 $env:PYTHONPATH = "backend"
@@ -119,12 +138,13 @@ docker compose up --build
 - Swagger: http://127.0.0.1:8000/docs  
 - Login seed: `admin@warehouseflow.com` / `admin123`
 
-### 1.8 Referências
+### 1.9 Referências
 
 | Documento | Conteúdo |
 |-----------|----------|
 | [`optimization.md`](optimization.md) | Manual profundo (algoritmos, contrato, integração) |
 | [`contrato_api_otimizacao.md`](contrato_api_otimizacao.md) | Contrato estável FE |
+| [`paralelismo-lote.md`](paralelismo-lote.md) | Lote paralelo + Cython + demo |
 | [`backend/optimization/README.md`](../backend/optimization/README.md) | Uso isolado do pacote |
 | [`backend/database/README.md`](../backend/database/README.md) | DDL oficial vs legado |
 | `docs/sprint-11/` | Evidências Sprint 11 do motor |
