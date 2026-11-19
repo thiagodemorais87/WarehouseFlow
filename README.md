@@ -12,6 +12,11 @@ https://www.figma.com/design/uGceagehdqafcFckYSlWZY/Sem-t%C3%ADtulo?node-id=5-56
 * [Cronograma oficial — 12 sprints, datas e funcionalidades](docs/cronograma.md)
 * [Motor de otimização (técnico)](docs/optimization.md)
 * [Referência atual da API](docs/Api-doc.md)
+* [Manual do Usuário](docs/manuais/Manual_do_Usuario_WarehouseFlow.md)
+* [Manual Técnico](docs/manuais/Manual_Tecnico_WarehouseFlow.md)
+* [Índice consolidado das Sprints 1–11](docs/indice_documentacao_sprints.md)
+* [Planejamento da Sprint 11](docs/sprint-11/planejamento_sprint11.md)
+* [Entrega final da Sprint 11](docs/entrega-final/Grupo26_WarehouseFlow_Sprint11.pdf)
 * [Matriz formal dos testes da Sprint 09](docs/sprint-9/matriz_testes_sprint9.md)
 * [Testes de navegação e permissões da Sprint 09](docs/sprint-9/testes_navegacao_permissoes.md)
 * [Dificuldades e próximos passos da Sprint 09](docs/sprint-9/dificuldades_e_proximos_passos.md)
@@ -247,7 +252,8 @@ Documentação completa: [docs/optimization.md](docs/optimization.md).
 * Cadastro/consulta/atualização/exclusão de usuários e cargos pela API, com
   senha armazenada como hash e regras RBAC;
 * Dashboard autenticado, relatórios de pedidos e movimentações de estoque;
-* Exportação CSV dos relatórios. Não há página de administração de usuários.
+* Exportação CSV dos relatórios.
+* Tela de administração de usuários disponível em `/usuarios`, protegida para `ADMIN`.
 
 ---
 
@@ -256,7 +262,7 @@ Documentação completa: [docs/optimization.md](docs/optimization.md).
 **Sprint 10 — Release Candidate (documentação e testes).** O repositório
 contém JWT/RBAC, módulos de produtos/estoque/posições, pedidos e tarefas,
 dashboard, relatórios com CSV e motor de picking NN + 2-opt. A administração
-de usuários está disponível pela API; não há tela de usuários no menu atual.
+de usuários está disponível pela API e pela tela `/usuarios`, protegida para `ADMIN`.
 
 Na validação local de 13/11/2026, a API e as páginas foram exercitadas contra
 uma base SQLite descartável. O Pytest concluiu com **101 passed, 2 skipped**.
@@ -268,6 +274,10 @@ pendente. Evidências e ressalvas: [relatório RC](docs/sprint-10/relatorio_rc_s
 O cronograma mantém Sprints 11 e 12 planejadas: manuais/code review e
 preparação da versão final, code freeze e ensaio, respectivamente. Consulte o
 [cronograma oficial](docs/cronograma.md).
+
+Na preparação da Sprint 11, a suíte completa foi executada em 19/11/2026:
+**119 aprovados, 1 ignorado e 1 aviso de depreciação**. O PDF acumulado único
+foi gerado e validado: [Sprint 11 — entrega final](docs/entrega-final/Grupo26_WarehouseFlow_Sprint11.pdf).
 
 ---
 
@@ -408,7 +418,6 @@ Documentação do motor: [docs/optimization.md](docs/optimization.md) · [backen
 
 Contrato de autenticação, pedidos, tarefas, usuários, relatórios e otimização:
 [docs/Api-doc.md](docs/Api-doc.md). A API de usuários existe; uma tela de
-administração de usuários não está implementada no menu atual.
 
 ---
 
