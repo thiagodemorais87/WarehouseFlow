@@ -9,6 +9,24 @@
 
 ---
 
+## Registro técnico da Sprint 09 — QA e correção
+
+O documento formal dos testes de QA está em
+[`sprint-9/matriz_testes_sprint9.md`](sprint-9/matriz_testes_sprint9.md).
+A cobertura de navegação e acesso está em
+[`sprint-9/testes_navegacao_permissoes.md`](sprint-9/testes_navegacao_permissoes.md).
+
+A aplicação implementa `ADMIN`, `GESTOR` e `OPERADOR`. A autenticação aceita
+JWT no cabeçalho `Authorization: Bearer` ou cookie `access_token`; as páginas
+HTML verificam a sessão no backend e redirecionam para `/login` sem usuário.
+As restrições administrativas são aplicadas no backend e complementadas por
+`data-roles` no menu.
+
+Na correção registrada como BUG-S9-01, `DELETE /products/{product_id}` passou
+a consultar dependências em `stock` e `order_items`. Referências existentes
+produzem `409 Conflict`; a exclusão sem dependências continua retornando
+`204 No Content`.
+
 ## 1. Componente de otimização (diferencial)
 
 ### 1.1 Visão geral

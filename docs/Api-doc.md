@@ -4,6 +4,17 @@ Este contrato foi conferido com os routers, schemas Pydantic, dependências de
 autorização, serviços e OpenAPI da aplicação. Os exemplos descrevem a forma do
 contrato; IDs, datas e valores calculados variam conforme a base.
 
+## Atualização da Sprint 09
+
+- O `DELETE /products/{product_id}` agora verifica referências em `stock` e
+  `order_items` antes da exclusão.
+- Produto referenciado responde `409` e permanece no catálogo.
+- Produto sem dependências responde `204`.
+- Os perfis implementados são `ADMIN`, `GESTOR` e `OPERADOR`.
+- Rotas privadas usam Bearer JWT ou cookie `access_token`; rotas sem
+  autenticação respondem `401` e perfis sem autorização respondem `403`.
+- A navegação HTML redireciona sessões ausentes para `/login`.
+
 - **Base local da API:** `http://127.0.0.1:8000`
 - **Swagger UI:** [`http://127.0.0.1:8000/docs`](http://127.0.0.1:8000/docs)
 - **OpenAPI JSON:** [`http://127.0.0.1:8000/openapi.json`](http://127.0.0.1:8000/openapi.json)

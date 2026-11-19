@@ -163,6 +163,19 @@ DDL dedicado: [`optimization_runs.sql`](optimization_runs.sql) (também embutido
 
 ---
 
+## Dependências na exclusão de produtos — Sprint 09
+
+A regra de exclusão não remove automaticamente um produto referenciado por
+`stock` ou `order_items`. Antes do `DELETE`, a API verifica essas referências:
+
+- com dependências: HTTP `409 Conflict`, sem remoção do produto;
+- sem dependências: HTTP `204 No Content`, com remoção do produto.
+
+O teste de regressão cobre estoque e item de pedido vinculados. Essa regra
+preserva a integridade referencial e evita falhas internas do banco.
+
+---
+
 ## Como Executar o Banco de Dados
 
 # Pré-requisitos e Setup do Banco de Dados

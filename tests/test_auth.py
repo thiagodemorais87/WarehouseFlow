@@ -438,12 +438,53 @@ def test_logout_apaga_o_cookie(client):
     assert resp.headers["location"] == "/login"
     assert client.get("/inicio", follow_redirects=False).status_code == 303
 
+
+@pytest.mark.parametrize("path", [
+    "/inicio",
+    "/dashboard",
+    "/produtos",
+    "/estoque",
+    "/posicoes",
+    "/pedidos",
+    "/tarefas",
+    "/otimizacao",
+    "/relatorios/picking",
+    "/usuarios",
+    "/relatorios/movimentacoes",
+])
+def test_pagina_html_restrita_sem_login_redireciona(client, path):
+    resp = client.get(path, follow_redirects=False)
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/login"
+
+
+@pytest.mark.parametrize("who,expected", [
+    ("admin", 200),
+    ("gestor", 403),
+    ("operador", 403),
+])
+def test_acesso_direto_usuarios_por_perfil(client, who, expected):
+    entrar_pela_tela(client, who)
+    assert client.get("/usuarios", follow_redirects=False).status_code == expected
+
+
+@pytest.mark.parametrize("who,expected", [
+    ("admin", 200),
+    ("gestor", 200),
+    ("operador", 403),
+])
+def test_acesso_direto_movimentacoes_por_perfil(client, who, expected):
+    entrar_pela_tela(client, who)
+    assert client.get("/relatorios/movimentacoes", follow_redirects=False).status_code == expected
+
 def test_menu_lateral_esconde_usuarios_do_operador(client):
     entrar_pela_tela(client, "operador")
-    assert "Usuários" not in client.get("/produtos").text
+    html = client.get("/produtos").text
+    assert 'href="/usuarios"' in html
+    assert 'data-roles="ADMIN"' in html
+    assert "hidden" in html
 
 
-@pytest.mark.skip(reason="Link de Usuários comentado no sidebar até a página existir")
 def test_menu_lateral_mostra_usuarios_ao_admin(client):
     entrar_pela_tela(client, "admin")
     assert "Usuários" in client.get("/produtos").text
