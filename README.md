@@ -17,6 +17,7 @@ https://www.figma.com/design/uGceagehdqafcFckYSlWZY/Sem-t%C3%ADtulo?node-id=5-56
 * [Índice consolidado das Sprints 1–11](docs/indice_documentacao_sprints.md)
 * [Planejamento da Sprint 11](docs/sprint-11/planejamento_sprint11.md)
 * [Entrega final da Sprint 11](docs/entrega-final/Grupo26_WarehouseFlow_Sprint11.pdf)
+* [PDF exclusivo da Sprint 11](docs/entrega-final/Grupo26_WarehouseFlow_Sprint11_exclusiva.pdf)
 * [Matriz formal dos testes da Sprint 09](docs/sprint-9/matriz_testes_sprint9.md)
 * [Testes de navegação e permissões da Sprint 09](docs/sprint-9/testes_navegacao_permissoes.md)
 * [Dificuldades e próximos passos da Sprint 09](docs/sprint-9/dificuldades_e_proximos_passos.md)

@@ -220,15 +220,7 @@ representada como solução exata global.
 
 ### Evidências visuais disponíveis
 
-- Login, dashboard, filtros, pedidos, tarefas, relatórios e correção de
-  exclusão: [docs/sprint-9/evidencias](../sprint-9/evidencias).
-- Sprint 10: [docs/sprint-10/evidencias](../sprint-10/evidencias).
-- Evidências do motor: [docs/sprint-11/evidencias](../sprint-11/evidencias).
-
-### Capturas ainda pendentes
-
-Capturas visuais reais ainda precisam ser registradas para os fluxos por
-perfil em navegador real, incluindo `/usuarios` e
-`/relatorios/movimentacoes`, além da execução completa em Docker/PostgreSQL.
-Essas lacunas devem ser preenchidas pela equipe antes do encerramento do
-ensaio final, sem substituir screenshots existentes.
+Não há capturas visuais próprias da Sprint 11 registradas junto aos materiais
+consultados. A equipe ainda deve capturar as telas e fluxos do manual em
+navegador real. Não foram reaproveitadas imagens de outras Sprints como se
+fossem evidências desta etapa.

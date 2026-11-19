@@ -232,16 +232,13 @@ $env:PYTHONPATH = "backend"
 python -m optimization.evidence_flow
 ```
 
-Resultados registrados:
-
-- Sprint 9: 92 aprovados, 1 ignorado, 1 aviso.
-- Sprint 10: 101 aprovados, 2 ignorados.
-- Sprint 11 do motor: 39 aprovados.
-- Evidence flow: rota validada com distância antes `38`, depois `11`, redução
-  aproximada de `71,05%`.
-
-Não apresente esses resultados como validação integrada de Docker/PostgreSQL:
-foram realizados em SQLite ou testes isolados conforme os relatórios.
+Na verificação geral realizada para esta documentação da Sprint 11, a suíte
+concluiu com **119 aprovados, 1 ignorado e 1 aviso**. O teste direcionado do
+motor realizado nesta Sprint 11 concluiu com **39 aprovados**; o `evidence_flow`
+registrou distância antes `38`, depois `11` e redução aproximada de `71,05%`.
+Esses resultados não representam validação integrada de Docker/PostgreSQL.
+Resultados das etapas anteriores permanecem exclusivamente nos relatórios das
+respectivas Sprints.
 
 ## 12. Segurança
 
@@ -270,5 +267,5 @@ sejam adicionados novos artefatos.
 ## 14. Considerações finais
 
 Docker, PostgreSQL e validação visual em navegador real continuam pendentes
-neste ambiente. Todos os testes executados e bloqueios estão registrados em
-documentos da Sprint 9, Sprint 10 e Sprint 11.
+neste ambiente. Resultados de validação e bloqueios estão registrados nos
+relatórios próprios de cada etapa.
