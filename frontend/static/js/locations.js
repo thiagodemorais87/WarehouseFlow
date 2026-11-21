@@ -26,19 +26,14 @@ let warehouses = [];
 let editingLocationId = null;
 let canManageLocations = false;
 
-// ======================================================
 // AUTENTICAÇÃO
-// ======================================================
 
 function authHeaders() {
     return {
         "Authorization": `Bearer ${token}`
     };
 }
-
-// ======================================================
 // PERMISSÕES
-// ======================================================
 
 async function initializeLocationPermissions() {
     canManageLocations = false;
@@ -88,10 +83,7 @@ function ensureLocationPermission() {
 
     return false;
 }
-
-// ======================================================
 // CARREGAR ARMAZÉNS
-// ======================================================
 
 async function loadWarehouses() {
     try {
@@ -136,9 +128,7 @@ async function loadWarehouses() {
     }
 }
 
-// ======================================================
 // CARREGAR POSIÇÕES
-// ======================================================
 
 async function loadLocations() {
     try {
@@ -169,10 +159,7 @@ async function loadLocations() {
         `;
     }
 }
-
-// ======================================================
 // RENDERIZAR POSIÇÕES
-// ======================================================
 
 function renderLocations() {
     const search = locationSearch.value.trim().toLowerCase();
@@ -263,9 +250,7 @@ function renderLocations() {
     }).join("");
 }
 
-// ======================================================
 // MODAL DE NOVA POSIÇÃO
-// ======================================================
 
 function openNewLocationModal() {
     if (!ensureLocationPermission()) {
@@ -287,9 +272,7 @@ function openNewLocationModal() {
     locationModal.classList.add("show");
 }
 
-// ======================================================
 // MODAL DE EDIÇÃO
-// ======================================================
 
 function openEditLocationModal(id) {
     if (!ensureLocationPermission()) {
@@ -323,29 +306,76 @@ function openEditLocationModal(id) {
     locationModal.classList.add("show");
 }
 
-// ======================================================
 // EXCLUIR POSIÇÃO
-// ======================================================
 
-async function deleteLocation(id) {
+const deleteLocationModal = document.getElementById("deleteLocationModal");
+const closeDeleteLocationModalBtn = document.getElementById("closeDeleteLocationModal");
+const cancelDeleteLocationBtn = document.getElementById("cancelDeleteLocationBtn");
+const confirmDeleteLocationBtn = document.getElementById("confirmDeleteLocationBtn");
+const deleteLocationCode = document.getElementById("deleteLocationCode");
+const deleteLocationMessage = document.getElementById("deleteLocationMessage");
+
+let selectedDeleteLocationId = null;
+
+function deleteLocation(id) {
     if (!ensureLocationPermission()) {
         return;
     }
 
-    const location = locations.find(item => item.id === id);
+    const location = locations.find(
+        item => Number(item.id) === Number(id)
+    );
 
     if (!location) {
         showMessage("Posição não encontrada.", "error");
         return;
     }
 
-    const confirmed = confirm(
-        `Deseja realmente excluir a posição ${location.code}?`
-    );
+    selectedDeleteLocationId = location.id;
 
-    if (!confirmed) {
+    deleteLocationCode.textContent = location.code;
+    deleteLocationMessage.textContent = "";
+    deleteLocationMessage.className = "location-message";
+
+    deleteLocationModal.classList.add("show");
+    confirmDeleteLocationBtn.focus();
+}
+
+function closeDeleteLocation() {
+    if (confirmDeleteLocationBtn.disabled) {
         return;
     }
+
+    deleteLocationModal.classList.remove("show");
+    selectedDeleteLocationId = null;
+
+    deleteLocationMessage.textContent = "";
+    deleteLocationMessage.className = "location-message";
+}
+
+closeDeleteLocationModalBtn.addEventListener("click", closeDeleteLocation);
+cancelDeleteLocationBtn.addEventListener("click", closeDeleteLocation);
+
+deleteLocationModal.addEventListener("click", event => {
+    if (event.target === deleteLocationModal) {
+        closeDeleteLocation();
+    }
+});
+
+confirmDeleteLocationBtn.addEventListener("click", async () => {
+    if (selectedDeleteLocationId === null) {
+        return;
+    }
+
+    if (!ensureLocationPermission()) {
+        closeDeleteLocation();
+        return;
+    }
+
+    const id = selectedDeleteLocationId;
+
+    confirmDeleteLocationBtn.disabled = true;
+    confirmDeleteLocationBtn.textContent = "Excluindo...";
 
     try {
         const response = await fetch(`/locations/${id}`, {
@@ -363,29 +393,31 @@ async function deleteLocation(id) {
             );
         }
 
-        showMessage(
-            "Posição excluída com sucesso.",
-            "success"
-        );
+        deleteLocationModal.classList.remove("show");
+        selectedDeleteLocationId = null;
+
+        showMessage("Posição excluída com sucesso.", "success");
 
         await loadLocations();
 
     } catch (error) {
-        showMessage(error.message, "error");
-    }
-}
+        deleteLocationMessage.textContent = error.message;
+        deleteLocationMessage.className = "location-message error";
 
-// ======================================================
+    } finally {
+        confirmDeleteLocationBtn.disabled = false;
+        confirmDeleteLocationBtn.textContent = "Excluir";
+    }
+});
+
+
 // FECHAR MODAL
-// ======================================================
 
 function closeModal() {
     locationModal.classList.remove("show");
 }
 
-// ======================================================
 // CADASTRAR / EDITAR POSIÇÃO
-// ======================================================
 
 locationForm.addEventListener("submit", async event => {
     event.preventDefault();
@@ -470,18 +502,14 @@ locationForm.addEventListener("submit", async event => {
     }
 });
 
-// ======================================================
 // MENSAGENS
-// ======================================================
 
 function showMessage(message, type) {
     locationMessage.textContent = message;
     locationMessage.className = `location-message ${type}`;
 }
 
-// ======================================================
 // EVENTOS
-// ======================================================
 
 newLocationBtn.addEventListener("click", openNewLocationModal);
 
@@ -517,9 +545,7 @@ locationsTableBody.addEventListener("click", event => {
     }
 });
 
-// ======================================================
 // INICIALIZAÇÃO
-// ======================================================
 
 async function initializePage() {
     await initializeLocationPermissions();

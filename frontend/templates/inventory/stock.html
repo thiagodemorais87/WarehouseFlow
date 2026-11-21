@@ -356,7 +356,7 @@
                 <input
                     type="number"
                     id="stockQuantity"
-                    min="0"
+                    min="1"
                     step="1"
                     required
                 >
@@ -462,6 +462,77 @@
             </div>
 
         </form>
+    </div>
+</div>
+
+<!-- MODAL DE EXCLUSÃO DE ESTOQUE -->
+<div
+    class="stock-modal-overlay"
+    id="deleteStockModal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="deleteStockModalTitle"
+>
+    <div class="stock-modal">
+
+        <div class="modal-header">
+            <div>
+                <h2 id="deleteStockModalTitle">
+                    Excluir registro de estoque
+                </h2>
+
+                <p>
+                    Confirme a exclusão do registro.
+                </p>
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                id="closeDeleteStockModal"
+                aria-label="Fechar"
+            >
+                &times;
+            </button>
+        </div>
+
+        <div class="delete-stock-content">
+            <p>
+                Tem certeza de que deseja remover
+                <strong id="deleteStockProductName"></strong>
+                da posição
+                <strong id="deleteStockLocationCode"></strong>?
+            </p>
+
+            <p class="delete-stock-warning">
+                Esta ação não poderá ser desfeita.
+            </p>
+        </div>
+
+        <div
+            class="form-message"
+            id="deleteStockMessage"
+            role="alert"
+        ></div>
+
+        <div class="modal-actions">
+            <button
+                type="button"
+                class="button-secondary"
+                id="cancelDeleteStockButton"
+            >
+                Cancelar
+            </button>
+
+            <button
+                type="button"
+                class="button-danger"
+                id="confirmDeleteStockButton"
+            >
+                Excluir
+            </button>
+        </div>
+
     </div>
 </div>
 

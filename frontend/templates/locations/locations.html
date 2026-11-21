@@ -153,6 +153,76 @@
     </div>
 </div>
 
+
+<!-- MODAL DE EXCLUSÃO DE POSIÇÃO -->
+<div
+    class="modal"
+    id="deleteLocationModal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="deleteLocationModalTitle"
+>
+    <div class="modal-content delete-location-modal">
+
+        <div class="modal-header">
+            <div>
+                <h2 id="deleteLocationModalTitle">
+                    Excluir posição
+                </h2>
+                <p class="delete-location-subtitle">
+                    Confirme a exclusão da posição de armazenamento.
+                </p>
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                id="closeDeleteLocationModal"
+                aria-label="Fechar"
+            >
+                &times;
+            </button>
+        </div>
+
+        <div class="delete-location-content">
+            <p>
+                Tem certeza de que deseja excluir a posição
+                <strong id="deleteLocationCode"></strong>?
+            </p>
+
+            <p class="delete-location-warning">
+                Esta ação não poderá ser desfeita.
+            </p>
+        </div>
+
+        <div
+            id="deleteLocationMessage"
+            class="location-message"
+            role="alert"
+        ></div>
+
+        <div class="modal-actions">
+            <button
+                type="button"
+                class="btn-secondary"
+                id="cancelDeleteLocationBtn"
+            >
+                Cancelar
+            </button>
+
+            <button
+                type="button"
+                class="btn-danger"
+                id="confirmDeleteLocationBtn"
+            >
+                Excluir
+            </button>
+        </div>
+
+    </div>
+</div>
+
+
 {% endblock %}
 
 

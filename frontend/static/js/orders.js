@@ -20,9 +20,7 @@ const addOrderItemButton = document.getElementById("addOrderItemButton");
 const orderFormMessage = document.getElementById("orderFormMessage");
 
 
-// ======================================================
 // DETALHES DO PEDIDO
-// ======================================================
 
 const orderDetailsModal =
     document.getElementById("orderDetailsModal");
@@ -55,9 +53,7 @@ const addDetailOrderItemButton =
     document.getElementById("addDetailOrderItemButton");
 
 
-// ======================================================
 // ADICIONAR ITEM A PEDIDO EXISTENTE
-// ======================================================
 
 const addOrderItemModal =
     document.getElementById("addOrderItemModal");
@@ -81,9 +77,7 @@ const addOrderItemMessage =
     document.getElementById("addOrderItemMessage");
 
 
-// ======================================================
 // EDITAR ITEM
-// ======================================================
 
 const editOrderItemModal =
     document.getElementById("editOrderItemModal");
@@ -107,9 +101,7 @@ const editOrderItemMessage =
     document.getElementById("editOrderItemMessage");
 
 
-// ======================================================
 // STATUS DO PEDIDO
-// ======================================================
 
 const orderStatusModal =
     document.getElementById("orderStatusModal");
@@ -133,9 +125,7 @@ const cancelOrderStatusButton =
     document.getElementById("cancelOrderStatusButton");
 
 
-// ======================================================
 // ESTADO
-// ======================================================
 
 let selectedOrderId = null;
 let selectedOrderItemId = null;
@@ -149,9 +139,7 @@ if (!token) {
 }
 
 
-// ======================================================
 // UTILITÁRIOS
-// ======================================================
 
 async function getErrorMessage(response, fallback) {
     try {
@@ -186,9 +174,7 @@ function handleUnauthorized(response) {
 }
 
 
-// ======================================================
 // PEDIDOS
-// ======================================================
 
 async function loadOrders() {
     ordersMessage.style.display = "block";
@@ -321,9 +307,7 @@ function applyFilters() {
 }
 
 
-// ======================================================
 // FORMATAÇÃO
-// ======================================================
 
 function formatOrderType(type) {
     const types = {
@@ -380,9 +364,7 @@ function formatDate(date) {
 }
 
 
-// ======================================================
 // PRODUTOS
-// ======================================================
 
 async function loadProducts() {
     const response = await fetch("/products/", {
@@ -415,9 +397,7 @@ function getProduct(productId) {
 }
 
 
-// ======================================================
 // CRIAÇÃO DO PEDIDO
-// ======================================================
 
 function addOrderItem() {
     const item = document.createElement("div");
@@ -658,9 +638,7 @@ orderForm.addEventListener("submit", async function (event) {
 });
 
 
-// ======================================================
 // DETALHES DO PEDIDO
-// ======================================================
 
 async function openOrderDetails(orderId) {
     selectedOrderId = Number(orderId);
@@ -818,9 +796,7 @@ orderDetailsModal.addEventListener("click", function (event) {
 });
 
 
-// ======================================================
 // ADICIONAR PRODUTO A PEDIDO EXISTENTE
-// ======================================================
 
 async function openAddOrderItemModal() {
     if (!selectedOrderId) {
@@ -990,9 +966,7 @@ addOrderItemForm.addEventListener(
 );
 
 
-// ======================================================
 // EDITAR ITEM
-// ======================================================
 
 function openEditOrderItem(button) {
     if (!selectedOrderId) {
@@ -1130,69 +1104,134 @@ editOrderItemForm.addEventListener(
 );
 
 
-// ======================================================
 // REMOVER ITEM
-// ======================================================
 
-async function deleteOrderItem(itemId) {
-    if (!selectedOrderId) {
+const deleteOrderItemModal =
+    document.getElementById("deleteOrderItemModal");
+
+const closeDeleteOrderItemModalButton =
+    document.getElementById("closeDeleteOrderItemModal");
+
+const cancelDeleteOrderItemButton =
+    document.getElementById("cancelDeleteOrderItemButton");
+
+const confirmDeleteOrderItemButton =
+    document.getElementById("confirmDeleteOrderItemButton");
+
+const deleteOrderItemMessage =
+    document.getElementById("deleteOrderItemMessage");
+
+let pendingDeleteOrderItem = null;
+let deletingOrderItem = false;
+
+function closeDeleteOrderItemModal() {
+    if (deletingOrderItem) {
         return;
     }
 
-    const confirmed = window.confirm(
-        "Deseja realmente remover este produto do pedido?"
-    );
+    deleteOrderItemModal.classList.remove("open");
+    pendingDeleteOrderItem = null;
 
-    if (!confirmed) {
+    deleteOrderItemMessage.textContent = "";
+    deleteOrderItemMessage.className = "form-message";
+}
+
+function deleteOrderItem(itemId) {
+    if (!selectedOrderId || !Number.isInteger(itemId) || itemId <= 0) {
         return;
     }
 
-    orderDetailsMessage.textContent = "";
-    orderDetailsMessage.className = "form-message";
+    pendingDeleteOrderItem = {
+        orderId: selectedOrderId,
+        itemId
+    };
 
-    try {
-        const orderId = selectedOrderId;
+    deleteOrderItemMessage.textContent = "";
+    deleteOrderItemMessage.className = "form-message";
 
-        const response = await fetch(
-            `/orders/${orderId}/items/${itemId}`,
-            {
-                method: "DELETE",
+    deleteOrderItemModal.classList.add("open");
+}
 
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                }
-            }
-        );
+closeDeleteOrderItemModalButton.addEventListener(
+    "click",
+    closeDeleteOrderItemModal
+);
 
-        if (handleUnauthorized(response)) {
+cancelDeleteOrderItemButton.addEventListener(
+    "click",
+    closeDeleteOrderItemModal
+);
+
+deleteOrderItemModal.addEventListener("click", function (event) {
+    if (event.target === deleteOrderItemModal) {
+        closeDeleteOrderItemModal();
+    }
+});
+
+confirmDeleteOrderItemButton.addEventListener(
+    "click",
+    async function () {
+        if (!pendingDeleteOrderItem || deletingOrderItem) {
             return;
         }
 
-        if (!response.ok) {
-            throw new Error(
-                await getErrorMessage(
-                    response,
-                    "Não foi possível remover o item."
-                )
+        const { orderId, itemId } = pendingDeleteOrderItem;
+
+        deletingOrderItem = true;
+        confirmDeleteOrderItemButton.disabled = true;
+        confirmDeleteOrderItemButton.textContent = "Removendo...";
+
+        deleteOrderItemMessage.textContent = "";
+        deleteOrderItemMessage.className = "form-message";
+
+        try {
+            const response = await fetch(
+                `/orders/${orderId}/items/${itemId}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                }
             );
+
+            if (handleUnauthorized(response)) {
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(
+                    await getErrorMessage(
+                        response,
+                        "Não foi possível remover o item."
+                    )
+                );
+            }
+
+            deleteOrderItemModal.classList.remove("open");
+            pendingDeleteOrderItem = null;
+
+            await openOrderDetails(orderId);
+            await loadOrders();
+
+        } catch (error) {
+            deleteOrderItemMessage.textContent =
+                error.message || "Não foi possível remover o item.";
+
+            deleteOrderItemMessage.className =
+                "form-message error";
+
+        } finally {
+            deletingOrderItem = false;
+            confirmDeleteOrderItemButton.disabled = false;
+            confirmDeleteOrderItemButton.textContent = "Remover";
         }
-
-        await openOrderDetails(orderId);
-        await loadOrders();
-
-    } catch (error) {
-        orderDetailsMessage.textContent =
-            error.message;
-
-        orderDetailsMessage.className =
-            "form-message error";
     }
-}
+);
 
 
-// ======================================================
+
 // AÇÕES DOS ITENS NOS DETALHES
-// ======================================================
 
 detailOrderItems.addEventListener(
     "click",
@@ -1217,9 +1256,7 @@ detailOrderItems.addEventListener(
 );
 
 
-// ======================================================
 // AÇÕES DA TABELA DE PEDIDOS
-// ======================================================
 
 ordersTableBody.addEventListener(
     "click",
@@ -1247,9 +1284,7 @@ ordersTableBody.addEventListener(
 );
 
 
-// ======================================================
 // STATUS
-// ======================================================
 
 function openOrderStatus(orderId) {
     const order = ordersData.find(
@@ -1362,9 +1397,7 @@ orderStatusModal.addEventListener(
 );
 
 
-// ======================================================
 // FILTROS
-// ======================================================
 
 orderSearch.addEventListener(
     "input",
@@ -1382,8 +1415,6 @@ orderStatusFilter.addEventListener(
 );
 
 
-// ======================================================
 // INICIALIZAÇÃO
-// ======================================================
 
 loadOrders();

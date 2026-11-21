@@ -270,14 +270,63 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function exportCsv() {
+        if (!reportLoaded) {
+            alert("Aguarde o carregamento do relatório.");
+            return;
+        }
+
+        if (isDateRangeInvalid()) {
+            alert("A data inicial não pode ser posterior à data final.");
+            return;
+        }
+
+        const filteredRuns = getFilteredRuns();
+
+        if (!filteredRuns.length) {
+            alert("Não existem registros para exportar com os filtros selecionados.");
+            return;
+        }
+
         const button = elements.exportButton;
         button.disabled = true;
         button.textContent = "Exportando...";
 
         try {
-            const csv = await requestReport(
+            const originalCsv = await requestReport(
                 "/optimization/reports/picking.csv",
                 "blob"
+            );
+
+            const csvText = await originalCsv.text();
+            const lines = csvText.replace(/^\uFEFF/, "").trimEnd().split(/\r?\n/);
+
+            const header = lines[0];
+            const columns = header.split(",");
+
+            const idIndex = columns.indexOf("id");
+            const filteredIds = new Set(
+                filteredRuns.map(run => String(run.id))
+            );
+
+            if (idIndex === -1) {
+                throw new Error("Coluna ID não encontrada no CSV.");
+            }
+
+            const filteredLines = lines.slice(1).filter(line => {
+                if (!line.trim()) return false;
+
+                const id = line.split(",")[idIndex];
+                return filteredIds.has(id);
+            });
+
+            const csvContent = [
+                header,
+                ...filteredLines
+            ].join("\r\n") + "\r\n";
+
+            const csv = new Blob(
+                ["\uFEFF", csvContent],
+                { type: "text/csv;charset=utf-8;" }
             );
 
             const url = URL.createObjectURL(csv);
@@ -299,6 +348,7 @@ document.addEventListener("DOMContentLoaded", () => {
             button.textContent = "Exportar CSV";
         }
     }
+
 
     [
         elements.startDate,
