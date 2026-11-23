@@ -280,6 +280,78 @@
     margin-top: 22px;
 }
 
+
+/* MODAL DE EXCLUSÃO DE POSIÇÕES */
+
+#deleteLocationModal .modal-content {
+    max-width: 460px;
+    width: calc(100% - 32px);
+}
+
+.delete-location-subtitle {
+    margin-top: 6px;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.delete-location-content {
+    padding: 20px 0 16px;
+}
+
+.delete-location-content p {
+    margin: 0 0 12px;
+    color: #334155;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.delete-location-content strong {
+    color: #0f172a;
+    font-weight: 600;
+}
+
+.delete-location-content .delete-location-warning {
+    margin-bottom: 0;
+    color: #dc2626;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+#deleteLocationModal .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 11px 16px;
+    border: none;
+    border-radius: 8px;
+
+    background-color: #dc2626;
+    color: #ffffff;
+
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+
+    transition: background-color 0.2s ease;
+}
+
+#deleteLocationModal .btn-danger:hover {
+    background-color: #b91c1c;
+}
+
+#deleteLocationModal .btn-danger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#deleteLocationModal .btn-danger:focus-visible {
+    outline: 2px solid #991b1b;
+    outline-offset: 2px;
+}
+
+
 @media (max-width: 768px) {
     .locations-page {
         padding: 0;

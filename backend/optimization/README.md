@@ -67,10 +67,40 @@ A API FastAPI adapta JSON → `Location` e chama `optimize_route`:
 |----------|-----------|
 | `POST /optimization/route` | Body com `locations` explícitas |
 | `POST /optimization/route/by-order` | `order_id` → provider → mesmo motor |
+| `POST /optimization/route/batch` | Lote de `order_ids` + T(1)/T(p)/S(p)/E(p) |
 | `GET /optimization/orders/{id}/pick-locations` | Lista posições do pedido (helper) |
 | `GET /optimization/reports/summary` | `runs_count` + redução média |
 | `GET /optimization/reports/picking` | Histórico das execuções |
 | `GET /optimization/reports/picking.csv` | Export CSV do picking |
+
+## Núcleo Cython / C (opcional, recomendado para banca)
+
+Hot path em `_native.pyx` (`manhattan`, `route_distance`) → C compilado. Sem extensão, usa Python puro.
+
+```powershell
+pip install cython
+cd backend
+python build_optimization_native.py build_ext --inplace
+```
+
+Windows exige **Visual C++ Build Tools**. Ver [`docs/paralelismo-lote.md`](../../docs/paralelismo-lote.md).
+
+## UI do lote (sem JS de cálculo)
+
+O modo **Lote paralelo** usa `POST /otimizacao/lote` + Jinja. O JavaScript **não** chama o motor para o lote.
+
+## Lote paralelo
+
+```python
+from optimization import optimize_routes_batch, Location
+
+jobs = [
+    ([Location("A", 1, 1), Location("B", 5, 5)], Location("START", 0, 0)),
+    ([Location("C", 2, 0), Location("D", 8, 3)], Location("START", 0, 0)),
+]
+batch = optimize_routes_batch(jobs, workers=2, repeats=4)
+print(batch.sequential_ms, batch.parallel_ms, batch.speedup, batch.efficiency)
+```
 
 `POST /optimization/route/by-order` usa `SqlAlchemyOrderRouteProvider` (OUTBOUND → itens → stock → location).  
 Coordenadas `(x, y)` são derivadas de aisle/rack/shelf/code.  

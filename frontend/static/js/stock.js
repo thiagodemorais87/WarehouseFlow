@@ -243,6 +243,9 @@ function openNewStockModal() {
 
     stockForm.reset();
 
+    stockQuantity.min = "1";
+    stockQuantity.step = "1";
+
     stockModalTitle.textContent = "Adicionar ao estoque";
     stockQuantityLabel.textContent = "Quantidade a adicionar *";
     stockQuantityHint.textContent =
@@ -317,6 +320,9 @@ function openEditStockModal(stockId) {
     stockForm.reset();
     populateStockSelects();
 
+    stockQuantity.min = "0";
+    stockQuantity.step = "1";
+
     stockModalTitle.textContent = "Ajustar saldo";
     stockQuantityLabel.textContent = "Novo saldo *";
     stockQuantityHint.textContent =
@@ -336,6 +342,7 @@ function openEditStockModal(stockId) {
     stockModal.classList.add("open");
 }
 
+
 stockForm.addEventListener("submit", async function (event) {
     event.preventDefault();
 
@@ -346,17 +353,28 @@ stockForm.addEventListener("submit", async function (event) {
     const locationId = Number(stockLocation.value);
     const quantity = Number(stockQuantity.value);
 
-    if (!productId || !locationId || Number.isNaN(quantity)) {
-        stockFormMessage.textContent =
-            "Preencha todos os campos obrigatórios.";
+    function showStockError(message) {
+        stockFormMessage.textContent = message;
         stockFormMessage.className = "form-message error";
+    }
+
+    if (!productId || !locationId || stockQuantity.value.trim() === "") {
+        showStockError("Preencha todos os campos obrigatórios.");
         return;
     }
 
-    if (quantity < 0) {
-        stockFormMessage.textContent =
-            "A quantidade não pode ser negativa.";
-        stockFormMessage.className = "form-message error";
+    if (!Number.isInteger(quantity)) {
+        showStockError("Informe uma quantidade inteira válida.");
+        return;
+    }
+
+    if (editingStockId === null && quantity <= 0) {
+        showStockError("A quantidade a adicionar deve ser maior que zero.");
+        return;
+    }
+
+    if (editingStockId !== null && quantity < 0) {
+        showStockError("O saldo não pode ser negativo.");
         return;
     }
 
@@ -364,7 +382,10 @@ stockForm.addEventListener("submit", async function (event) {
     let method;
     let requestData;
 
-    if (editingStockId) {
+    const isEditing = editingStockId !== null;
+
+    if (isEditing) {
+        // Ajustar o saldo total de um registro existente.
         url = `/stock/${editingStockId}`;
         method = "PUT";
 
@@ -372,14 +393,31 @@ stockForm.addEventListener("submit", async function (event) {
             quantity: quantity
         };
     } else {
-        url = "/stock/";
-        method = "POST";
+        // Verificar se o produto já possui estoque na posição.
+        const existingStock = stockData.find((item) =>
+            Number(item.product_id) === productId &&
+            Number(item.location_id) === locationId
+        );
 
-        requestData = {
-            product_id: productId,
-            location_id: locationId,
-            quantity: quantity
-        };
+        if (existingStock) {
+            // Somar unidades ao saldo existente.
+            url = `/stock/${existingStock.id}/inbound`;
+            method = "POST";
+
+            requestData = {
+                quantity: quantity
+            };
+        } else {
+            // Criar um registro para uma combinação nova.
+            url = "/stock/";
+            method = "POST";
+
+            requestData = {
+                product_id: productId,
+                location_id: locationId,
+                quantity: quantity
+            };
+        }
     }
 
     saveStockButton.disabled = true;
@@ -396,27 +434,62 @@ stockForm.addEventListener("submit", async function (event) {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
+            let errorData = {};
 
-            throw new Error(
-                errorData.detail ||
-                "Não foi possível atualizar o estoque."
-            );
+            try {
+                errorData = await response.json();
+            } catch {
+                // A resposta pode não conter JSON.
+            }
+
+            let message = "Não foi possível atualizar o estoque.";
+
+            if (response.status === 401) {
+                message = "Sua sessão expirou. Faça login novamente.";
+            } else if (response.status === 403) {
+                message = "Você não tem permissão para realizar esta operação.";
+            } else if (response.status === 404) {
+                message = "O registro de estoque não foi encontrado.";
+            } else if (response.status === 409) {
+                message =
+                    "O estoque foi alterado ou já existe nesta posição. " +
+                    "Atualize a página e tente novamente.";
+            } else if (response.status === 422) {
+                message =
+                    "Os dados informados são inválidos. " +
+                    "Confira o produto, a posição e a quantidade.";
+            } else if (typeof errorData.detail === "string") {
+                const detail = errorData.detail;
+
+                // Não exibir instruções internas da API ao usuário.
+                if (!/\/stock\/|POST |PUT |DELETE |GET /i.test(detail)) {
+                    message = detail;
+                } else {
+                    message =
+                        "Não foi possível concluir a operação. " +
+                        "Atualize a página e tente novamente.";
+                }
+            }
+
+            throw new Error(message);
         }
 
         closeStockFormModal();
-
         await loadStock();
 
     } catch (error) {
-        stockFormMessage.textContent = error.message;
-        stockFormMessage.className = "form-message error";
+        showStockError(
+            error.message || "Não foi possível atualizar o estoque."
+        );
 
     } finally {
         saveStockButton.disabled = false;
-        saveStockButton.textContent = "Salvar";
+        saveStockButton.textContent = isEditing
+            ? "Salvar alteração"
+            : "Salvar";
     }
 });
+
 
 function openMovementModal(stockId, type) {
     const stock = stockData.find(
@@ -555,9 +628,20 @@ movementModal.addEventListener("click", function (event) {
     }
 });
 
-async function deleteStock(stockId) {
-    // Proteção adicional no frontend.
-    // A autorização definitiva continua sendo feita pelo backend.
+
+/* EXCLUSÃO DE ESTOQUE */
+
+const deleteStockModal = document.getElementById("deleteStockModal");
+const closeDeleteStockModalButton = document.getElementById("closeDeleteStockModal");
+const cancelDeleteStockButton = document.getElementById("cancelDeleteStockButton");
+const confirmDeleteStockButton = document.getElementById("confirmDeleteStockButton");
+const deleteStockProductName = document.getElementById("deleteStockProductName");
+const deleteStockLocationCode = document.getElementById("deleteStockLocationCode");
+const deleteStockMessage = document.getElementById("deleteStockMessage");
+
+let selectedDeleteStockId = null;
+
+function deleteStock(stockId) {
     if (!canDeleteStock) {
         alert("Seu perfil não tem permissão para excluir registros de estoque.");
         return;
@@ -571,30 +655,62 @@ async function deleteStock(stockId) {
         return;
     }
 
-    const confirmed = window.confirm(
-        `Deseja remover "${stock.productName}" da posição "${stock.locationCode}"?`
-    );
+    selectedDeleteStockId = stock.id;
 
-    if (!confirmed) {
+    deleteStockProductName.textContent = stock.productName;
+    deleteStockLocationCode.textContent = stock.locationCode;
+
+    deleteStockMessage.textContent = "";
+    deleteStockMessage.className = "form-message";
+
+    deleteStockModal.classList.add("open");
+    confirmDeleteStockButton.focus();
+}
+
+function closeDeleteStock() {
+    deleteStockModal.classList.remove("open");
+    selectedDeleteStockId = null;
+
+    deleteStockMessage.textContent = "";
+    deleteStockMessage.className = "form-message";
+}
+
+closeDeleteStockModalButton.addEventListener("click", closeDeleteStock);
+cancelDeleteStockButton.addEventListener("click", closeDeleteStock);
+
+deleteStockModal.addEventListener("click", function (event) {
+    if (event.target === deleteStockModal) {
+        closeDeleteStock();
+    }
+});
+
+confirmDeleteStockButton.addEventListener("click", async function () {
+    if (selectedDeleteStockId === null) {
         return;
     }
+
+    const stockId = selectedDeleteStockId;
+
+    confirmDeleteStockButton.disabled = true;
+    confirmDeleteStockButton.textContent = "Excluindo...";
 
     try {
         const response = await fetch(`/stock/${stockId}`, {
             method: "DELETE",
-
             headers: {
                 "Authorization": `Bearer ${token}`
             }
         });
 
         if (!response.ok) {
-            let message =
-                "Não foi possível excluir o registro de estoque.";
+            let message = "Não foi possível excluir o registro de estoque.";
 
             try {
                 const error = await response.json();
-                message = error.detail || message;
+
+                if (typeof error.detail === "string") {
+                    message = error.detail;
+                }
             } catch {
                 // Mantém a mensagem padrão.
             }
@@ -602,12 +718,19 @@ async function deleteStock(stockId) {
             throw new Error(message);
         }
 
+        closeDeleteStock();
         await loadStock();
 
     } catch (error) {
-        alert(error.message);
+        deleteStockMessage.textContent = error.message;
+        deleteStockMessage.className = "form-message error";
+
+    } finally {
+        confirmDeleteStockButton.disabled = false;
+        confirmDeleteStockButton.textContent = "Excluir";
     }
-}
+});
+
 
 // Aguarda a identificação do perfil antes de montar a tabela.
 // Assim, os botões são criados com as permissões corretas.

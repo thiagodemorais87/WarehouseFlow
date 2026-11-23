@@ -1,7 +1,5 @@
 
-/* =========================================
-   PÁGINA DE PEDIDOS
-========================================= */
+/* PÁGINA DE PEDIDOS */
 
 .orders-page {
     width: 100%;
@@ -25,9 +23,7 @@
     font-size: 14px;
 }
 
-/* =========================================
-   ABAS DE NAVEGAÇÃO
-========================================= */
+/* ABAS DE NAVEGAÇÃO */
 
 .orders-tabs {
     display: flex;
@@ -67,9 +63,7 @@
     display: none !important;
 }
 
-/* =========================================
-   TOOLBAR
-========================================= */
+/* TOOLBAR */
 
 .orders-toolbar {
     display: flex;
@@ -103,9 +97,7 @@
     border-color: #64748b;
 }
 
-/* =========================================
-   TABELA DE PEDIDOS
-========================================= */
+/* TABELA DE PEDIDOS */
 
 .orders-table-container {
     overflow: hidden;
@@ -149,9 +141,7 @@
     color: #64748b;
 }
 
-/* =========================================
-   STATUS
-========================================= */
+/* STATUS */
 
 .order-status {
     display: inline-block;
@@ -181,9 +171,7 @@
     color: #991b1b;
 }
 
-/* =========================================
-   AÇÕES DA TABELA
-========================================= */
+/* AÇÕES DA TABELA */
 
 .order-actions {
     display: flex;
@@ -211,9 +199,7 @@
     border-color: #cbd5e1;
 }
 
-/* =========================================
-   MODAIS
-========================================= */
+/* MODAIS */
 
 .order-modal-overlay {
     position: fixed;
@@ -249,9 +235,7 @@
     max-width: 480px;
 }
 
-/* =========================================
-   CABEÇALHO DOS MODAIS
-========================================= */
+/* CABEÇALHO DOS MODAIS */
 
 .modal-header {
     display: flex;
@@ -284,9 +268,7 @@
     color: #0f172a;
 }
 
-/* =========================================
-   FORMULÁRIOS
-========================================= */
+/* FORMULÁRIOS */
 
 .form-group {
     display: flex;
@@ -320,9 +302,7 @@
     border-color: #64748b;
 }
 
-/* =========================================
-   ITENS NA CRIAÇÃO DO PEDIDO
-========================================= */
+/* ITENS NA CRIAÇÃO DO PEDIDO */
 
 .order-items-header {
     display: flex;
@@ -397,9 +377,7 @@
     border-color: #fca5a5;
 }
 
-/* =========================================
-   MENSAGENS
-========================================= */
+/* MENSAGENS */
 
 .form-message {
     display: none;
@@ -415,9 +393,7 @@
     color: #b91c1c;
 }
 
-/* =========================================
-   AÇÕES DOS MODAIS
-========================================= */
+/* AÇÕES DOS MODAIS */
 
 .modal-actions {
     display: flex;
@@ -440,9 +416,7 @@
     background: #f8fafc;
 }
 
-/* =========================================
-   RESUMO DO PEDIDO
-========================================= */
+/* RESUMO DO PEDIDO */
 
 .order-details-summary {
     display: grid;
@@ -472,9 +446,7 @@
     font-size: 14px;
 }
 
-/* =========================================
-   CABEÇALHO DOS ITENS NOS DETALHES
-========================================= */
+/* CABEÇALHO DOS ITENS NOS DETALHES */
 
 .order-details-items-header {
     display: flex;
@@ -500,9 +472,7 @@
     font-size: 13px;
 }
 
-/* =========================================
-   ITENS NOS DETALHES
-========================================= */
+/* ITENS NOS DETALHES */
 
 .order-detail-item {
     display: grid;
@@ -553,9 +523,7 @@
     font-size: 15px;
 }
 
-/* =========================================
-   EDITAR / REMOVER ITEM
-========================================= */
+/* EDITAR / REMOVER ITEM */
 
 .order-detail-item-actions {
     display: flex;
@@ -597,9 +565,7 @@
     border-color: #fca5a5;
 }
 
-/* =========================================
-   PEDIDO SEM ITENS
-========================================= */
+/* PEDIDO SEM ITENS */
 
 .order-detail-empty {
     padding: 24px;
@@ -609,9 +575,61 @@
     border-radius: 8px;
 }
 
-/* =========================================
-   RESPONSIVIDADE
-========================================= */
+
+/* REMOVER PRODUTO DO PEDIDO */
+
+#deleteOrderItemModal {
+    z-index: 1100;
+}
+
+.delete-order-item-modal {
+    max-width: 460px;
+}
+
+.delete-order-item-content {
+    margin-top: 16px;
+}
+
+.delete-order-item-content > p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #334155;
+}
+
+.delete-order-item-warning {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #b91c1c !important;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.delete-order-item-modal .button-danger {
+    padding: 10px 16px;
+    border: 1px solid #dc2626;
+    border-radius: 8px;
+    background: #dc2626;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.delete-order-item-modal .button-danger:hover {
+    background: #b91c1c;
+}
+
+.delete-order-item-modal .button-danger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+
+/* RESPONSIVIDADE */
 
 @media (max-width: 768px) {
 

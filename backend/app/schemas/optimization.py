@@ -34,6 +34,30 @@ class RouteOptimizeByOrderRequest(BaseModel):
     )
 
 
+class RouteOptimizeBatchRequest(BaseModel):
+    order_ids: list[int] = Field(
+        ...,
+        min_length=1,
+        description="Lista de pedidos OUTBOUND a otimizar em lote.",
+    )
+    workers: int = Field(
+        default=2,
+        ge=1,
+        le=16,
+        description="Número de processos paralelos (p).",
+    )
+    start: LocationSchema = Field(
+        default_factory=lambda: LocationSchema(id="START", x=0, y=0),
+        description="Ponto de partida do picking. Default: START em (0, 0).",
+    )
+    repeats: int = Field(
+        default=1,
+        ge=1,
+        le=50,
+        description="Repetições do motor por pedido (útil para demo de speedup).",
+    )
+
+
 class PickLocationResponse(BaseModel):
     id: str = Field(..., description="Identificador da posição (ex.: A01).")
     x: float = Field(..., description="Coordenada X na grade do armazém.")
@@ -84,6 +108,25 @@ class RouteOptimizeResponse(BaseModel):
     locations_count: int = Field(
         ...,
         description="Quantidade de posições em locations (sem contar START).",
+    )
+
+
+class RouteOptimizeBatchItemResponse(BaseModel):
+    order_id: int
+    result: RouteOptimizeResponse
+
+
+class RouteOptimizeBatchResponse(BaseModel):
+    results: list[RouteOptimizeBatchItemResponse]
+    sequential_ms: float = Field(..., description="T(1) — wall-clock sequencial (ms).")
+    parallel_ms: float = Field(..., description="T(p) — wall-clock paralelo (ms).")
+    speedup: float = Field(..., description="S(p) = T(1) / T(p).")
+    efficiency: float = Field(..., description="E(p) = S(p) / p.")
+    workers: int = Field(..., description="p — processos usados.")
+    orders_count: int
+    native_compiled: bool = Field(
+        ...,
+        description="True se a extensão Cython do motor estiver carregada.",
     )
 
 

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from optimization.engine import optimize_route
+from optimization.native_status import native_compiled
+from optimization.parallel import BatchParallelResult, optimize_routes_batch
 from optimization.types import Location, OptimizationResult
 
 from ..providers.base import OrderRouteProvider
@@ -37,3 +39,27 @@ def optimize_from_order_id(
     """Resolve posições pelo order_id e executa o mesmo motor de /route."""
     locations = get_pick_locations_for_order(order_id, provider)
     return optimize_route(locations, start=start)
+
+
+def optimize_batch_from_order_ids(
+    order_ids: list[int],
+    provider: OrderRouteProvider,
+    start: Location | None = None,
+    *,
+    workers: int = 2,
+    repeats: int = 1,
+) -> tuple[list[int], BatchParallelResult]:
+    """Resolve todos os pedidos antes do pool; falha de um cancela o lote.
+
+    Retorna (order_ids na mesma ordem, BatchParallelResult).
+    """
+    jobs: list[tuple[list[Location], Location | None]] = []
+    for order_id in order_ids:
+        locations = get_pick_locations_for_order(order_id, provider)
+        jobs.append((locations, start))
+    batch = optimize_routes_batch(jobs, workers=workers, repeats=repeats)
+    return order_ids, batch
+
+
+def is_native_compiled() -> bool:
+    return native_compiled()

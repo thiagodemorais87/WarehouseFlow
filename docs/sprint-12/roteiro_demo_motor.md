@@ -44,9 +44,17 @@ Destacar na tela:
 - Dashboard (KPI de redução média) **ou** relatório de picking / CSV.
 - **Falar:** “Cada execução fica no histórico oficial (`optimization_runs`) para auditoria e indicadores.”
 
+### 4b. Paralelismo (~60–90 s) — diferencial da disciplina
+
+- Abrir `/otimizacao?mode=batch` (**Lote paralelo**).
+- Form HTML → submit no **servidor** (não é JavaScript calculando).
+- Informar 2+ `order_id`, workers 2 ou 4, repeats ≥ 4.
+- Mostrar card Jinja: **T(1)**, **T(p)**, **S(p)**, **E(p)** (+ badge Cython/C se compilado).
+- **Falar:** “Núcleo em Python/C (Cython). O lote paralelo roda no backend com processos. JavaScript não faz o cálculo — só a interface dos outros modos. CUDA/OpenCL não usamos.”
+
 ### 5. Fechamento (~15–20 s)
 
-> “Diferencial do projeto: motor próprio de sequenciamento de picking, com métricas reais — não é só CRUD.”
+> “Diferencial do projeto: motor próprio de sequenciamento de picking, com métricas reais e lote paralelo mensurável — não é só CRUD.”
 
 ---
 

@@ -248,12 +248,182 @@ if FRONTEND_DIR.exists():
         ("/posicoes", "locations/locations.html", "locations"),
         ("/pedidos", "orders/orders.html", "orders"),
         ("/tarefas", "tasks/tasks.html", "tasks"),
-        ("/otimizacao", "optimization/optimization.html", "optimization"),
         ("/relatorios/picking", "reports/picking.html", "picking_report"),
         ("/relatorios/movimentacoes", "reports/stock-movements.html", "stock_movements_report"),
         ("/usuarios", "users/users.html", "users"),
     ]:
         _register_page(_path, _template, _active)
+
+    def _parse_order_ids(raw: str) -> list[int]:
+        parts = [p.strip() for p in raw.replace(";", ",").replace(" ", ",").split(",")]
+        ids: list[int] = []
+        for part in parts:
+            if not part:
+                continue
+            ids.append(int(part))
+        return ids
+
+    def _render_otimizacao(
+        request: Request,
+        user: models.User,
+        *,
+        mode: str = "manual",
+        batch_result: dict | None = None,
+        batch_error: str | None = None,
+        batch_form: dict | None = None,
+    ):
+        return templates.TemplateResponse(
+            request=request,
+            name="optimization/optimization.html",
+            context={
+                "user": _user_context(user),
+                "active_page": "optimization",
+                "mode": mode if mode in ("manual", "order", "batch") else "manual",
+                "batch_result": batch_result,
+                "batch_error": batch_error,
+                "batch_form": batch_form
+                or {"order_ids": "", "workers": "2", "repeats": "4"},
+            },
+        )
+
+    @app.get(
+        "/otimizacao",
+        response_class=HTMLResponse,
+        tags=["Frontend"],
+        include_in_schema=False,
+    )
+    def otimizacao_page(
+        request: Request,
+        mode: str = "manual",
+        user: Optional[models.User] = Depends(get_current_user_or_none),
+    ):
+        if user is None:
+            return RedirectResponse(url="/login", status_code=303)
+        return _render_otimizacao(request, user, mode=mode)
+
+    @app.post(
+        "/otimizacao/lote",
+        response_class=HTMLResponse,
+        tags=["Frontend"],
+        include_in_schema=False,
+    )
+    def otimizacao_lote_submit(
+        request: Request,
+        order_ids: str = Form(...),
+        workers: int = Form(2),
+        repeats: int = Form(4),
+        user: Optional[models.User] = Depends(get_current_user_or_none),
+        db: Session = Depends(get_db),
+    ):
+        """Lote paralelo 100% server-side (Python/C) — sem JS de cálculo."""
+        if user is None:
+            return RedirectResponse(url="/login", status_code=303)
+
+        form_state = {
+            "order_ids": order_ids,
+            "workers": str(workers),
+            "repeats": str(repeats),
+        }
+
+        try:
+            parsed_ids = _parse_order_ids(order_ids)
+        except ValueError:
+            return _render_otimizacao(
+                request,
+                user,
+                mode="batch",
+                batch_error="IDs inválidos. Use números separados por vírgula (ex.: 1, 2, 3).",
+                batch_form=form_state,
+            )
+
+        if not parsed_ids:
+            return _render_otimizacao(
+                request,
+                user,
+                mode="batch",
+                batch_error="Informe ao menos um order_id válido.",
+                batch_form=form_state,
+            )
+        if len(set(parsed_ids)) != len(parsed_ids):
+            return _render_otimizacao(
+                request,
+                user,
+                mode="batch",
+                batch_error="order_ids contém duplicados.",
+                batch_form=form_state,
+            )
+
+        workers = max(1, min(int(workers), 16))
+        repeats = max(1, min(int(repeats), 50))
+
+        from optimization.types import Location
+
+        from .providers.sqlalchemy import SqlAlchemyOrderRouteProvider
+        from .routers.optimization_engine import OptimizationRunRecorder
+        from .services.optimization_service import (
+            is_native_compiled,
+            optimize_batch_from_order_ids,
+        )
+
+        provider = SqlAlchemyOrderRouteProvider(db)
+        recorder = OptimizationRunRecorder(db)
+        start = Location(id="START", x=0.0, y=0.0)
+
+        try:
+            ids, batch = optimize_batch_from_order_ids(
+                parsed_ids,
+                provider,
+                start=start,
+                workers=workers,
+                repeats=repeats,
+            )
+        except KeyError as exc:
+            return _render_otimizacao(
+                request,
+                user,
+                mode="batch",
+                batch_error=str(exc),
+                batch_form=form_state,
+            )
+        except ValueError as exc:
+            return _render_otimizacao(
+                request,
+                user,
+                mode="batch",
+                batch_error=str(exc),
+                batch_form=form_state,
+            )
+
+        rows = []
+        for order_id, result in zip(ids, batch.results):
+            recorder.save(user, result, source="batch", order_id=order_id)
+            rows.append(
+                {
+                    "order_id": order_id,
+                    "distance_before": result.distance_before,
+                    "distance_after": result.distance_after,
+                    "reduction_percent": result.reduction_percent,
+                    "two_opt_route": " → ".join(result.two_opt_route),
+                }
+            )
+
+        batch_result = {
+            "sequential_ms": batch.sequential_ms,
+            "parallel_ms": batch.parallel_ms,
+            "speedup": batch.speedup,
+            "efficiency": batch.efficiency,
+            "workers": batch.workers,
+            "orders_count": batch.jobs_count,
+            "native_compiled": is_native_compiled(),
+            "rows": rows,
+        }
+        return _render_otimizacao(
+            request,
+            user,
+            mode="batch",
+            batch_result=batch_result,
+            batch_form=form_state,
+        )
 
 else:
     logger.warning(

@@ -654,6 +654,76 @@
     </div>
 </div>
 
+
+<!-- MODAL: REMOVER PRODUTO DO PEDIDO -->
+<div
+    class="order-modal-overlay"
+    id="deleteOrderItemModal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="deleteOrderItemModalTitle"
+>
+    <div class="order-modal delete-order-item-modal">
+
+        <div class="modal-header">
+            <div>
+                <h2 id="deleteOrderItemModalTitle">
+                    Remover produto
+                </h2>
+
+                <p>
+                    Confirme a remoção do produto do pedido.
+                </p>
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                id="closeDeleteOrderItemModal"
+                aria-label="Fechar"
+            >
+                &times;
+            </button>
+        </div>
+
+        <div class="delete-order-item-content">
+            <p>
+                Tem certeza de que deseja remover
+                este produto do pedido?
+            </p>
+
+            <p class="delete-order-item-warning">
+                Esta ação não poderá ser desfeita.
+            </p>
+        </div>
+
+        <div
+            class="form-message"
+            id="deleteOrderItemMessage"
+            role="alert"
+        ></div>
+
+        <div class="modal-actions">
+            <button
+                type="button"
+                class="button-secondary"
+                id="cancelDeleteOrderItemButton"
+            >
+                Cancelar
+            </button>
+
+            <button
+                type="button"
+                class="button-danger"
+                id="confirmDeleteOrderItemButton"
+            >
+                Remover
+            </button>
+        </div>
+
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}

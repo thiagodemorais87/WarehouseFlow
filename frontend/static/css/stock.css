@@ -1,15 +1,11 @@
 
-/* ==========================================
-   ESTOQUE - ESTRUTURA PRINCIPAL
-========================================== */
+/* ESTOQUE - ESTRUTURA PRINCIPAL */
 
 .stock-page {
     width: 100%;
 }
 
-/* ==========================================
-   ABAS - ESTOQUE E MOVIMENTAÇÕES
-========================================== */
+/* ABAS - ESTOQUE E MOVIMENTAÇÕES */
 
 .stock-tabs {
     display: flex;
@@ -51,9 +47,7 @@
     display: none !important;
 }
 
-/* ==========================================
-   CABEÇALHO DO ESTOQUE
-========================================== */
+/* CABEÇALHO DO ESTOQUE */
 
 .stock-header {
     display: flex;
@@ -73,9 +67,7 @@
     font-size: 14px;
 }
 
-/* ==========================================
-   BARRA DE PESQUISA
-========================================== */
+/* BARRA DE PESQUISA */
 
 .stock-toolbar {
     margin-bottom: 16px;
@@ -100,9 +92,7 @@
     border-color: #64748b;
 }
 
-/* ==========================================
-   TABELA DE ESTOQUE
-========================================== */
+/* TABELA DE ESTOQUE */
 
 .stock-table-container {
     overflow: hidden;
@@ -150,9 +140,7 @@
     font-weight: 600;
 }
 
-/* ==========================================
-   AÇÕES DA TABELA
-========================================== */
+/* AÇÕES DA TABELA */
 
 .stock-actions {
     display: flex;
@@ -186,9 +174,7 @@
     background: #fef2f2;
 }
 
-/* ==========================================
-   MODAIS
-========================================== */
+/* MODAIS */
 
 .stock-modal-overlay {
     position: fixed;
@@ -214,9 +200,7 @@
     box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
 }
 
-/* ==========================================
-   CABEÇALHO DOS MODAIS
-========================================== */
+/* CABEÇALHO DOS MODAIS */
 
 .modal-header {
     display: flex;
@@ -243,9 +227,7 @@
     cursor: pointer;
 }
 
-/* ==========================================
-   FORMULÁRIOS
-========================================== */
+/* FORMULÁRIOS */
 
 .form-group {
     display: flex;
@@ -275,9 +257,7 @@
     border-color: #64748b;
 }
 
-/* ==========================================
-   AÇÕES DOS MODAIS
-========================================== */
+/* AÇÕES DOS MODAIS*/
 
 .modal-actions {
     display: flex;
@@ -296,9 +276,7 @@
     cursor: pointer;
 }
 
-/* ==========================================
-   MENSAGENS DOS FORMULÁRIOS
-========================================== */
+/* MENSAGENS DOS FORMULÁRIOS*/
 
 .form-message {
     display: none;
@@ -314,9 +292,7 @@
     color: #b91c1c;
 }
 
-/* ==========================================
-   INTEGRAÇÃO COM O RELATÓRIO
-========================================== */
+/* INTEGRAÇÃO COM O RELATÓRIO */
 
 /* Evita espaçamento desnecessário entre
    as abas e o conteúdo do relatório */
@@ -339,9 +315,73 @@
     overflow-x: auto;
 }
 
-/* ==========================================
-   RESPONSIVIDADE - TABLETS
-========================================== */
+
+/* MODAL DE EXCLUSÃO DE ESTOQUE */
+
+#deleteStockModal .stock-modal {
+    max-width: 460px;
+}
+
+.delete-stock-content {
+    padding: 8px 0 16px;
+}
+
+.delete-stock-content p {
+    margin: 0 0 12px;
+    color: #334155;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.delete-stock-content strong {
+    color: #0f172a;
+    font-weight: 600;
+}
+
+.delete-stock-content .delete-stock-warning {
+    margin-bottom: 0;
+    color: #dc2626;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+#deleteStockModal .button-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 11px 16px;
+
+    border: none;
+    border-radius: 8px;
+
+    background-color: #dc2626;
+    color: #ffffff;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: background-color 0.2s ease;
+}
+
+#deleteStockModal .button-danger:hover {
+    background-color: #b91c1c;
+}
+
+#deleteStockModal .button-danger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#deleteStockModal .button-danger:focus-visible {
+    outline: 2px solid #991b1b;
+    outline-offset: 2px;
+}
+
+
+/* RESPONSIVIDADE - TABLETS */
 
 @media (max-width: 900px) {
 
@@ -432,9 +472,7 @@
     }
 }
 
-/* ==========================================
-   RESPONSIVIDADE - CELULARES
-========================================== */
+/* RESPONSIVIDADE - CELULARES */
 
 @media (max-width: 600px) {
 
