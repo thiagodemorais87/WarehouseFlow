@@ -1,0 +1,104 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } }, "type": "value" }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        { "expr": "up", "legendFormat": "{{job}} {{instance}}", "refId": "A" }
+      ],
+      "title": "Targets Prometheus (up)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "sum by (name) (rate(container_cpu_usage_seconds_total{name=~\".*prometheus.*|.*grafana.*|.*cadvisor.*|.*zabbix.*|.*node-exporter.*|.*postgres-exporter.*|.*blackbox.*\"}[5m])) * 100",
+          "legendFormat": "{{name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "CPU stack monitoramento",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "container_memory_working_set_bytes{name=~\".*prometheus.*|.*grafana.*|.*cadvisor.*|.*zabbix.*|.*node-exporter.*|.*postgres-exporter.*|.*blackbox.*\"}",
+          "legendFormat": "{{name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Memória stack monitoramento",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "prometheus_tsdb_head_samples_appended_total",
+          "legendFormat": "samples appended",
+          "refId": "A"
+        }
+      ],
+      "title": "Prometheus samples (counter)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "prometheus_tsdb_storage_blocks_bytes",
+          "legendFormat": "TSDB blocks",
+          "refId": "A"
+        }
+      ],
+      "title": "Prometheus storage blocks",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["monitoring", "stack"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "title": "Monitoramento",
+  "uid": "wf-monitoramento",
+  "version": 1
+}

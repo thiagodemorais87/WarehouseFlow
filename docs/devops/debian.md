@@ -83,6 +83,8 @@ sudo ufw status
 
 Não abra a porta do PostgreSQL nem `8000` para a internet.
 
+Não publique na internet as UIs de monitoramento (`8081` Zabbix, `9090` Prometheus, `3000` Grafana) nem a porta `10050` do Agent 2 para `Anywhere`. Use túnel SSH e restrinja `10050` à subnet Docker `monitoring` — ver [zabbix.md](zabbix.md).
+
 ## Subir staging
 
 ```bash
@@ -112,3 +114,4 @@ curl -s http://127.0.0.1/ready
 2. Repetir instalação Docker e diretórios acima.
 3. Preferir IP elástico ou DNS; `server_name _` no Nginx aceita IP e domínio.
 4. Após certificado TLS, definir `COOKIE_SECURE=true` e aplicar conf SSL (ver [deploy.md](deploy.md)).
+5. Monitoramento: instalar Agent 2 no host e subir `docker-compose.monitoring.yml` (ver [zabbix.md](zabbix.md), [prometheus.md](prometheus.md), [grafana.md](grafana.md)). SG sem portas admin de monitoramento.

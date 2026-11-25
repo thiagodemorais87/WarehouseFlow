@@ -1,0 +1,33 @@
+# Exemplo de configuração do Zabbix Agent 2 no host Debian.
+# Instalar pacote zabbix-agent2 7.0.x (mesma major do Server) — ver docs/devops/zabbix.md
+#
+# Copiar trechos relevantes para /etc/zabbix/zabbix_agent2.conf
+# (ou drop-in em /etc/zabbix/zabbix_agent2.d/).
+
+PidFile=/run/zabbix/zabbix_agent2.pid
+LogFile=/var/log/zabbix/zabbix_agent2.log
+LogFileSize=10
+
+# Hostname visível no Zabbix Server (deve bater com o Host cadastrado na UI)
+Hostname=Debian-WarehouseFlow
+
+# Passive checks: quem pode consultar o Agent (IP do container zabbix-server
+# na rede monitoring, ou a subnet). Descubra com:
+#   docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' \
+#     $(docker compose -p warehouseflow-monitoring -f docker-compose.monitoring.yml ps -q zabbix-server)
+#
+# Exemplo permitindo a subnet da rede monitoring:
+Server=172.28.0.0/16
+
+# Active checks desabilitados neste desenho (passive-only). Deixe vazio ou comente.
+# ServerActive=
+
+ListenPort=10050
+# Escuta em todas as interfaces locais; o firewall (ufw) restringe a origem.
+ListenIP=0.0.0.0
+
+# Timeout de itens
+Timeout=10
+
+# Plugins padrão do Agent 2 cobrem CPU, memória, disco, rede e availability.
+Include=/etc/zabbix/zabbix_agent2.d/*.conf

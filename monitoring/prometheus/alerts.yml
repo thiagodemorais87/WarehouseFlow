@@ -1,0 +1,47 @@
+groups:
+  - name: warehouseflow-monitoring
+    rules:
+      - alert: TargetDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Target Prometheus down ({{ $labels.job }})"
+          description: "Job {{ $labels.job }} instance {{ $labels.instance }} está down há mais de 5 minutos."
+
+      - alert: WarehouseFlowHealthFailing
+        expr: probe_success{probe="health",app="warehouseflow"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "WarehouseFlow /health falhou"
+          description: "Probe HTTP /health sem sucesso."
+
+      - alert: WarehouseFlowReadyFailing
+        expr: probe_success{probe="ready",app="warehouseflow"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "WarehouseFlow /ready falhou"
+          description: "Probe HTTP /ready sem sucesso (API ou PostgreSQL)."
+
+      - alert: HostHighMemory
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 0.90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memória do host acima de 90%"
+          description: "Uso de memória do host Debian > 90%."
+
+      - alert: HostDiskAlmostFull
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) < 0.10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disco com menos de 10% livre"
+          description: "Filesystem {{ $labels.mountpoint }} com pouco espaço."

@@ -1,0 +1,285 @@
+# Stack de monitoramento WarehouseFlow (isolado da aplicação).
+#
+# Pré-requisitos:
+#   1. Rede da app existente (APP_NETWORK) — ou: docker network create <nome>
+#   2. Copiar .env.monitoring.example → .env.monitoring
+#   3. No Debian: Zabbix Agent 2 no host (ver docs/devops/zabbix.md)
+#
+# Subir:
+#   docker compose -p warehouseflow-monitoring -f docker-compose.monitoring.yml --env-file .env.monitoring up -d
+#
+# UIs apenas em 127.0.0.1 (túnel SSH em produção):
+#   Zabbix Web  http://127.0.0.1:8081
+#   Prometheus  http://127.0.0.1:9090
+#   Grafana     http://127.0.0.1:3000
+
+name: warehouseflow-monitoring
+
+services:
+  zabbix-db:
+    image: postgres:16.6-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${ZABBIX_POSTGRES_USER:-zabbix}
+      POSTGRES_PASSWORD: ${ZABBIX_POSTGRES_PASSWORD:?ZABBIX_POSTGRES_PASSWORD required}
+      POSTGRES_DB: ${ZABBIX_POSTGRES_DB:-zabbix}
+    volumes:
+      - zabbix_pgdata:/var/lib/postgresql/data
+    networks:
+      - monitoring
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    mem_limit: 384m
+    cpus: 0.50
+    # Sem ports — não expor PostgreSQL do Zabbix.
+
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:alpine-7.0.17
+    restart: unless-stopped
+    depends_on:
+      zabbix-db:
+        condition: service_healthy
+    environment:
+      DB_SERVER_HOST: zabbix-db
+      POSTGRES_USER: ${ZABBIX_POSTGRES_USER:-zabbix}
+      POSTGRES_PASSWORD: ${ZABBIX_POSTGRES_PASSWORD:?ZABBIX_POSTGRES_PASSWORD required}
+      POSTGRES_DB: ${ZABBIX_POSTGRES_DB:-zabbix}
+    networks:
+      - monitoring
+    # Passive checks: Server → Agent:10050. Sem publish de 10051.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pgrep zabbix_server >/dev/null || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+    mem_limit: 512m
+    cpus: 0.50
+
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:alpine-7.0.17
+    restart: unless-stopped
+    depends_on:
+      zabbix-db:
+        condition: service_healthy
+      zabbix-server:
+        condition: service_started
+    environment:
+      ZBX_SERVER_HOST: zabbix-server
+      DB_SERVER_HOST: zabbix-db
+      POSTGRES_USER: ${ZABBIX_POSTGRES_USER:-zabbix}
+      POSTGRES_PASSWORD: ${ZABBIX_POSTGRES_PASSWORD:?ZABBIX_POSTGRES_PASSWORD required}
+      POSTGRES_DB: ${ZABBIX_POSTGRES_DB:-zabbix}
+      PHP_TZ: ${PHP_TZ:-America/Sao_Paulo}
+    ports:
+      - "127.0.0.1:8081:8080"
+    networks:
+      - monitoring
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://127.0.0.1:8080/ | head -c 1 >/dev/null || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 45s
+    mem_limit: 256m
+    cpus: 0.25
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ./monitoring/prometheus/blackbox.yml:/etc/prometheus/blackbox.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    networks:
+      - monitoring
+      - app
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:9090/-/healthy >/dev/null || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    mem_limit: 256m
+    cpus: 0.25
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    restart: unless-stopped
+    command:
+      - --docker_only=true
+      - --housekeeping_interval=30s
+      - --enable_metrics=cpu,memory,network,diskIO,disk
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - monitoring
+    # Sem ports — scrape só na rede monitoring.
+    # privileged necessário para cgroups/layerdb (Docker Desktop e vários hosts Debian 12).
+    # Sem isso a API responde mas métricas por container ficam vazias — ver docs/devops/prometheus.md.
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:8080/healthz >/dev/null || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    mem_limit: 192m
+    cpus: 0.25
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    restart: unless-stopped
+    command:
+      - --path.rootfs=/host
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    volumes:
+      # Em Debian/EC2 prefira :ro,rslave (ver docs/devops/prometheus.md).
+      # Sem rslave para compatibilidade com Docker Desktop.
+      - /:/host:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    networks:
+      - monitoring
+    pid: host
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/bin/node_exporter",
+          "--version",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    mem_limit: 64m
+    cpus: 0.10
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.16.0
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: ${POSTGRES_EXPORTER_DSN:?POSTGRES_EXPORTER_DSN required}
+    networks:
+      - monitoring
+      - app
+    # Imagem mínima sem wget/curl; o scrape do Prometheus valida a coleta.
+    healthcheck:
+      test: ["CMD", "/bin/postgres_exporter", "--version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    mem_limit: 64m
+    cpus: 0.10
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.25.0
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus/blackbox.yml:/config/blackbox.yml:ro
+    command:
+      - --config.file=/config/blackbox.yml
+    networks:
+      - monitoring
+      - app
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:9115/metrics >/dev/null || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    mem_limit: 64m
+    cpus: 0.10
+
+  grafana:
+    image: grafana/grafana:11.3.1
+    restart: unless-stopped
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:?GF_SECURITY_ADMIN_PASSWORD required}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SERVER_HTTP_ADDR: 0.0.0.0
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - monitoring
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- http://127.0.0.1:3000/api/health >/dev/null || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    mem_limit: 192m
+    cpus: 0.25
+
+networks:
+  monitoring:
+    driver: bridge
+    name: warehouseflow-monitoring_monitoring
+  app:
+    external: true
+    name: ${APP_NETWORK:-warehouseflow_default}
+
+volumes:
+  zabbix_pgdata:
+  prometheus_data:
+  grafana_data:
