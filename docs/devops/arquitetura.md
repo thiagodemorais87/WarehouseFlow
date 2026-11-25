@@ -51,6 +51,14 @@ Deploy operacional usa cópia do código em `/opt/warehouseflow/{staging,product
 - Liveness: `GET /health`
 - Readiness: `GET /ready` (ping real ao PostgreSQL)
 
+## Monitoramento (stack separado)
+
+Compose isolado [`docker-compose.monitoring.yml`](../../docker-compose.monitoring.yml): Zabbix (Server/Web + Postgres próprio) + Prometheus + cAdvisor + Grafana + exporters. Agent 2 no host Debian. UIs em `127.0.0.1` apenas.
+
+- [zabbix.md](zabbix.md)
+- [prometheus.md](prometheus.md)
+- [grafana.md](grafana.md)
+
 ## Documentos relacionados
 
 - [docker.md](docker.md)

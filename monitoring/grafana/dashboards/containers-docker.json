@@ -1,0 +1,102 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percent" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "sum by (name, id) (rate(container_cpu_usage_seconds_total{id!=\"/\"}[5m])) * 100",
+          "legendFormat": "{{name}} {{id}}",
+          "refId": "A"
+        }
+      ],
+      "title": "CPU por container",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "container_memory_working_set_bytes{id!=\"/\"}",
+          "legendFormat": "{{name}} {{id}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Memória por container",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "sum by (name, id) (rate(container_network_receive_bytes_total{id!=\"/\"}[5m]))",
+          "legendFormat": "rx {{name}} {{id}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (name, id) (rate(container_network_transmit_bytes_total{id!=\"/\"}[5m]))",
+          "legendFormat": "tx {{name}} {{id}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Rede por container",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "container_last_seen{id!=\"/\"}",
+          "legendFormat": "{{name}} {{id}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Containers vistos (last_seen)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } }, "type": "value" }
+          ]
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 16 },
+      "id": 5,
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        { "expr": "up{job=\"cadvisor\"}", "legendFormat": "cadvisor", "refId": "A" }
+      ],
+      "title": "cAdvisor UP",
+      "type": "stat"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["docker", "cadvisor"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "title": "Containers Docker",
+  "uid": "wf-containers-docker",
+  "version": 1
+}
