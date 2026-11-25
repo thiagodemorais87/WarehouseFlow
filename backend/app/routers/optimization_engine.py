@@ -7,13 +7,13 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from optimization.types import Location
 
 from ..database import get_db
 from ..deps import get_current_user
+from ..filters import ReportFilters, run_filters
 from ..models import User
 from ..models.optimization_run import OptimizationRun
 from ..providers.base import OrderRouteProvider
@@ -30,6 +30,7 @@ from ..schemas.optimization import (
     RouteOptimizeRequest,
     RouteOptimizeResponse,
 )
+from ..services import report_service
 from ..services.optimization_service import (
     get_pick_locations_for_order,
     is_native_compiled,
@@ -224,43 +225,24 @@ def optimize_route_batch_endpoint(
     )
 
 
-def _summary(db: Session) -> OptimizationSummaryResponse:
-    runs_count, avg_reduction, avg_percent = db.query(
-        func.count(OptimizationRun.id),
-        func.avg(OptimizationRun.distance_reduction),
-        func.avg(OptimizationRun.reduction_percent),
-    ).one()
-    return OptimizationSummaryResponse(
-        runs_count=int(runs_count or 0),
-        average_distance_reduction=float(avg_reduction or 0),
-        average_reduction_percent=float(avg_percent or 0),
-    )
-
-
-def _picking_runs(db: Session) -> list[OptimizationRun]:
-    return (
-        db.query(OptimizationRun)
-        .order_by(OptimizationRun.executed_at.desc(), OptimizationRun.id.desc())
-        .all()
-    )
-
-
 @router.get("/reports/summary", response_model=OptimizationSummaryResponse)
 def optimization_summary(
     _: User = Depends(get_current_user),
+    filters: ReportFilters = Depends(run_filters),
     db: Session = Depends(get_db),
 ) -> OptimizationSummaryResponse:
-    """Redução média de distância a partir das execuções já gravadas."""
-    return _summary(db)
+    """Redução média de distância (filtros opcionais: período e perfil)."""
+    return OptimizationSummaryResponse(**report_service.optimization_summary(db, filters))
 
 
 @router.get("/reports/picking", response_model=list[OptimizationRunResponse])
 def optimization_picking_report(
     _: User = Depends(get_current_user),
+    filters: ReportFilters = Depends(run_filters),
     db: Session = Depends(get_db),
 ) -> list[OptimizationRun]:
     """Relatório de picking: rotas, distâncias, tempo e quem executou."""
-    return _picking_runs(db)
+    return report_service.picking_runs(db, filters)
 
 
 def _route_cell(route: list[str] | None) -> str:
@@ -270,9 +252,10 @@ def _route_cell(route: list[str] | None) -> str:
 @router.get("/reports/picking.csv")
 def optimization_picking_csv(
     _: User = Depends(get_current_user),
+    filters: ReportFilters = Depends(run_filters),
     db: Session = Depends(get_db),
 ) -> StreamingResponse:
-    """Exporta o relatório de picking em CSV."""
+    """Exporta o relatório de picking em CSV considerando os filtros aplicados."""
     buffer = io.StringIO()
     writer = csv.writer(buffer)
     writer.writerow(
@@ -296,7 +279,7 @@ def optimization_picking_csv(
             "locations_count",
         ]
     )
-    for run in _picking_runs(db):
+    for run in report_service.picking_runs(db, filters):
         executed_at = run.executed_at.isoformat() if run.executed_at else ""
         writer.writerow(
             [
@@ -311,39 +294,3 @@ def optimization_picking_csv(
                 _route_cell(run.two_opt_route),
                 run.distance_before,
                 run.nearest_neighbor_distance,
-                run.two_opt_distance,
-                run.distance_after,
-                run.distance_reduction,
-                run.reduction_percent,
-                run.execution_time_ms,
-                run.locations_count,
-            ]
-        )
-    buffer.seek(0)
-    return StreamingResponse(
-        iter([buffer.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=picking-report.csv"},
-    )
-
-
-@router.get(
-    "/orders/{order_id}/pick-locations",
-    response_model=list[PickLocationResponse],
-)
-def list_pick_locations_for_order(
-    order_id: int,
-    _: User = Depends(get_current_user),
-    provider: OrderRouteProvider = Depends(get_order_route_provider),
-) -> list[PickLocationResponse]:
-    """Lista posições de picking do pedido na ordem dos itens."""
-    try:
-        locations = get_pick_locations_for_order(order_id, provider)
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc),
-        ) from exc
-    return [
-        PickLocationResponse(id=loc.id, x=loc.x, y=loc.y) for loc in locations
-    ]
