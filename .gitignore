@@ -8,6 +8,8 @@ ENV/
 .env
 .env.*
 !.env.example
+!.env.staging.example
+!.env.production.example
 
 # Bytecode e Cache do Python
 __pycache__/

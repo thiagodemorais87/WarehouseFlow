@@ -8,12 +8,35 @@ from jose import jwt
 
 load_dotenv()
 
+APP_ENV = os.getenv("APP_ENV", "development").strip().lower() or "development"
+
+_WEAK_SECRET_PLACEHOLDERS = {
+    "",
+    "altere-esta-chave-em-desenvolvimento",
+    "SUBSTITUA_POR_UMA_CHAVE_SECRETA_ALEATORIA",
+    "SUBSTITUA_POR_UMA_CHAVE_SECRETA_ALEATORIA_LONGA",
+    "change-me",
+    "secret",
+    "test-secret",
+}
+
 SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
     raise ValueError("A variável SECRET_KEY não foi encontrada no arquivo .env")
 
+if APP_ENV in {"staging", "production"}:
+    if SECRET_KEY.strip() in _WEAK_SECRET_PLACEHOLDERS or len(SECRET_KEY.strip()) < 32:
+        raise ValueError(
+            "SECRET_KEY fraca ou placeholder detectada. "
+            "Em staging/produção use uma chave aleatória com pelo menos 32 caracteres."
+        )
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 horas de validade
+
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() in ("1", "true", "yes")
+COOKIE_SAMESITE = "lax"
+COOKIE_HTTPONLY = True
 
 
 def hash_password(password: str) -> str:

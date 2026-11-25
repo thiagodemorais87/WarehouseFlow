@@ -153,9 +153,11 @@ def test_optimization_runs_sql_e_identico_ao_trecho_do_schema():
 
 
 def test_compose_monta_so_o_schema_como_ddl_oficial():
+    """schema.sql é o DDL oficial; seed e optimization_runs (legado/idempotente) no initdb.d."""
     compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
     assert "01-schema.sql" in compose and "02-seed.sql" in compose
-    assert "optimization_runs.sql" not in compose
+    assert "03-optimization_runs.sql" in compose
+    assert "./backend/database/migrations:/migrations" in compose
 
 
 def test_orm_grava_e_le_optimization_runs_no_ddl_oficial(db):
