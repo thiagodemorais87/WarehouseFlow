@@ -42,7 +42,7 @@ CREATE TABLE locations (
     aisle VARCHAR(10),
     rack VARCHAR(10),
     shelf VARCHAR(10),
-    is_active BOOLEAN DEFAULT TRUE
+    is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 -- 6. Stock (Estoque)
@@ -98,7 +98,6 @@ CREATE TABLE optimization_results (
 );
 
 -- 11. Optimization Runs (histórico de execuções do motor NN + 2-opt)
--- Mesmo DDL de optimization_runs.sql (init Docker + artefato dedicado).
 CREATE TABLE IF NOT EXISTS optimization_runs (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
