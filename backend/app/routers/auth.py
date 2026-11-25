@@ -5,7 +5,14 @@ from ..database import get_db
 from ..deps import get_current_user
 from ..models import User
 from ..schemas.user import AuthUserResponse, LoginRequest, TokenResponse
-from ..security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, verify_password
+from ..security import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    COOKIE_HTTPONLY,
+    COOKIE_SAMESITE,
+    COOKIE_SECURE,
+    create_access_token,
+    verify_password,
+)
 
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -59,8 +66,9 @@ def login(login_data: LoginRequest, response: Response, db: Session = Depends(ge
     response.set_cookie(
         "access_token",
         access_token,
-        httponly=True,
-        samesite="lax",
+        httponly=COOKIE_HTTPONLY,
+        samesite=COOKIE_SAMESITE,
+        secure=COOKIE_SECURE,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 

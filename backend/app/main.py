@@ -11,6 +11,7 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -29,7 +30,14 @@ from .routers import (
     users,
 )
 from .routers.optimization_engine import router as optimization_engine_router
-from .security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, verify_password
+from .security import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    COOKIE_HTTPONLY,
+    COOKIE_SAMESITE,
+    COOKIE_SECURE,
+    create_access_token,
+    verify_password,
+)
 
 # Inicializa as tabelas no PostgreSQL
 Base.metadata.create_all(bind=engine)
@@ -39,6 +47,7 @@ logger = logging.getLogger(__name__)
 ROOT_DIR = Path(__file__).resolve().parents[2]
 FRONTEND_DIR = Path(os.getenv("FRONTEND_DIR", str(ROOT_DIR / "frontend"))).resolve()
 APP_VERSION = os.getenv("APP_VERSION", "dev")
+ENABLE_DOCS = os.getenv("ENABLE_DOCS", "true").lower() in ("1", "true", "yes")
 
 # Página para onde o usuário vai após logar via formulário (cookie)
 POST_LOGIN_URL = "/inicio"
@@ -47,6 +56,9 @@ app = FastAPI(
     title="WarehouseFlow API",
     description="API inteligente para gerenciamento e otimização de operações em armazéns.",
     version=APP_VERSION,
+    docs_url="/docs" if ENABLE_DOCS else None,
+    redoc_url="/redoc" if ENABLE_DOCS else None,
+    openapi_url="/openapi.json" if ENABLE_DOCS else None,
 )
 
 
@@ -152,8 +164,9 @@ if FRONTEND_DIR.exists():
         response.set_cookie(
             "access_token",
             token,
-            httponly=True,
-            samesite="lax",
+            httponly=COOKIE_HTTPONLY,
+            samesite=COOKIE_SAMESITE,
+            secure=COOKIE_SECURE,
             max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         )
         return response
@@ -175,7 +188,12 @@ if FRONTEND_DIR.exists():
     @app.post("/logout", tags=["Frontend"])
     def logout():
         response = RedirectResponse(url="/login", status_code=303)
-        response.delete_cookie("access_token")
+        response.delete_cookie(
+            "access_token",
+            httponly=COOKIE_HTTPONLY,
+            samesite=COOKIE_SAMESITE,
+            secure=COOKIE_SECURE,
+        )
         return response
 
     def _user_context(user: models.User) -> dict:
@@ -441,6 +459,18 @@ def root():
 @app.get("/health", tags=["Healthcheck"])
 def health() -> dict[str, str]:
     return {"status": "ok", "version": APP_VERSION}
+
+
+@app.get("/ready", tags=["Healthcheck"])
+def ready() -> JSONResponse:
+    """Readiness: verifica conectividade real com o PostgreSQL."""
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return JSONResponse(status_code=200, content={"status": "ready"})
+    except Exception:
+        logger.exception("Readiness check falhou: banco indisponível")
+        return JSONResponse(status_code=503, content={"status": "not_ready"})
 
 
 def custom_openapi() -> dict:

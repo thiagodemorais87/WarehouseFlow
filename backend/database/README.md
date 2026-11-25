@@ -284,6 +284,33 @@ TEST_DATABASE_URL=postgresql+psycopg2://warehouse:warehouse@localhost:5433/wareh
 
 O projeto **não usa Alembic**: as mudanças de schema são **scripts SQL idempotentes** em `backend/database/migrations/`, numerados em ordem. Cada um pode ser executado mais de uma vez e, se houver dado que viole a nova regra, para com uma mensagem explicando o que corrigir (nada é apagado automaticamente).
 
+### initdb.d vs volume já inicializado
+
+O Compose monta `schema.sql`, `seed.sql` e `optimization_runs.sql` em `/docker-entrypoint-initdb.d/`. O PostgreSQL **só executa** esses scripts na **primeira** criação do volume de dados. Se o volume `pgdata` / `warehouseflow_pgdata` já existir, novos arquivos em `initdb.d` **não** são aplicados automaticamente.
+
+Para bancos já em uso, aplique migrations **manualmente e de forma controlada** (um arquivo por vez, com `ON_ERROR_STOP=1`). Não confie exclusivamente no `initdb.d`.
+
+### Procedimento controlado (desenvolvimento)
+
+```bash
+# Dev (credenciais do docker-compose.yml)
+docker compose exec -T db psql -U warehouse -d warehouseflow -v ON_ERROR_STOP=1 -f /migrations/001_constraints.sql
+docker compose exec -T db psql -U warehouse -d warehouseflow -v ON_ERROR_STOP=1 -f /migrations/002_alinha_schema.sql
+```
+
+### Procedimento controlado (staging / produção)
+
+```bash
+# Ajuste -p, --env-file e usuário/banco conforme o .env do ambiente
+docker compose -p warehouseflow-staging --env-file .env.staging -f docker-compose.prod.yml \
+  exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f /migrations/001_constraints.sql
+
+docker compose -p warehouseflow-production --env-file .env.production -f docker-compose.prod.yml \
+  exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f /migrations/002_alinha_schema.sql
+```
+
+**Regras:** não rode migrations destrutivas; não apague volumes para “aplicar schema de novo” em staging/produção; faça backup (`pg_dump`) antes de migrations em ambientes compartilhados. Ver também [`docs/devops/backup.md`](../../docs/devops/backup.md).
+
 | Script | O que faz |
 | :--- | :--- |
 | `001_constraints.sql` | NOT NULL nas FKs, CHECKs de domínio e `ON DELETE RESTRICT` em `order_items.product_id` |

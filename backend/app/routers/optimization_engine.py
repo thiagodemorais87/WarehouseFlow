@@ -294,3 +294,39 @@ def optimization_picking_csv(
                 _route_cell(run.two_opt_route),
                 run.distance_before,
                 run.nearest_neighbor_distance,
+                run.two_opt_distance,
+                run.distance_after,
+                run.distance_reduction,
+                run.reduction_percent,
+                run.execution_time_ms,
+                run.locations_count,
+            ]
+        )
+    buffer.seek(0)
+    return StreamingResponse(
+        iter([buffer.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=picking-report.csv"},
+    )
+
+
+@router.get(
+    "/orders/{order_id}/pick-locations",
+    response_model=list[PickLocationResponse],
+)
+def list_pick_locations_for_order(
+    order_id: int,
+    _: User = Depends(get_current_user),
+    provider: OrderRouteProvider = Depends(get_order_route_provider),
+) -> list[PickLocationResponse]:
+    """Lista posições de picking do pedido na ordem dos itens."""
+    try:
+        locations = get_pick_locations_for_order(order_id, provider)
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    return [
+        PickLocationResponse(id=loc.id, x=loc.x, y=loc.y) for loc in locations
+    ]

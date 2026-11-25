@@ -18,7 +18,12 @@ from app.main import app
 from tests.test_auth import client, login  # noqa: F401  (client é uma fixture)
 
 # Rotas públicas de propósito (todas as outras exigem login)
-PUBLICAS = {("POST", "/auth/login"), ("GET", "/health"), ("GET", "/")}
+PUBLICAS = {
+    ("POST", "/auth/login"),
+    ("GET", "/health"),
+    ("GET", "/ready"),
+    ("GET", "/"),
+}
 
 PERFIS = ("admin", "gestor", "operador")
 COLUNAS = ("sem token", "token inválido", "ADMIN", "GESTOR", "OPERADOR")
