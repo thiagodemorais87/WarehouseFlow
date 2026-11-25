@@ -67,25 +67,60 @@ A API FastAPI adapta JSON → `Location` e chama `optimize_route`:
 |----------|-----------|
 | `POST /optimization/route` | Body com `locations` explícitas |
 | `POST /optimization/route/by-order` | `order_id` → provider → mesmo motor |
+| `POST /optimization/route/batch` | Lote de `order_ids` + T(1)/T(p)/S(p)/E(p) |
 | `GET /optimization/orders/{id}/pick-locations` | Lista posições do pedido (helper) |
 | `GET /optimization/reports/summary` | `runs_count` + redução média |
 | `GET /optimization/reports/picking` | Histórico das execuções |
 | `GET /optimization/reports/picking.csv` | Export CSV do picking |
 
+## Núcleo Cython / C (opcional, recomendado para banca)
+
+Hot path em `_native.pyx` (`manhattan`, `route_distance`) → C compilado. Sem extensão, usa Python puro.
+
+```powershell
+pip install cython
+cd backend
+python build_optimization_native.py build_ext --inplace
+```
+
+Windows exige **Visual C++ Build Tools**. Ver [`docs/paralelismo-lote.md`](../../docs/paralelismo-lote.md).
+
+## UI do lote (sem JS de cálculo)
+
+O modo **Lote paralelo** usa `POST /otimizacao/lote` + Jinja. O JavaScript **não** chama o motor para o lote.
+
+## Lote paralelo
+
+```python
+from optimization import optimize_routes_batch, Location
+
+jobs = [
+    ([Location("A", 1, 1), Location("B", 5, 5)], Location("START", 0, 0)),
+    ([Location("C", 2, 0), Location("D", 8, 3)], Location("START", 0, 0)),
+]
+batch = optimize_routes_batch(jobs, workers=2, repeats=4)
+print(batch.sequential_ms, batch.parallel_ms, batch.speedup, batch.efficiency)
+```
+
 `POST /optimization/route/by-order` usa `SqlAlchemyOrderRouteProvider` (OUTBOUND → itens → stock → location).  
 Coordenadas `(x, y)` são derivadas de aisle/rack/shelf/code.  
 `MemoryOrderRouteProvider` permanece para testes e overrides (pedido sem posições → `KeyError` / HTTP 404).
 
-Histórico: cada otimização bem-sucedida tenta gravar em `optimization_runs`. Falha de persistência **não** quebra o POST (ainda retorna 200).
+Histórico **oficial**: cada otimização bem-sucedida tenta gravar em `optimization_runs`. Falha de persistência **não** quebra o POST (ainda retorna 200; o erro é logado).
+
+A tabela/`/optimization-results` é **legado (deprecated)** — CRUD por `task_id`, fora do pipeline NN + 2-opt. Não remover nesta sprint; não usar na UI do motor.
 
 Contrato estável para o frontend: [`docs/contrato_api_otimizacao.md`](../../docs/contrato_api_otimizacao.md).  
-Detalhes técnicos: [`docs/optimization.md`](../../docs/optimization.md).
+Detalhes técnicos: [`docs/optimization.md`](../../docs/optimization.md).  
+Manual técnico (seção motor): [`docs/manual-tecnico.md`](../../docs/manual-tecnico.md).
 
 ### DDL do histórico
 
 Arquivo dedicado (só a tabela do motor):
 
 [`backend/database/optimization_runs.sql`](../database/optimization_runs.sql)
+
+Também incluída em [`backend/database/schema.sql`](../database/schema.sql) e no init Docker como `03-optimization_runs.sql` (`IF NOT EXISTS`).
 
 ### Evidência ponta a ponta
 

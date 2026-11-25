@@ -98,11 +98,6 @@ CREATE TABLE optimization_results (
 );
 
 -- 11. Optimization Runs (histórico de execuções do motor NN + 2-opt)
--- Fonte única do DDL: o Compose só monta este arquivo (01-schema.sql).
--- optimization_runs.sql é a cópia dedicada para aplicar em bancos antigos
--- (um teste garante que as duas são idênticas). Sem FK em user_id/order_id
--- de propósito: é histórico/auditoria e deve sobreviver à exclusão do usuário
--- ou do pedido (por isso guarda também user_email).
 CREATE TABLE IF NOT EXISTS optimization_runs (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,

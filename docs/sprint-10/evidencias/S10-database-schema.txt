@@ -1,0 +1,24 @@
+Temporary SQLite smoke-test database; schema inventory only (no row data/credentials).
+Table count: 11
+Tables:
+  - locations
+      FK warehouse_id -> warehouses.id (on delete CASCADE)
+  - optimization_results
+      FK suggested_location_id -> locations.id (on delete NO ACTION)
+      FK task_id -> tasks.id (on delete CASCADE)
+  - optimization_runs
+  - order_items
+      FK product_id -> products.id (on delete RESTRICT)
+      FK order_id -> orders.id (on delete CASCADE)
+  - orders
+  - products
+  - roles
+  - stock
+      FK location_id -> locations.id (on delete CASCADE)
+      FK product_id -> products.id (on delete CASCADE)
+  - tasks
+      FK assigned_user_id -> users.id (on delete SET NULL)
+      FK order_id -> orders.id (on delete CASCADE)
+  - users
+      FK role_id -> roles.id (on delete SET NULL)
+  - warehouses

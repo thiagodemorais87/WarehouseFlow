@@ -1,0 +1,269 @@
+{
+  "info": {
+    "_postman_id": "fc4ad38b-78dd-4cd9-b73b-0f8c129e7b3a",
+    "name": "WarehouseFlow - Otimizacao",
+    "description": "Autentica na API e testa o motor de picking: otimizacao por coordenadas, consulta das posicoes de um pedido e otimizacao por order_id. Configure loginPassword e orderId para os dados do seu ambiente.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "loginEmail",
+      "value": "admin@warehouseflow.com",
+      "type": "string"
+    },
+    {
+      "key": "loginPassword",
+      "value": "PREENCHA_COM_UMA_SENHA_VALIDA",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Autenticacao",
+      "item": [
+        {
+          "name": "Login na API",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{loginEmail}}\",\n  \"password\": \"{{loginPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/auth/login",
+            "description": "Retorna o JWT e salva access_token na variavel de collection para as chamadas protegidas."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('retorna HTTP 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('salva um access_token bearer', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.access_token).to.be.a('string').and.not.empty;",
+                  "  pm.expect(body.token_type).to.eql('bearer');",
+                  "  pm.collectionVariables.set('accessToken', body.access_token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Motor de picking",
+      "item": [
+        {
+          "name": "Otimizar rota por coordenadas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locations\": [\n    {\"id\": \"FAR1\", \"x\": 10, \"y\": 0},\n    {\"id\": \"NEAR1\", \"x\": 1, \"y\": 0},\n    {\"id\": \"FAR2\", \"x\": 11, \"y\": 0},\n    {\"id\": \"NEAR2\", \"x\": 2, \"y\": 0}\n  ],\n  \"start\": {\"id\": \"START\", \"x\": 0, \"y\": 0}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/optimization/route",
+            "description": "Executa Nearest Neighbor + 2-opt sobre as localizacoes enviadas no body."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('retorna HTTP 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('retorna rotas e metricas de otimizacao', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.original_route).to.be.an('array');",
+                  "  pm.expect(body.nearest_neighbor_route).to.be.an('array');",
+                  "  pm.expect(body.two_opt_route).to.be.an('array');",
+                  "  pm.expect(body.locations_count).to.eql(4);",
+                  "  pm.expect(body.distance_after).to.eql(body.two_opt_distance);",
+                  "  pm.expect(body.two_opt_distance).to.be.at.most(body.nearest_neighbor_distance);",
+                  "  pm.expect(body.execution_time_ms).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar posicoes de picking do pedido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/optimization/orders/{{orderId}}/pick-locations",
+            "description": "Lista as posicoes do pedido na ordem dos itens. Requer orderId de um pedido valido com posicoes de estoque configuradas."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('retorna HTTP 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('retorna lista de posicoes com coordenadas', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.be.an('array');",
+                  "  body.forEach((location) => {",
+                  "    pm.expect(location.id).to.be.a('string');",
+                  "    pm.expect(location.x).to.be.a('number');",
+                  "    pm.expect(location.y).to.be.a('number');",
+                  "  });",
+                  "  pm.collectionVariables.set('pickLocationCount', body.length);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Otimizar rota por pedido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": {{orderId}},\n  \"start\": {\"id\": \"START\", \"x\": 0, \"y\": 0}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/optimization/route/by-order",
+            "description": "Busca as posicoes do pedido no PostgreSQL e calcula a rota. orderId deve identificar um pedido OUTBOUND existente."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('retorna HTTP 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('retorna rota otimizada para o pedido', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.original_route).to.be.an('array');",
+                  "  pm.expect(body.two_opt_route).to.be.an('array');",
+                  "  pm.expect(body.locations_count).to.be.a('number');",
+                  "  pm.expect(body.distance_after).to.eql(body.two_opt_distance);",
+                  "  pm.expect(body.two_opt_distance).to.be.at.most(body.nearest_neighbor_distance);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validar rejeicao de IDs duplicados",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locations\": [\n    {\"id\": \"A01\", \"x\": 1, \"y\": 1},\n    {\"id\": \"A01\", \"x\": 2, \"y\": 2}\n  ],\n  \"start\": {\"id\": \"START\", \"x\": 0, \"y\": 0}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/optimization/route",
+            "description": "Caso negativo: IDs repetidos devem ser rejeitados com HTTP 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('retorna HTTP 400 para IDs duplicados', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().detail.toLowerCase()).to.include('duplicado');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

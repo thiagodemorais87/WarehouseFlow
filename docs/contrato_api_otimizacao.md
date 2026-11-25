@@ -4,8 +4,10 @@
 **Prefixo:** `/optimization`  
 **Auth:** JWT em todos os endpoints abaixo  
 
-Histórico é gravado **implicitamente** em `POST /optimization/route` e `POST /optimization/route/by-order`.  
+Histórico **oficial** é gravado **implicitamente** em `POST /optimization/route` e `POST /optimization/route/by-order` (tabela `optimization_runs`).  
 Não existe `POST /optimization/history`.
+
+**Legado (deprecated):** `/optimization-results` + tabela `optimization_results` (CRUD por `task_id`) — **não** faz parte deste contrato nem do pipeline do motor. Preferir sempre `/optimization/*`.
 
 ---
 
@@ -92,7 +94,43 @@ Mesmo `RouteOptimizeResponse` da seção 3. Grava histórico com `source="by-ord
 
 ---
 
-## 5. Histórico e relatórios
+## 5. `POST /optimization/route/batch`
+
+Otimiza vários pedidos OUTBOUND: resolve posições **antes** do pool; mede sequencial vs paralelo.
+
+### Request
+
+```json
+{
+  "order_ids": [1, 2, 3, 4],
+  "workers": 4,
+  "repeats": 4,
+  "start": { "id": "START", "x": 0, "y": 0 }
+}
+```
+
+- `workers` = `p` (1–16).  
+- `repeats` = repetições do motor por pedido (demo de speedup; default 1).  
+- Qualquer pedido inválido → **404** no lote inteiro.  
+- `order_ids` duplicados → **400**.
+
+### Response 200
+
+| Campo | Significado |
+|-------|-------------|
+| `results[].order_id` + `results[].result` | Mesmo `RouteOptimizeResponse` por pedido |
+| `sequential_ms` | T(1) |
+| `parallel_ms` | T(p) |
+| `speedup` | S(p) = T(1)/T(p) |
+| `efficiency` | E(p) = S(p)/p |
+| `workers` / `orders_count` | p e N |
+| `native_compiled` | extensão Cython carregada? |
+
+Histórico: cada item grava em `optimization_runs` com `source="batch"` (best-effort).
+
+---
+
+## 6. Histórico e relatórios
 
 ### `GET /optimization/reports/summary` — `OptimizationSummaryResponse`
 
@@ -127,7 +165,7 @@ Campos lidos pela tabela do FE (`picking-report.js`):
 
 ---
 
-## 6. Helper
+## 7. Helper
 
 ### `GET /optimization/orders/{order_id}/pick-locations`
 
@@ -135,7 +173,7 @@ Lista `{id, x, y}` na ordem dos itens. `404` se o provider falhar (mesmo critér
 
 ---
 
-## 7. Regras do motor (resumo)
+## 8. Regras do motor (resumo)
 
 | Regra | Comportamento |
 |-------|----------------|
@@ -146,6 +184,10 @@ Lista `{id, x, y}` na ordem dos itens. `404` se o provider falhar (mesmo critér
 
 ---
 
-## 8. DDL do histórico
+## 9. DDL do histórico
 
-Tabela `optimization_runs`: ver [`backend/database/optimization_runs.sql`](../backend/database/optimization_runs.sql).
+Tabela **oficial** `optimization_runs`: ver [`backend/database/optimization_runs.sql`](../backend/database/optimization_runs.sql).
+
+Também faz parte do DDL oficial em [`backend/database/schema.sql`](../backend/database/schema.sql) e do init Docker (`03-optimization_runs.sql`).
+
+Tabela **legado (deprecated)** `optimization_results`: permanece no schema por compatibilidade; não é escrita pelo motor NN + 2-opt.

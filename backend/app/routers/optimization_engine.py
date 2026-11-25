@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -22,6 +23,9 @@ from ..schemas.optimization import (
     OptimizationRunResponse,
     OptimizationSummaryResponse,
     PickLocationResponse,
+    RouteOptimizeBatchItemResponse,
+    RouteOptimizeBatchRequest,
+    RouteOptimizeBatchResponse,
     RouteOptimizeByOrderRequest,
     RouteOptimizeRequest,
     RouteOptimizeResponse,
@@ -29,9 +33,13 @@ from ..schemas.optimization import (
 from ..services import report_service
 from ..services.optimization_service import (
     get_pick_locations_for_order,
+    is_native_compiled,
+    optimize_batch_from_order_ids,
     optimize_from_order_id,
     optimize_from_request,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/optimization", tags=["optimization"])
 
@@ -72,6 +80,11 @@ class OptimizationRunRecorder:
             self.db.commit()
         except Exception:
             self.db.rollback()
+            logger.exception(
+                "Falha ao gravar optimization_runs (source=%s order_id=%s)",
+                source,
+                order_id,
+            )
 
 
 def get_run_recorder(db: Session = Depends(get_db)) -> OptimizationRunRecorder:
@@ -153,6 +166,65 @@ def optimize_route_by_order_endpoint(
     return _to_response(result)
 
 
+@router.post("/route/batch", response_model=RouteOptimizeBatchResponse)
+def optimize_route_batch_endpoint(
+    request: RouteOptimizeBatchRequest,
+    current_user: User = Depends(get_current_user),
+    provider: OrderRouteProvider = Depends(get_order_route_provider),
+    recorder: OptimizationRunRecorder = Depends(get_run_recorder),
+) -> RouteOptimizeBatchResponse:
+    """Otimiza vários pedidos: baseline sequencial + ProcessPool; devolve S(p)/E(p)."""
+    if len(set(request.order_ids)) != len(request.order_ids):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="order_ids contém duplicados.",
+        )
+    try:
+        order_ids, batch = optimize_batch_from_order_ids(
+            request.order_ids,
+            provider,
+            start=_start_from_schema(request.start),
+            workers=request.workers,
+            repeats=request.repeats,
+        )
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    items: list[RouteOptimizeBatchItemResponse] = []
+    for order_id, result in zip(order_ids, batch.results):
+        recorder.save(
+            current_user,
+            result,
+            source="batch",
+            order_id=order_id,
+        )
+        items.append(
+            RouteOptimizeBatchItemResponse(
+                order_id=order_id,
+                result=_to_response(result),
+            )
+        )
+
+    return RouteOptimizeBatchResponse(
+        results=items,
+        sequential_ms=batch.sequential_ms,
+        parallel_ms=batch.parallel_ms,
+        speedup=batch.speedup,
+        efficiency=batch.efficiency,
+        workers=batch.workers,
+        orders_count=batch.jobs_count,
+        native_compiled=is_native_compiled(),
+    )
+
+
 @router.get("/reports/summary", response_model=OptimizationSummaryResponse)
 def optimization_summary(
     _: User = Depends(get_current_user),
@@ -222,39 +294,3 @@ def optimization_picking_csv(
                 _route_cell(run.two_opt_route),
                 run.distance_before,
                 run.nearest_neighbor_distance,
-                run.two_opt_distance,
-                run.distance_after,
-                run.distance_reduction,
-                run.reduction_percent,
-                run.execution_time_ms,
-                run.locations_count,
-            ]
-        )
-    buffer.seek(0)
-    return StreamingResponse(
-        iter([buffer.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=picking-report.csv"},
-    )
-
-
-@router.get(
-    "/orders/{order_id}/pick-locations",
-    response_model=list[PickLocationResponse],
-)
-def list_pick_locations_for_order(
-    order_id: int,
-    _: User = Depends(get_current_user),
-    provider: OrderRouteProvider = Depends(get_order_route_provider),
-) -> list[PickLocationResponse]:
-    """Lista posições de picking do pedido na ordem dos itens."""
-    try:
-        locations = get_pick_locations_for_order(order_id, provider)
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc),
-        ) from exc
-    return [
-        PickLocationResponse(id=loc.id, x=loc.x, y=loc.y) for loc in locations
-    ]

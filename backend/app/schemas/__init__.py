@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 from ..enums import OrderStatus, OrderType, TaskStatus, TaskType
 
 # Teto de quantidade (cabe com folga no INTEGER do PostgreSQL: 2.147.483.647)

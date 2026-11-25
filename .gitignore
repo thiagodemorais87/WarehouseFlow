@@ -40,3 +40,9 @@ htmlcov/
 dist/
 build/
 *.egg-info/
+
+# Extensão Cython do motor (artefatos locais)
+*.pyd
+*.so
+backend/optimization/_native.c
+backend/optimization/_native.html

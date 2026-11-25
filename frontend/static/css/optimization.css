@@ -60,6 +60,7 @@
 }
 
 .optimization-mode-button {
+    display: inline-block;
     padding: 11px 20px;
     border: 1px solid #d1d9e6;
     border-radius: 8px;
@@ -68,6 +69,7 @@
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
+    text-decoration: none;
     transition:
         background-color 0.2s ease,
         color 0.2s ease,
@@ -567,4 +569,44 @@
         flex-direction: column;
         gap: 14px;
     }
+
+    .batch-results-table-wrap {
+        overflow-x: auto;
+    }
+}
+
+/* Lote paralelo */
+
+.parallel-metrics-panel {
+    margin-top: 20px;
+}
+
+.batch-results-table-wrap {
+    margin-top: 18px;
+    overflow-x: auto;
+}
+
+.batch-results-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.batch-results-table th,
+.batch-results-table td {
+    border-bottom: 1px solid #e5e7eb;
+    padding: 10px 8px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.batch-results-table th {
+    color: #64748b;
+    font-weight: 700;
+}
+
+.batch-route-cell {
+    max-width: 320px;
+    word-break: break-word;
+    color: #334155;
 }
