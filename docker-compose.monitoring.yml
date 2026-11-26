@@ -252,6 +252,16 @@ services:
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_SERVER_HTTP_ADDR: 0.0.0.0
       GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+      # SMTP (desabilitado por padrão; credenciais só via .env.monitoring)
+      GF_SMTP_ENABLED: ${GF_SMTP_ENABLED:-false}
+      GF_SMTP_HOST: ${SMTP_HOST:-}
+      GF_SMTP_USER: ${SMTP_USER:-}
+      GF_SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      GF_SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-}
+      GF_SMTP_FROM_NAME: ${SMTP_FROM_NAME:-WarehouseFlow Monitoramento}
+      GF_SMTP_STARTTLS_POLICY: ${GF_SMTP_STARTTLS_POLICY:-MandatoryStartTLS}
+      # Destinatário(s) dos alertas, expandido no provisionamento do Contact Point
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:?ALERT_EMAIL_TO required (destinatario dos alertas)}
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro

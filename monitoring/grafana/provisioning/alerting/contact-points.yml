@@ -1,0 +1,14 @@
+# Contact Point de e-mail dos alertas WarehouseFlow.
+# ${ALERT_EMAIL_TO} é expandido pelo Grafana a partir do ambiente do container
+# (definido em .env.monitoring). Nunca colocar e-mail real neste arquivo.
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: warehouseflow-email
+    receivers:
+      - uid: wf-email
+        type: email
+        settings:
+          addresses: ${ALERT_EMAIL_TO}
+          singleEmail: true
