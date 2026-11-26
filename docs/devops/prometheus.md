@@ -7,7 +7,7 @@ Coleta de métricas em Docker, isolada da aplicação. UIs e scrapes administrat
 | Serviço | Imagem | Papel |
 |---------|--------|-------|
 | `prometheus` | `prom/prometheus:v2.55.1` | TSDB + scrape |
-| `cadvisor` | `gcr.io/cadvisor/cadvisor:v0.49.1` | CPU/mem/rede/estado por container |
+| `cadvisor` | `ghcr.io/google/cadvisor:0.54.0` | CPU/mem/rede/estado por container |
 | `node-exporter` | `prom/node-exporter:v1.8.2` | Métricas do host (via mounts) |
 | `postgres-exporter` | `prometheuscommunity/postgres-exporter:v0.16.0` | Métricas do Postgres **da app** |
 | `blackbox-exporter` | `prom/blackbox-exporter:v0.25.0` | Probes HTTP `/health` e `/ready` |
@@ -92,10 +92,31 @@ Flags: `--docker_only=true`, housekeeping 30s. O Compose usa `privileged: true` 
 
 Em Debian/EC2 nativo, se a coleta por container funcionar sem privileged, remova `privileged` e `devices` e mantenha apenas os mounts ro. Em Docker Desktop (Windows/macOS) o privileged costuma ser inevitável; valide de novo na VM Debian antes de endurecer.
 
-Validar métricas por container:
+### Docker 29 e containerd-snapshotter
+
+O Docker 29 usa por padrão o image store do containerd (`docker info` mostra `driver=overlayfs` / `io.containerd.snapshotter.v1`). Nesse modo, o layout `/var/lib/docker/image/overlayfs/layerdb/mounts/<id>/mount-id` não existe e versões antigas do cAdvisor (ex.: `v0.49.1`) falham com:
+
+```text
+Failed to create existing container: ... failed to identify the read-write layer ID ...
+open /rootfs/var/lib/docker/image/overlayfs/layerdb/mounts/<id>/mount-id: no such file or directory
+```
+
+Sintomas: `GET /api/v1.3/docker` do cAdvisor retorna `{}` e o Prometheus só tem séries com `id="/"`.
+
+Correção adotada: imagem `ghcr.io/google/cadvisor:0.54.0` (inclui o suporte ao containerd-snapshotter; o tag não usa o prefixo `v`). Não é necessário alterar `/etc/docker/daemon.json`; desativar o snapshotter trocaria o image store do Docker e poderia esconder imagens/containers existentes.
+
+Atualizar apenas o cAdvisor no servidor:
 
 ```bash
-curl -s 'http://127.0.0.1:9090/api/v1/query?query=count(container_memory_working_set_bytes{id!="/"})'
+docker compose -p warehouseflow-monitoring -f docker-compose.monitoring.yml --env-file .env.monitoring pull cadvisor
+docker compose -p warehouseflow-monitoring -f docker-compose.monitoring.yml --env-file .env.monitoring up -d cadvisor
+```
+
+Aguardar 1 a 2 minutos e validar:
+
+```bash
+curl -s -G http://127.0.0.1:9090/api/v1/query \
+  --data-urlencode 'query=count(container_memory_working_set_bytes{id!="/"})'
 ```
 
 ## node-exporter
