@@ -28,6 +28,10 @@ logs/
 *.sqlite
 *.sqlite3
 *.db
+backups/
+
+# Estado do deploy no servidor (backups de .env, histórico) — deploy/scripts/deploy.sh
+.deploy/
 
 # Configurações de IDEs
 .vscode/

@@ -7,6 +7,22 @@
 3. Não usar `docker compose down -v` como “rollback”.
 4. Não fazer `git push --force` nem reescrever histórico compartilhado.
 
+## Rollback pelo CI/CD (imagens)
+
+Com o pipeline ([ci-cd.md](ci-cd.md)):
+
+- **Automático**: o deploy volta sozinho para a versão anterior se `pull`, `up` ou o health check falharem.
+- **GitHub**: **Actions → Rollback → Run workflow** (staging a partir do branch `staging`; production a partir de `master`, com aprovação). `image_tag` vazio volta para a versão anterior ao último deploy; preenchido (`sha-xxxxxxx`) implanta essa tag do GHCR.
+- **Na VM, sem GitHub** (volta para as imagens locais `:rollback-<ambiente>`):
+
+```bash
+cd /opt/warehouseflow/staging
+DEPLOY_PATH=/opt/warehouseflow/staging bash deploy/scripts/rollback.sh staging
+cat .deploy/history.log
+```
+
+Para produção, troque o diretório e o ambiente (`production`). O rollback troca só as imagens; não altera o banco nem o clone Git.
+
 ## Rollback de aplicação (staging)
 
 ```bash

@@ -1,0 +1,98 @@
+# Rollback manual de staging ou production — ver docs/devops/ci-cd.md e docs/devops/rollback.md
+#
+# Actions -> Rollback -> Run workflow:
+#   "Use workflow from": staging (para staging) ou master (para production),
+#   por causa da regra de branches de cada environment.
+#   image_tag vazio: volta para a versão anterior ao último deploy (imagens locais :rollback-<ambiente>).
+#   image_tag preenchido (ex.: sha-abc1234): implanta essa tag do GHCR.
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Ambiente
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      image_tag:
+        description: "Tag do GHCR (ex.: sha-abc1234). Vazio = versão anterior ao último deploy"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    name: Rollback ${{ inputs.environment }}
+    runs-on: self-hosted
+    # Production herda a aprovação obrigatória do environment.
+    environment: ${{ inputs.environment }}
+    timeout-minutes: 30
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Metadados das imagens
+        id: meta
+        run: |
+          owner="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          {
+            echo "api_image=ghcr.io/${owner}/warehouseflow-api"
+            echo "nginx_image=ghcr.io/${owner}/warehouseflow-nginx"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Login no GHCR
+        if: inputs.image_tag != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Rollback
+        env:
+          WF_TARGET: ${{ inputs.environment }}
+          WF_TAG: ${{ inputs.image_tag }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          API_IMAGE: ${{ steps.meta.outputs.api_image }}
+          NGINX_IMAGE: ${{ steps.meta.outputs.nginx_image }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          APP_ENV: ${{ vars.APP_ENV }}
+          HTTP_PORT: ${{ vars.HTTP_PORT }}
+          COOKIE_SECURE: ${{ vars.COOKIE_SECURE }}
+          ENABLE_DOCS: ${{ vars.ENABLE_DOCS }}
+          BACKUP_DB: ${{ inputs.environment == 'production' && 'true' || vars.BACKUP_DB }}
+        run: |
+          if [ -n "$WF_TAG" ]; then
+            bash deploy/scripts/rollback.sh "$WF_TARGET" "$WF_TAG"
+          else
+            bash deploy/scripts/rollback.sh "$WF_TARGET"
+          fi
+
+      - name: Publicar log do rollback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rollback-${{ inputs.environment }}-log
+          path: |
+            ${{ runner.temp }}/rollback-${{ inputs.environment }}.log
+            ${{ runner.temp }}/deploy-${{ inputs.environment }}.log
+          retention-days: 90
+          if-no-files-found: ignore
+
+      - name: Logout do GHCR
+        if: always() && inputs.image_tag != ''
+        run: docker logout ghcr.io || true

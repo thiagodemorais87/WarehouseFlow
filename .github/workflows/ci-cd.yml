@@ -1,0 +1,451 @@
+# CI/CD WarehouseFlow — ver docs/devops/ci-cd.md
+#
+# PR para dev/staging/master e push em dev: só CI.
+# Push em staging: CI -> publish (GHCR) -> deploy staging (runner self-hosted).
+# Push em master:  CI -> publish (GHCR) -> aprovação do environment production -> deploy production.
+name: CI/CD
+
+on:
+  push:
+    branches: [dev, staging, master]
+  pull_request:
+    branches: [dev, staging, master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  # Em PR, um push novo cancela a execução anterior; em push nunca cancela (pode haver deploy em curso).
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  PYTHON_VERSION: "3.12"
+  RUFF_VERSION: "0.8.4"
+
+jobs:
+  quality:
+    name: Qualidade
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Instalar ruff
+        run: pip install "ruff==${RUFF_VERSION}"
+
+      - name: Ruff (erros de sintaxe e nomes indefinidos)
+        run: ruff check --output-format=github .
+
+      - name: Compilar backend
+        env:
+          PYTHONPYCACHEPREFIX: ${{ runner.temp }}/pycache
+        run: python -m compileall -q backend
+
+      - name: Actionlint (workflows)
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -no-color
+
+      - name: Shellcheck (scripts de deploy)
+        run: shellcheck -x deploy/scripts/*.sh
+
+      - name: Hadolint Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: error
+
+      - name: Hadolint deploy/Dockerfile.nginx
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: deploy/Dockerfile.nginx
+          failure-threshold: error
+
+  tests:
+    name: Testes (${{ matrix.db }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [sqlite, postgres]
+    services:
+      # Banco descartável do runner; usado só na matriz "postgres".
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: warehouse
+          POSTGRES_PASSWORD: warehouse
+          POSTGRES_DB: warehouseflow_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U warehouse -d warehouseflow_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Pytest
+        env:
+          TEST_DATABASE_URL: ${{ matrix.db == 'postgres' && 'postgresql+psycopg2://warehouse:warehouse@localhost:5432/warehouseflow_test' || '' }}
+          PYTHONPYCACHEPREFIX: ${{ runner.temp }}/pycache
+        run: |
+          mkdir -p reports
+          set -o pipefail
+          python -m pytest -q -p no:cacheprovider -rfE \
+            --junitxml="reports/junit-${{ matrix.db }}.xml" 2>&1 | tee "reports/pytest-${{ matrix.db }}.log"
+
+      - name: Resumo dos testes
+        if: always()
+        run: |
+          python - "reports/junit-${{ matrix.db }}.xml" "${{ matrix.db }}" <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import sys
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          path, db = Path(sys.argv[1]), sys.argv[2]
+          if not path.is_file():
+              print(f"### Testes ({db})\n\nRelatório JUnit não gerado.")
+              sys.exit(0)
+          root = ET.parse(path).getroot()
+          suite = root if root.tag == "testsuite" else root.find("testsuite")
+          total = int(suite.get("tests", 0))
+          failures = int(suite.get("failures", 0)) + int(suite.get("errors", 0))
+          skipped = int(suite.get("skipped", 0))
+          passed = total - failures - skipped
+          print(f"### Testes ({db})\n")
+          print("| Aprovados | Falhas | Ignorados | Tempo (s) |")
+          print("|---|---|---|---|")
+          print(f"| {passed} | {failures} | {skipped} | {float(suite.get('time', 0)):.1f} |")
+          PY
+
+      - name: Publicar relatórios
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-${{ matrix.db }}
+          path: reports/
+          retention-days: 14
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Instalar Jinja2
+        run: pip install "jinja2>=3.1.0"
+
+      - name: Templates, referências estáticas e sintaxe JS
+        run: python scripts/ci/check_frontend.py --require-node
+
+  docker-config:
+    name: Configuração Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compose de desenvolvimento
+        run: |
+          cp .env.example .env
+          docker compose -f docker-compose.yml config -q
+
+      - name: Compose de staging
+        run: docker compose -p warehouseflow-staging --env-file .env.staging.example -f docker-compose.prod.yml config -q
+
+      - name: Compose de produção
+        run: docker compose -p warehouseflow-production --env-file .env.production.example -f docker-compose.prod.yml config -q
+
+      - name: Compose de monitoramento
+        run: docker compose -p warehouseflow-monitoring --env-file .env.monitoring.example -f docker-compose.monitoring.yml config -q
+
+      - name: nginx -t
+        run: |
+          for conf in deploy/nginx.conf deploy/nginx.prod.conf; do
+            echo "== $conf"
+            docker run --rm --add-host api:127.0.0.1 \
+              -v "$PWD/$conf:/etc/nginx/conf.d/default.conf:ro" nginx:alpine nginx -t
+          done
+
+  build:
+    name: Build e smoke test
+    needs: [quality, tests, frontend, docker-config]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      api_image: ${{ steps.meta.outputs.api_image }}
+      nginx_image: ${{ steps.meta.outputs.nginx_image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Metadados das imagens
+        id: meta
+        run: |
+          owner="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          {
+            echo "tag=sha-${GITHUB_SHA::7}"
+            echo "api_image=ghcr.io/${owner}/warehouseflow-api"
+            echo "nginx_image=ghcr.io/${owner}/warehouseflow-nginx"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build das imagens
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          API_IMAGE: ${{ steps.meta.outputs.api_image }}
+          NGINX_IMAGE: ${{ steps.meta.outputs.nginx_image }}
+        run: |
+          source_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+          docker build -t "${API_IMAGE}:${TAG}" \
+            --build-arg APP_VERSION="${TAG}" \
+            --label org.opencontainers.image.source="${source_url}" \
+            --label org.opencontainers.image.revision="${GITHUB_SHA}" .
+          docker build -t "${NGINX_IMAGE}:${TAG}" -f deploy/Dockerfile.nginx \
+            --label org.opencontainers.image.source="${source_url}" \
+            --label org.opencontainers.image.revision="${GITHUB_SHA}" .
+
+      - name: Smoke test da stack de produção
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          API_IMAGE: ${{ steps.meta.outputs.api_image }}
+          NGINX_IMAGE: ${{ steps.meta.outputs.nginx_image }}
+        run: |
+          env_file="${RUNNER_TEMP}/.env.ci"
+          db_pass="$(openssl rand -hex 16)"
+          echo "::add-mask::${db_pass}"
+          {
+            echo "APP_ENV=staging"
+            echo "APP_VERSION=${TAG}"
+            echo "POSTGRES_USER=wf_ci"
+            echo "POSTGRES_PASSWORD=${db_pass}"
+            echo "POSTGRES_DB=wf_ci"
+            echo "DATABASE_URL=postgresql+psycopg2://wf_ci:${db_pass}@db:5432/wf_ci"
+            echo "SECRET_KEY=$(openssl rand -hex 32)"
+            echo "COOKIE_SECURE=false"
+            echo "ENABLE_DOCS=false"
+            echo "HTTP_PORT=8080"
+            echo "API_IMAGE=${API_IMAGE}"
+            echo "NGINX_IMAGE=${NGINX_IMAGE}"
+            echo "IMAGE_TAG=${TAG}"
+          } > "$env_file"
+          docker compose -p wf-ci --env-file "$env_file" -f docker-compose.prod.yml \
+            up -d --no-build --wait --wait-timeout 180
+          bash deploy/scripts/healthcheck.sh http://127.0.0.1:8080 "${TAG}" 12
+
+      - name: Logs da stack (falha)
+        if: failure()
+        run: |
+          mkdir -p reports
+          docker compose -p wf-ci --env-file "${RUNNER_TEMP}/.env.ci" -f docker-compose.prod.yml \
+            logs --no-color > reports/smoke-logs.txt 2>&1 || true
+
+      - name: Derrubar stack descartável
+        if: always()
+        run: |
+          docker compose -p wf-ci --env-file "${RUNNER_TEMP}/.env.ci" -f docker-compose.prod.yml \
+            down -v --remove-orphans || true
+
+      - name: Exportar imagens validadas
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/master')
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          API_IMAGE: ${{ steps.meta.outputs.api_image }}
+          NGINX_IMAGE: ${{ steps.meta.outputs.nginx_image }}
+        run: |
+          mkdir -p images
+          docker save "${API_IMAGE}:${TAG}" "${NGINX_IMAGE}:${TAG}" | gzip > images/warehouseflow-images.tar.gz
+
+      - name: Guardar imagens para o publish
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/master')
+        uses: actions/upload-artifact@v4
+        with:
+          name: images
+          path: images/warehouseflow-images.tar.gz
+          retention-days: 1
+
+      - name: Publicar logs do smoke test
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-logs
+          path: reports/
+          retention-days: 14
+
+  publish:
+    name: Publicar no GHCR
+    needs: build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Baixar imagens validadas
+        uses: actions/download-artifact@v4
+        with:
+          name: images
+
+      - name: Carregar imagens
+        run: gunzip -c warehouseflow-images.tar.gz | docker load
+
+      - name: Login no GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push das tags sha e do branch
+        env:
+          TAG: ${{ needs.build.outputs.tag }}
+          API_IMAGE: ${{ needs.build.outputs.api_image }}
+          NGINX_IMAGE: ${{ needs.build.outputs.nginx_image }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          for image in "$API_IMAGE" "$NGINX_IMAGE"; do
+            docker tag "${image}:${TAG}" "${image}:${BRANCH}"
+            docker push "${image}:${TAG}"
+            docker push "${image}:${BRANCH}"
+          done
+          {
+            echo "### Imagens publicadas"
+            echo ""
+            echo "- \`${API_IMAGE}:${TAG}\` (e \`:${BRANCH}\`)"
+            echo "- \`${NGINX_IMAGE}:${TAG}\` (e \`:${BRANCH}\`)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-staging:
+    name: Deploy staging
+    needs: [build, publish]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+    # Runner self-hosted na VM Debian (registrado com as labels padrão). Nunca roda em pull_request.
+    runs-on: self-hosted
+    environment: staging
+    timeout-minutes: 30
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login no GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy
+        env:
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          DEPLOY_SHA: ${{ github.sha }}
+          DEPLOY_BRANCH: staging
+          API_IMAGE: ${{ needs.build.outputs.api_image }}
+          NGINX_IMAGE: ${{ needs.build.outputs.nginx_image }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          APP_ENV: ${{ vars.APP_ENV }}
+          HTTP_PORT: ${{ vars.HTTP_PORT }}
+          COOKIE_SECURE: ${{ vars.COOKIE_SECURE }}
+          ENABLE_DOCS: ${{ vars.ENABLE_DOCS }}
+          BACKUP_DB: ${{ vars.BACKUP_DB }}
+        run: bash deploy/scripts/deploy.sh staging "${{ needs.build.outputs.tag }}"
+
+      - name: Publicar log do deploy
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-staging-log
+          path: ${{ runner.temp }}/deploy-staging.log
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Logout do GHCR
+        if: always()
+        run: docker logout ghcr.io || true
+
+  deploy-production:
+    name: Deploy production
+    needs: [build, publish]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    # Mesmo runner self-hosted do staging (labels padrão).
+    runs-on: self-hosted
+    # Aprovação obrigatória: configure "Required reviewers" no environment production.
+    environment: production
+    timeout-minutes: 45
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login no GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy (com backup do banco)
+        env:
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          DEPLOY_SHA: ${{ github.sha }}
+          DEPLOY_BRANCH: master
+          API_IMAGE: ${{ needs.build.outputs.api_image }}
+          NGINX_IMAGE: ${{ needs.build.outputs.nginx_image }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          APP_ENV: ${{ vars.APP_ENV }}
+          HTTP_PORT: ${{ vars.HTTP_PORT }}
+          COOKIE_SECURE: ${{ vars.COOKIE_SECURE }}
+          ENABLE_DOCS: ${{ vars.ENABLE_DOCS }}
+          BACKUP_DB: "true"
+        run: bash deploy/scripts/deploy.sh production "${{ needs.build.outputs.tag }}"
+
+      - name: Publicar log do deploy
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-production-log
+          path: ${{ runner.temp }}/deploy-production.log
+          retention-days: 90
+          if-no-files-found: ignore
+
+      - name: Logout do GHCR
+        if: always()
+        run: docker logout ghcr.io || true
