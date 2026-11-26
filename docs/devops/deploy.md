@@ -1,5 +1,11 @@
 # WarehouseFlow — Deploy
 
+## Deploy automatizado (CI/CD)
+
+O caminho padrão é o pipeline GitHub Actions: merge em `staging` implanta staging; merge em `master` implanta produção após aprovação. Imagens vêm do GHCR, o `.env` é gerado a partir dos GitHub Secrets e há health check com rollback automático. Configuração e operação: [ci-cd.md](ci-cd.md).
+
+Os procedimentos abaixo continuam válidos para deploy manual (sem pipeline). Atenção: depois do primeiro deploy automatizado, o `.env.<ambiente>` do servidor passa a apontar para as imagens do GHCR (`API_IMAGE`, `NGINX_IMAGE`, `IMAGE_TAG`); um `up -d --build` manual reconstrói a partir do código local, mas com o nome de imagem do GHCR.
+
 ## Pré-requisitos
 
 - Código no host em `/opt/warehouseflow/staging` ou `/opt/warehouseflow/production`

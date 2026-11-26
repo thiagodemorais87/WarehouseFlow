@@ -1,0 +1,7 @@
+# Ruff no CI: só erros reais (sintaxe, comparações inválidas, nomes indefinidos).
+# Estilo e formatação não são verificados para não exigir mudanças no código existente.
+target-version = "py312"
+extend-exclude = ["docs", "postman"]
+
+[lint]
+select = ["E9", "F63", "F7", "F82"]
