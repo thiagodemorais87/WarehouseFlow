@@ -1,0 +1,10 @@
+# Política raiz: todos os alertas do Grafana vão para o Contact Point warehouseflow-email.
+apiVersion: 1
+
+policies:
+  - orgId: 1
+    receiver: warehouseflow-email
+    group_by: ["alertname"]
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 4h
