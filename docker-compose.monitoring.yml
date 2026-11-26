@@ -132,7 +132,9 @@ services:
     cpus: 0.25
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    # 0.54.0+ inclui suporte ao containerd-snapshotter (Docker 29). O tag não usa prefixo "v".
+    # Versões antigas (ex.: v0.49.1) falham com "failed to identify the read-write layer ID".
+    image: ghcr.io/google/cadvisor:0.54.0
     restart: unless-stopped
     command:
       - --docker_only=true
