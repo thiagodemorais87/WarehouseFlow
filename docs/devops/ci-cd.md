@@ -38,7 +38,6 @@ Arquivos:
 |---------|--------|
 | [`.github/workflows/ci-cd.yml`](../../.github/workflows/ci-cd.yml) | CI, publish e deploy |
 | [`.github/workflows/rollback.yml`](../../.github/workflows/rollback.yml) | Rollback manual |
-| [`.github/actionlint.yaml`](../../.github/actionlint.yaml) | Label do runner self-hosted para o actionlint |
 | [`deploy/scripts/deploy.sh`](../../deploy/scripts/deploy.sh) | Deploy no servidor (com rollback automático) |
 | [`deploy/scripts/rollback.sh`](../../deploy/scripts/rollback.sh) | Rollback no servidor |
 | [`deploy/scripts/healthcheck.sh`](../../deploy/scripts/healthcheck.sh) | Validação `/health` + `/ready` |
@@ -94,11 +93,13 @@ No GitHub: **Settings → Actions → Runners → New self-hosted runner → Lin
 mkdir -p ~/actions-runner && cd ~/actions-runner
 # Baixe e extraia o pacote com os comandos exibidos na página do GitHub (curl + tar).
 ./config.sh --url https://github.com/thiagodemorais87/WarehouseFlow \
-  --token <TOKEN_DA_PAGINA> --name warehouseflow-debian --labels warehouseflow --unattended
+  --token <TOKEN_DA_PAGINA> --name warehouseflow-debian --unattended
 sudo ./svc.sh install vboxuser
 sudo ./svc.sh start
 sudo ./svc.sh status
 ```
+
+O runner deve ficar só com as labels padrão (`self-hosted`, `Linux`, `X64`). Os workflows usam `runs-on: self-hosted`, então não é preciso criar label customizada. Se o runner já tiver sido registrado com `--labels warehouseflow`, basta removê-la em Settings → Actions → Runners (não é necessário reinstalar).
 
 Requisitos do usuário do runner:
 
@@ -140,10 +141,6 @@ Environment **`production`**: os mesmos Secrets e Variables com os valores de pr
 - **Required reviewers**: você (e quem mais aprovar deploys)
 - Deployment branches: **Selected branches** → `master`
 - `DEPLOY_PATH=/opt/warehouseflow/production`; se ficar na mesma VM do staging, use outra `HTTP_PORT` (ex.: `8088`)
-
-Variable do **repositório** (Settings → Secrets and variables → Actions → Variables), opcional:
-
-- `PRODUCTION_RUNNER_LABEL`: label do runner da produção, se ela ficar em outro servidor. Sem ela, usa `warehouseflow`.
 
 > A senha do banco no Secret precisa ser **idêntica** à atual. O volume do PostgreSQL já foi inicializado: trocar `POSTGRES_PASSWORD` no Secret não muda a senha do banco e quebra o `/ready` (o deploy falha e faz rollback automático).
 

@@ -1,4 +1,0 @@
-self-hosted-runner:
-  # Label do runner self-hosted na VM Debian (docs/devops/ci-cd.md).
-  labels:
-    - warehouseflow

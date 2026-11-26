@@ -29,7 +29,7 @@ permissions:
 jobs:
   rollback:
     name: Rollback ${{ inputs.environment }}
-    runs-on: [self-hosted, "${{ inputs.environment == 'production' && (vars.PRODUCTION_RUNNER_LABEL || 'warehouseflow') || 'warehouseflow' }}"]
+    runs-on: self-hosted
     # Production herda a aprovação obrigatória do environment.
     environment: ${{ inputs.environment }}
     timeout-minutes: 30

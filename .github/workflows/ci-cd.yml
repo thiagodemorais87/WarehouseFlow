@@ -343,8 +343,8 @@ jobs:
     name: Deploy staging
     needs: [build, publish]
     if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
-    # Runner self-hosted na VM Debian (label "warehouseflow"). Nunca roda em pull_request.
-    runs-on: [self-hosted, warehouseflow]
+    # Runner self-hosted na VM Debian (registrado com as labels padrão). Nunca roda em pull_request.
+    runs-on: self-hosted
     environment: staging
     timeout-minutes: 30
     concurrency:
@@ -398,8 +398,8 @@ jobs:
     name: Deploy production
     needs: [build, publish]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    # PRODUCTION_RUNNER_LABEL (Variable do repositório) permite apontar para outro servidor.
-    runs-on: [self-hosted, "${{ vars.PRODUCTION_RUNNER_LABEL || 'warehouseflow' }}"]
+    # Mesmo runner self-hosted do staging (labels padrão).
+    runs-on: self-hosted
     # Aprovação obrigatória: configure "Required reviewers" no environment production.
     environment: production
     timeout-minutes: 45
