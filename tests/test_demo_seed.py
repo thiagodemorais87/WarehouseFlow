@@ -20,7 +20,8 @@ SCHEMA = (DB_DIR / "schema.sql").read_text(encoding="utf-8")
 COMPOSE = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
 
 TABELAS = ["roles", "users", "warehouses", "locations", "products", "stock",
-           "orders", "order_items", "tasks", "optimization_results"]
+           "orders", "order_items", "tasks", "optimization_results",
+           "optimization_runs"]
 
 
 def _inserts():

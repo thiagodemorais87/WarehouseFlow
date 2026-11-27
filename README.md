@@ -280,6 +280,23 @@ Na preparação da Sprint 11, a suíte completa foi executada em 19/11/2026:
 **119 aprovados, 1 ignorado e 1 aviso de depreciação**. O PDF acumulado único
 foi gerado e validado: [Sprint 11 — entrega final](docs/entrega-final/Grupo26_WarehouseFlow_Sprint11.pdf).
 
+Na validação da Sprint 12 em 27/11/2026, foram restaurados o endpoint CSV e
+o arquivo de relatório que estavam truncados, atualizada a cobertura do seed e
+removida uma montagem duplicada do DDL no Compose. A compilação passou e o
+Pytest concluiu com **239 aprovados, 66 ignorados e 1 aviso de depreciação**.
+Docker Desktop foi iniciado e os três serviços do Compose executados: PostgreSQL
+healthy, API e frontend acessíveis. Os fluxos principais foram exercitados pela
+API real ligada ao PostgreSQL e pelo navegador. A rota de demonstração reduziu
+38 para 11 (71,0526%); a rota por pedido validada reduziu 14 para 14, cenário
+válido sem melhoria. As capturas reais estão em [evidências da Sprint 12](docs/Sprint12/evidencias/).
+Não houve commit, Code Freeze, tag final, Release ou push nesta etapa.
+Entregáveis da Sprint 12: [Relatório](docs/Sprint12/Relatorio_Sprint12.md),
+[Bugs](docs/Sprint12/Registro_Bugs_Sprint12.md),
+[Ensaio](docs/Sprint12/Checklist_Ensaio_Geral.md) e
+[Relatório final consolidado](docs/Sprint12/Relatorio_Final_Sprints_1_a_12.md).
+PDFs: [Sprint 12 exclusivo](docs/Sprint12/Grupo26_WarehouseFlow_Sprint12.pdf) e
+[acumulado das Sprints 1 a 12](docs/entrega-final/Grupo26_WarehouseFlow_Sprints_1_a_12.pdf).
+
 ---
 
 ## 📁 Estrutura do projeto

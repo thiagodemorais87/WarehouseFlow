@@ -1,0 +1,59 @@
+health: GET /health -> HTTP 200 (esperado 200)
+OpenAPI: GET /openapi.json -> HTTP 200 (esperado 200)
+UI login route: GET /login -> HTTP 200 (esperado 200)
+login admin: POST /auth/login -> HTTP 200 (esperado 200)
+invalid credential: POST /auth/login -> HTTP 401 (esperado 401)
+admin users listing: GET /users/ -> HTTP 200 (esperado 200)
+login operator: POST /auth/login -> HTTP 200 (esperado 200)
+RBAC: GET /users/ as authenticated operator -> HTTP 200 per permission matrix; UI /usuarios as operator -> HTTP 403.
+create product: POST /products/ -> HTTP 201 (esperado 201)
+list/search product: GET /products/?search=S12-E2E-180113A -> HTTP 200 (esperado 200)
+get product: GET /products/14 -> HTTP 200 (esperado 200)
+edit product: PUT /products/14 -> HTTP 200 (esperado 200)
+duplicate SKU rejected: POST /products/ -> HTTP 409 (esperado 409)
+required product fields rejected: POST /products/ -> HTTP 400 (esperado 400)
+create second product: POST /products/ -> HTTP 201 (esperado 201)
+create warehouse: POST /locations/warehouses -> HTTP 201 (esperado 201)
+create location A: POST /locations -> HTTP 201 (esperado 201)
+create location B: POST /locations -> HTTP 201 (esperado 201)
+list/get locations: GET /locations -> HTTP 200 (esperado 200)
+edit location: PUT /locations/6 -> HTTP 200 (esperado 200)
+create stock A: POST /stock -> HTTP 201 (esperado 201)
+create stock B: POST /stock -> HTTP 201 (esperado 201)
+list/filter/get stock: GET /stock?product_id=14 -> HTTP 200 (esperado 200)
+edit stock: PUT /stock/4 -> HTTP 200 (esperado 200)
+stock inbound: POST /stock/4/inbound -> HTTP 200 (esperado 200)
+stock outbound: POST /stock/4/outbound -> HTTP 200 (esperado 200)
+insufficient stock rejected: POST /stock/4/outbound -> HTTP 409 (esperado 409)
+create outbound order: POST /orders/ -> HTTP 201 (esperado 201)
+list/filter/get order: GET /orders/?type=OUTBOUND -> HTTP 200 (esperado 200)
+update order status: PUT /orders/3 -> HTTP 200 (esperado 200)
+add order item: POST /orders/3/items -> HTTP 201 (esperado 201)
+update order item: PUT /orders/3/items/5 -> HTTP 200 (esperado 200)
+add invalid quantity rejected: POST /orders/3/items -> HTTP 400 (esperado 400)
+create picking task: POST /tasks/ -> HTTP 201 (esperado 201)
+list/get tasks: GET /tasks/?order_id=3 -> HTTP 200 (esperado 200)
+update task in progress: PUT /tasks/3 -> HTTP 200 (esperado 200)
+complete task: PUT /tasks/3 -> HTTP 200 (esperado 200)
+dashboard report: GET /reports/dashboard -> HTTP 200 (esperado 200)
+orders report: GET /reports/orders -> HTTP 200 (esperado 200)
+stock movement report: GET /reports/stock-movements?product_id=14 -> HTTP 200 (esperado 200)
+optimize route NN + 2-opt: POST /optimization/route -> HTTP 200 (esperado 200)
+duplicate route IDs rejected: POST /optimization/route -> HTTP 400 (esperado 400)
+optimize route by order: POST /optimization/route/by-order -> HTTP 200 (esperado 200)
+picking report: GET /optimization/reports/picking -> HTTP 200 (esperado 200)
+optimization summary: GET /optimization/reports/summary -> HTTP 200 (esperado 200)
+picking CSV: GET /optimization/reports/picking.csv -> HTTP 200 (esperado 200)
+METRIC live manual route: before=38.0 after=11.0 reduction=27.0 percent=71.05263157894737 execution_time_ms=0.02780099998744845
+METRIC live by-order: before=14.0 after=14.0 reduction=0.0 percent=0.0 execution_time_ms=0.012200999975675586
+TEST_DATA ids: products=[14, 15] warehouse=2 locations=[6, 7] stocks=[4, 5] order=3 task=3
+cleanup task 3: HTTP 204
+cleanup optimization_runs order 3: OK
+cleanup order 3: HTTP 204
+cleanup stock 5: HTTP 204
+cleanup stock 4: HTTP 204
+cleanup location 7: HTTP 204
+cleanup location 6: HTTP 204
+cleanup warehouse 2: HTTP 204
+cleanup product 15: HTTP 204
+cleanup product 14: HTTP 204

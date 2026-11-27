@@ -1,0 +1,151 @@
+warehouseflow-db        | 
+warehouseflow-db        | PostgreSQL Database directory appears to contain a database; Skipping initialization
+warehouseflow-api       | INFO:     172.19.0.1:40528 - "POST /orders/3/items HTTP/1.1" 201 Created
+warehouseflow-db        | 
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:15 +0000] "GET /auth/me HTTP/1.1" 200 96 "http://127.0.0.1:8080/tarefas" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.1:40532 - "PUT /orders/3/items/5 HTTP/1.1" 200 OK
+warehouseflow-db        | 2026-11-27 20:58:17.467 UTC [1] LOG:  starting PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+warehouseflow-db        | 2026-11-27 20:58:17.468 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+warehouseflow-db        | 2026-11-27 20:58:17.468 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+warehouseflow-db        | 2026-11-27 20:58:17.472 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+warehouseflow-db        | 2026-11-27 20:58:17.478 UTC [29] LOG:  database system was shut down at 2026-10-30 19:13:12 UTC
+warehouseflow-api       | INFO:     172.19.0.1:40548 - "POST /orders/3/items HTTP/1.1" 400 Bad Request
+warehouseflow-db        | 2026-11-27 20:58:17.486 UTC [1] LOG:  database system is ready to accept connections
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:15 +0000] "GET /tasks/ HTTP/1.1" 200 332 "http://127.0.0.1:8080/tarefas" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.1:40562 - "POST /tasks/ HTTP/1.1" 201 Created
+warehouseflow-db        | 2026-11-27 21:03:17.567 UTC [27] LOG:  checkpoint starting: time
+warehouseflow-api       | INFO:     172.19.0.1:40568 - "GET /tasks/?order_id=3 HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.1:40580 - "PUT /tasks/3 HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.1:40588 - "PUT /tasks/3 HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.1:40600 - "GET /reports/dashboard HTTP/1.1" 200 OK
+warehouseflow-db        | 2026-11-27 21:03:21.397 UTC [27] LOG:  checkpoint complete: wrote 41 buffers (0.3%); 0 WAL file(s) added, 0 removed, 0 recycled; write=3.812 s, sync=0.007 s, total=3.830 s; sync files=37, longest=0.003 s, average=0.001 s; distance=24 kB, estimate=24 kB; lsn=0/19E96C0, redo lsn=0/19E9688
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:15 +0000] "GET /users/ HTTP/1.1" 200 838 "http://127.0.0.1:8080/tarefas" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.1:40610 - "GET /reports/orders HTTP/1.1" 200 OK
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:16 +0000] "GET /otimizacao HTTP/1.1" 200 16074 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.1:40624 - "GET /reports/stock-movements?product_id=14 HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.1:40638 - "POST /optimization/route HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.1:40646 - "POST /optimization/route HTTP/1.1" 400 Bad Request
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:16 +0000] "GET /static/css/optimization.css HTTP/1.1" 200 11063 "http://127.0.0.1:8080/otimizacao" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.1:40658 - "POST /optimization/route/by-order HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.1:40666 - "GET /optimization/reports/picking HTTP/1.1" 200 OK
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:16 +0000] "GET /static/js/optimization.js HTTP/1.1" 200 24782 "http://127.0.0.1:8080/otimizacao" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.1:40670 - "GET /optimization/reports/summary HTTP/1.1" 200 OK
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:16 +0000] "GET /auth/me HTTP/1.1" 200 96 "http://127.0.0.1:8080/otimizacao" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:16 +0000] "GET /health HTTP/1.1" 200 31 "http://127.0.0.1:8080/otimizacao" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.1:40672 - "GET /optimization/reports/picking.csv HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.1:40678 - "DELETE /tasks/3 HTTP/1.1" 204 No Content
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:16 +0000] "GET /relatorios/picking HTTP/1.1" 200 6423 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.1:40682 - "DELETE /orders/3 HTTP/1.1" 204 No Content
+warehouseflow-api       | INFO:     172.19.0.1:40696 - "DELETE /stock/5 HTTP/1.1" 204 No Content
+warehouseflow-api       | INFO:     172.19.0.1:40702 - "DELETE /stock/4 HTTP/1.1" 204 No Content
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:16 +0000] "GET /static/js/picking-report.js HTTP/1.1" 200 11763 "http://127.0.0.1:8080/relatorios/picking" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.1:40704 - "DELETE /locations/7 HTTP/1.1" 204 No Content
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:16 +0000] "GET /auth/me HTTP/1.1" 200 96 "http://127.0.0.1:8080/relatorios/picking" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:16 +0000] "GET /optimization/reports/picking HTTP/1.1" 200 2 "http://127.0.0.1:8080/relatorios/picking" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.1:40716 - "DELETE /locations/6 HTTP/1.1" 204 No Content
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:16 +0000] "GET /optimization/reports/summary HTTP/1.1" 200 81 "http://127.0.0.1:8080/relatorios/picking" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:17 +0000] "GET /relatorios/movimentacoes HTTP/1.1" 200 7784 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:17 +0000] "GET /auth/me HTTP/1.1" 200 96 "http://127.0.0.1:8080/relatorios/movimentacoes" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:17 +0000] "GET /reports/stock-movements?skip=0&limit=20 HTTP/1.1" 200 785 "http://127.0.0.1:8080/relatorios/movimentacoes" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.1:40720 - "DELETE /locations/warehouses/2 HTTP/1.1" 204 No Content
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:18 +0000] "GET /usuarios HTTP/1.1" 200 9361 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.1:40730 - "DELETE /products/15 HTTP/1.1" 204 No Content
+warehouseflow-api       | INFO:     172.19.0.1:40744 - "DELETE /products/14 HTTP/1.1" 204 No Content
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:18 +0000] "GET /static/js/users.js HTTP/1.1" 200 17639 "http://127.0.0.1:8080/usuarios" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:18 +0000] "GET /static/css/users.css HTTP/1.1" 200 7114 "http://127.0.0.1:8080/usuarios" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:18 +0000] "GET /auth/me HTTP/1.1" 200 96 "http://127.0.0.1:8080/usuarios" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:18 +0000] "GET /users/roles/ HTTP/1.1" 200 78 "http://127.0.0.1:8080/usuarios" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:18 +0000] "GET /users/?skip=0&limit=100 HTTP/1.1" 200 838 "http://127.0.0.1:8080/usuarios" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:44 +0000] "GET /otimizacao HTTP/1.1" 200 16074 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:44 +0000] "GET /health HTTP/1.1" 200 31 "http://127.0.0.1:8080/otimizacao" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:20:59:44 +0000] "GET /auth/me HTTP/1.1" 200 96 "http://127.0.0.1:8080/otimizacao" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:01:26 +0000] "POST /optimization/route HTTP/1.1" 200 406 "http://127.0.0.1:8080/otimizacao" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:56512 - "POST /optimization/route HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:38058 - "GET /login HTTP/1.1" 200 OK
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:01:53 +0000] "GET /login HTTP/1.1" 200 4698 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:01:54 +0000] "POST /auth/login HTTP/1.1" 200 240 "http://127.0.0.1:8080/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:38062 - "POST /auth/login HTTP/1.1" 200 OK
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:01:54 +0000] "GET /dashboard HTTP/1.1" 200 8928 "http://127.0.0.1:8080/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:38078 - "GET /dashboard HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:38088 - "GET /static/css/layout.css HTTP/1.1" 304 Not Modified
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:01:54 +0000] "GET /static/css/layout.css HTTP/1.1" 304 0 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:01:54 +0000] "GET /static/js/layout.js HTTP/1.1" 304 0 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:38100 - "GET /static/js/layout.js HTTP/1.1" 304 Not Modified
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:01:54 +0000] "GET /products/ HTTP/1.1" 200 532 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:38110 - "GET /products/ HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:38124 - "GET /stock/ HTTP/1.1" 200 OK
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:01:54 +0000] "GET /stock/ HTTP/1.1" 200 296 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:38134 - "GET /tasks/ HTTP/1.1" 200 OK
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:01:54 +0000] "GET /tasks/ HTTP/1.1" 200 332 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:38126 - "GET /orders/ HTTP/1.1" 200 OK
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:01:54 +0000] "GET /orders/ HTTP/1.1" 200 349 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:01:54 +0000] "GET /optimization/reports/summary HTTP/1.1" 200 96 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:38136 - "GET /optimization/reports/summary HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:38142 - "GET /auth/me HTTP/1.1" 200 OK
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:01:54 +0000] "GET /auth/me HTTP/1.1" 200 109 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:01:54 +0000] "GET /usuarios HTTP/1.1" 403 78 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:08 +0000] "GET /dashboard HTTP/1.1" 200 8928 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:38152 - "GET /usuarios HTTP/1.1" 403 Forbidden
+warehouseflow-api       | INFO:     172.19.0.4:50216 - "GET /dashboard HTTP/1.1" 200 OK
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:08 +0000] "GET /products/ HTTP/1.1" 200 532 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:08 +0000] "GET /stock/ HTTP/1.1" 200 296 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:08 +0000] "GET /optimization/reports/summary HTTP/1.1" 200 96 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:08 +0000] "GET /orders/ HTTP/1.1" 200 349 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:08 +0000] "GET /tasks/ HTTP/1.1" 200 332 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:08 +0000] "GET /auth/me HTTP/1.1" 200 109 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:50226 - "GET /products/ HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:50228 - "GET /stock/ HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:50242 - "GET /optimization/reports/summary HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:50230 - "GET /orders/ HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:50236 - "GET /tasks/ HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:50248 - "GET /auth/me HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:50262 - "GET /relatorios/picking HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:50272 - "GET /static/js/picking-report.js HTTP/1.1" 304 Not Modified
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:09 +0000] "GET /relatorios/picking HTTP/1.1" 200 6430 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:09 +0000] "GET /static/js/picking-report.js HTTP/1.1" 304 0 "http://127.0.0.1:8080/relatorios/picking" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:09 +0000] "GET /auth/me HTTP/1.1" 200 109 "http://127.0.0.1:8080/relatorios/picking" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:50276 - "GET /auth/me HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:50296 - "GET /optimization/reports/picking HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:50280 - "GET /optimization/reports/summary HTTP/1.1" 200 OK
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:09 +0000] "GET /optimization/reports/picking HTTP/1.1" 200 1082 "http://127.0.0.1:8080/relatorios/picking" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:50306 - "GET /relatorios/movimentacoes HTTP/1.1" 403 Forbidden
+warehouseflow-api       | INFO:     172.19.0.4:49704 - "GET /login HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:49708 - "POST /auth/login HTTP/1.1" 200 OK
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:09 +0000] "GET /optimization/reports/summary HTTP/1.1" 200 96 "http://127.0.0.1:8080/relatorios/picking" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:49720 - "GET /dashboard HTTP/1.1" 200 OK
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:10 +0000] "GET /relatorios/movimentacoes HTTP/1.1" 403 94 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:19 +0000] "GET /login HTTP/1.1" 200 4698 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:19 +0000] "POST /auth/login HTTP/1.1" 200 225 "http://127.0.0.1:8080/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:19 +0000] "GET /dashboard HTTP/1.1" 200 8921 "http://127.0.0.1:8080/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:19 +0000] "GET /products/ HTTP/1.1" 200 532 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:49734 - "GET /products/ HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:49750 - "GET /stock/ HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:49782 - "GET /optimization/reports/summary HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:49780 - "GET /tasks/ HTTP/1.1" 200 OK
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:19 +0000] "GET /stock/ HTTP/1.1" 200 296 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:49764 - "GET /orders/ HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:49784 - "GET /auth/me HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:49790 - "GET /relatorios/movimentacoes HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:49804 - "GET /auth/me HTTP/1.1" 200 OK
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:19 +0000] "GET /optimization/reports/summary HTTP/1.1" 200 96 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:19 +0000] "GET /tasks/ HTTP/1.1" 200 332 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:49808 - "GET /reports/stock-movements?skip=0&limit=20 HTTP/1.1" 200 OK
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:19 +0000] "GET /orders/ HTTP/1.1" 200 349 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:19 +0000] "GET /auth/me HTTP/1.1" 200 96 "http://127.0.0.1:8080/dashboard" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:20 +0000] "GET /relatorios/movimentacoes HTTP/1.1" 200 7784 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:20 +0000] "GET /auth/me HTTP/1.1" 200 96 "http://127.0.0.1:8080/relatorios/movimentacoes" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:20 +0000] "GET /reports/stock-movements?skip=0&limit=20 HTTP/1.1" 200 785 "http://127.0.0.1:8080/relatorios/movimentacoes" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:49812 - "POST /logout HTTP/1.1" 303 See Other
+warehouseflow-api       | INFO:     172.19.0.4:49820 - "GET /login HTTP/1.1" 200 OK
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:20 +0000] "POST /logout HTTP/1.1" 303 0 "http://127.0.0.1:8080/relatorios/movimentacoes" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:20 +0000] "GET /login HTTP/1.1" 200 4698 "http://127.0.0.1:8080/relatorios/movimentacoes" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:49822 - "GET /login HTTP/1.1" 200 OK
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:02:20 +0000] "GET /login HTTP/1.1" 200 4698 "http://127.0.0.1:8080/relatorios/movimentacoes" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:55022 - "GET /login HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:55026 - "POST /auth/login HTTP/1.1" 401 Unauthorized
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:03:29 +0000] "GET /login HTTP/1.1" 200 4698 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:03:29 +0000] "POST /auth/login HTTP/1.1" 401 39 "http://127.0.0.1:8080/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:03:45 +0000] "GET /login HTTP/1.1" 200 4698 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-frontend  | 172.19.0.1 - - [27/Nov/2026:21:03:46 +0000] "POST /auth/login HTTP/1.1" 401 39 "http://127.0.0.1:8080/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.147.0 Chrome/150.0.7871.250 Electron/43.8.9 Safari/537.36" "-"
+warehouseflow-api       | INFO:     172.19.0.4:47102 - "GET /login HTTP/1.1" 200 OK
+warehouseflow-api       | INFO:     172.19.0.4:47112 - "POST /auth/login HTTP/1.1" 401 Unauthorized

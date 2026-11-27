@@ -1,0 +1,21 @@
+admin login: HTTP 200 expected 200
+find prior disposable user: HTTP 200 expected 200
+cleanup prior disposable user 17: HTTP 204
+roles list: HTTP 200 expected 200
+create operator user: HTTP 201 expected 201
+get created user: HTTP 200 expected 200
+filter users by documented role/email: HTTP 200 expected 200
+login created user: HTTP 200 expected 200
+operator prohibited from user creation: HTTP 403 expected 403
+edit user: HTTP 200 expected 200
+delete user: HTTP 204 expected 204
+deleted user not found: HTTP 404 expected 404
+dashboard payload: HTTP 200 expected 200
+orders report csv: HTTP 200 expected 200
+stock movements csv: HTTP 200 expected 200
+picking report csv: HTTP 200 expected 200
+dashboard fields: filters, optimization, orders, stock, tasks
+orders.csv rows incl header: 3
+stock-movements.csv rows incl header: 4
+picking.csv rows incl header: 3
+User lifecycle complete; disposable user deleted and 404 confirmed.

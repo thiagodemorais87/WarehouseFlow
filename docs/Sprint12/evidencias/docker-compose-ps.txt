@@ -1,0 +1,4 @@
+NAME                     IMAGE                   COMMAND                  SERVICE    CREATED         STATUS                   PORTS
+warehouseflow-api        warehouseflow-api:dev   "uvicorn app.main:ap…"   api        6 minutes ago   Up 5 minutes             0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
+warehouseflow-db         postgres:16-alpine      "docker-entrypoint.s…"   db         6 minutes ago   Up 6 minutes (healthy)   0.0.0.0:5433->5432/tcp, [::]:5433->5432/tcp
+warehouseflow-frontend   nginx:alpine            "/docker-entrypoint.…"   frontend   6 weeks ago     Up 5 minutes             0.0.0.0:8080->80/tcp, [::]:8080->80/tcp
