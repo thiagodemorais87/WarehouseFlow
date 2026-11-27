@@ -51,16 +51,17 @@ jobs:
             echo "nginx_image=ghcr.io/${owner}/warehouseflow-nginx"
           } >> "$GITHUB_OUTPUT"
 
+      # Novas tentativas em timeout de rede; credencial recusada falha na hora.
       - name: Login no GHCR
         if: inputs.image_tag != ''
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash deploy/scripts/ghcr.sh login
 
       - name: Rollback
         env:
+          DEPLOY_LOG: ${{ runner.temp }}/rollback-${{ inputs.environment }}.log
           WF_TARGET: ${{ inputs.environment }}
           WF_TAG: ${{ inputs.image_tag }}
           DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
@@ -82,14 +83,15 @@ jobs:
             bash deploy/scripts/rollback.sh "$WF_TARGET"
           fi
 
-      - name: Publicar log do rollback
+      # Falha no upload não esconde o resultado do rollback (o log também fica em .deploy/logs na VM).
+      - name: Enviar log como artefato
         if: always()
+        continue-on-error: true
+        timeout-minutes: 5
         uses: actions/upload-artifact@v4
         with:
           name: rollback-${{ inputs.environment }}-log
-          path: |
-            ${{ runner.temp }}/rollback-${{ inputs.environment }}.log
-            ${{ runner.temp }}/deploy-${{ inputs.environment }}.log
+          path: ${{ runner.temp }}/rollback-${{ inputs.environment }}.log
           retention-days: 90
           if-no-files-found: ignore
 

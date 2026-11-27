@@ -41,6 +41,7 @@ Arquivos:
 | [`deploy/scripts/deploy.sh`](../../deploy/scripts/deploy.sh) | Deploy no servidor (com rollback automático) |
 | [`deploy/scripts/rollback.sh`](../../deploy/scripts/rollback.sh) | Rollback no servidor |
 | [`deploy/scripts/healthcheck.sh`](../../deploy/scripts/healthcheck.sh) | Validação `/health` + `/ready` |
+| [`deploy/scripts/ghcr.sh`](../../deploy/scripts/ghcr.sh) | Login, push, pull e consulta no GHCR com novas tentativas em falha de rede |
 | [`deploy/scripts/common.sh`](../../deploy/scripts/common.sh) | Funções compartilhadas |
 | [`scripts/ci/check_frontend.py`](../../scripts/ci/check_frontend.py) | Validação do frontend |
 | [`ruff.toml`](../../ruff.toml) | Regras do ruff (só erros reais) |
@@ -63,7 +64,14 @@ Resultados: resumo em cada execução (aba **Summary**) e artefatos `pytest-sqli
 - `ghcr.io/<owner>/warehouseflow-api` e `ghcr.io/<owner>/warehouseflow-nginx`
 - Tags: `sha-<7 primeiros do commit>` (imutável, usada no deploy) e o nome do branch (`staging` ou `master`)
 - A imagem publicada é a mesma que passou no smoke test (exportada do job de build, sem rebuild)
+- Se a tag `sha-...` já existe no GHCR (re-execução do mesmo commit), nada é reenviado: a tag do branch é apontada para a imagem existente no próprio registry
 - Autenticação com o `GITHUB_TOKEN` automático: nenhuma credencial de registry em Secrets
+- Login, push, pull e consulta usam `deploy/scripts/ghcr.sh`, que classifica a saída do Docker:
+  - **rede** (timeout, `502`/`503`/`504`, conexão): repetido até 5 vezes (espera de 5, 10, 20 e 40 s);
+  - **credencial ou permissão** (`401`/`403`, `unauthorized`, `denied`): falha na primeira tentativa, com mensagem própria;
+  - **não existe** (`404`, `manifest unknown`): falha na hora ao baixar ou enviar; na consulta de tag significa "ainda não publicada";
+  - **Docker local** (sem acesso ao socket do runner): falha na hora, sem culpar o registry.
+- Na consulta de tag existente, só "manifest inexistente" conta como ausente. Erro de autenticação, de rede (após 5 tentativas) ou desconhecido interrompe o job de publicação: erro nunca é tratado como imagem ausente.
 
 `docker-compose.prod.yml` usa `${API_IMAGE:-warehouseflow-api}:${IMAGE_TAG:-${APP_VERSION:-latest}}`. Sem essas variáveis, o deploy manual com `up -d --build` continua igual.
 
@@ -71,15 +79,19 @@ Resultados: resumo em cada execução (aba **Summary**) e artefatos `pytest-sqli
 
 `deploy/scripts/deploy.sh <ambiente> <tag>`, executado pelo runner no diretório `DEPLOY_PATH`:
 
-1. **Pré-checagem**: diretório, clone Git, `docker`, `curl` e Secrets obrigatórios. Sem o diretório, falha com "Ambiente production ainda não criado".
-2. **Git**: `git fetch` + `git merge --ff-only <sha>` no branch do ambiente (sem `reset`/`force`; falha se houver divergência).
-3. **Backup do banco** (`pg_dump -Fc` em `backups/<ambiente>-predeploy-*.dump`): obrigatório em produção; em staging só com a Variable `BACKUP_DB=true`.
-4. **Ponto de rollback**: marca as imagens em execução como `warehouseflow-api:rollback-<ambiente>` e `warehouseflow-nginx:rollback-<ambiente>`.
-5. **`.env.<ambiente>`**: gerado a partir dos Secrets/Variables (permissão 600, valores entre aspas simples, nunca exibido). O anterior vai para `.deploy/backups/` (mantém os 20 últimos).
-6. **Atualização**: `docker compose pull api frontend` e `up -d --no-build --no-deps --wait api frontend`. O `db` só é criado se não estiver rodando; nunca há `down` nem remoção de volume.
-7. **Health check**: `http://127.0.0.1:<HTTP_PORT>/health` com `version` igual à tag e `/ready` 200.
-8. **Falha em 6 ou 7**: restaura o `.env` anterior, volta para as imagens `:rollback-<ambiente>`, valida a saúde e marca o job como falho.
-9. **Registro**: linha em `.deploy/history.log` (data, ambiente, tag, commit, resultado) e resumo no GitHub.
+1. **Pré-checagem**: argumentos, diretório, clone Git, `docker`, `curl` e Secrets. Sem o diretório, falha com "Ambiente production ainda não criado". Cada Secret é conferido sem exibir o valor (só nome e tamanho): quebra de linha no fim é removida com aviso; quebra no meio, valor entre aspas, vazio ou `SECRET_KEY` com menos de 32 caracteres interrompem.
+2. **Autenticação no banco**: com o `db` em execução, um container temporário (mesma imagem do db) conecta por TCP no serviço `db` com `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB` numa sessão só leitura (`select 1`). A senha vai pelo stdin, nunca por argumento. Qualquer resultado diferente de sucesso (senha recusada, usuário/banco inexistente, rede, timeout) interrompe. Banco parado com volume existente também interrompe; sem banco e sem volume é o primeiro deploy.
+3. **Download das imagens** (`docker pull` com novas tentativas).
+4. **Git**: `git fetch` + `git merge --ff-only <sha>` no branch do ambiente (sem `reset`/`force`; falha se houver divergência).
+5. **Backup do banco** (`pg_dump -Fc` em `backups/<ambiente>-predeploy-*.dump`): obrigatório em produção; em staging só com a Variable `BACKUP_DB=true`.
+6. **Ponto de rollback**: marca as imagens em execução como `warehouseflow-api:rollback-<ambiente>` e `warehouseflow-nginx:rollback-<ambiente>`.
+7. **`.env.<ambiente>`**: gerado a partir dos Secrets/Variables (permissão 600, nunca exibido). Valores entre aspas duplas com `\`, `"` e `$` escapados: senhas com aspas, cifrão, barra invertida, espaço, `@`, `%` ou `#` chegam intactas ao container. O anterior vai para `.deploy/backups/` (mantém os 20 últimos).
+8. **Atualização**: `up -d --no-build --no-deps --wait api frontend`. O `db` só é criado se não estiver rodando; nunca há `down` nem remoção de volume.
+9. **Health check**: `http://127.0.0.1:<HTTP_PORT>/health` com `version` igual à tag e `/ready` 200.
+10. **Falha em 8 ou 9**: restaura o `.env` anterior, volta para as imagens `:rollback-<ambiente>`, valida a saúde e marca o job como falho.
+11. **Registro**: linha em `.deploy/history.log` (data, ambiente, tag, commit, resultado), log da execução em `.deploy/logs/` e resumo no GitHub.
+
+Se as etapas 1 e 2 falharem, nada é alterado no servidor e a mensagem termina com "nada foi alterado no servidor". Se a etapa 3 (download) falhar, serviços, banco, Git e `.env` continuam intactos, mas o Docker pode ter baixado imagens para o **cache local**: a mensagem diz "não foram alterados; o Docker pode ter baixado imagens para o cache local". A partir do Git (etapa 4) a mensagem avisa que o servidor já havia sido alterado, e vale o rollback automático. O deploy **nunca** altera a senha do banco.
 
 Migrations SQL **não** são executadas pelo pipeline (como em [deploy.md](deploy.md#migrations-sql-bancos-já-existentes)).
 
@@ -142,7 +154,13 @@ Environment **`production`**: os mesmos Secrets e Variables com os valores de pr
 - Deployment branches: **Selected branches** → `master`
 - `DEPLOY_PATH=/opt/warehouseflow/production`; se ficar na mesma VM do staging, use outra `HTTP_PORT` (ex.: `8088`)
 
-> A senha do banco no Secret precisa ser **idêntica** à atual. O volume do PostgreSQL já foi inicializado: trocar `POSTGRES_PASSWORD` no Secret não muda a senha do banco e quebra o `/ready` (o deploy falha e faz rollback automático).
+> A senha do banco no Secret precisa ser **idêntica** à atual. O volume do PostgreSQL já foi inicializado: trocar `POSTGRES_PASSWORD` no Secret não muda a senha do banco. O deploy confirma a senha com uma conexão real antes de alterar qualquer coisa e para se ela não autenticar.
+
+Cuidados ao salvar os Secrets:
+
+- **Secret de environment tem prioridade** sobre um Secret de mesmo nome no repositório. Edite o do environment (**Settings → Environments → staging**); se existir um antigo em *Repository secrets*, apague-o para evitar confusão.
+- Cole **só o valor**: sem aspas em volta e sem Enter no fim (copiar a linha inteira no PuTTY costuma trazer a quebra de linha).
+- Se a senha estiver só na `DATABASE_URL`, ela pode estar codificada para URL (`%40` = `@`, `%23` = `#`, `%25` = `%`...). O Secret deve ter a senha **decodificada**.
 
 Para copiar os valores atuais do staging para os Secrets, consulte o arquivo **na VM** e digite os valores direto no GitHub (nunca em chat, issue ou commit):
 
@@ -150,6 +168,12 @@ Para copiar os valores atuais do staging para os Secrets, consulte o arquivo **n
 cd /opt/warehouseflow/staging
 grep -E '^(POSTGRES_USER|POSTGRES_DB|HTTP_PORT|APP_ENV|COOKIE_SECURE|ENABLE_DOCS)=' .env.staging
 nano .env.staging   # copie POSTGRES_PASSWORD e SECRET_KEY daqui; saia sem salvar
+```
+
+Para conferir o tamanho da senha do arquivo sem exibi-la (compare com o "N caracteres" do resumo do deploy):
+
+```bash
+grep '^POSTGRES_PASSWORD=' .env.staging | cut -d= -f2- | awk '{print "tamanho com eventuais aspas:", length($0)}'
 ```
 
 ### 3. Proteção de branches
@@ -211,7 +235,7 @@ Depois preencha o environment `production` e faça um novo merge em `master` (ou
 
 ## Rollback
 
-**Automático**: se `pull`, `up` ou o health check falharem, o `deploy.sh` volta sozinho para a versão anterior.
+**Automático**: se `up` ou o health check falharem, o `deploy.sh` volta sozinho para a versão anterior. Falhas antes disso (Secrets, autenticação no banco, download das imagens) interrompem sem alterar nada.
 
 **Manual (GitHub)**: **Actions → Rollback → Run workflow**:
 
@@ -229,7 +253,8 @@ O rollback troca só as imagens; o clone Git do servidor continua no commit mais
 | Onde | O quê |
 |------|-------|
 | Actions → execução → **Summary** | Testes (aprovados/falhas/ignorados), imagens publicadas, resultado do deploy |
-| Actions → execução → **Artifacts** | `pytest-*` (JUnit + log), `smoke-logs`, `deploy-<ambiente>-log`, `rollback-<ambiente>-log` |
+| Actions → execução → **Artifacts** | `pytest-*` (JUnit + log), `smoke-logs`, `deploy-<ambiente>-log`, `rollback-<ambiente>-log`. O envio do log é opcional (`continue-on-error`): se a rede da VM falhar no upload, o job continua refletindo o resultado do deploy |
+| VM: `.deploy/logs/` | Log de cada execução, gravado uma única vez (`<ambiente>-<modo>-<data>-<pid>.log`, permissão 600, últimos 30), inclusive quando a pré-checagem falha. Falha ao gravar só gera um `AVISO` e nunca troca o resultado do deploy. Falhas antes de existir o diretório do ambiente (ex.: `DEPLOY_PATH` ausente) ficam só no log do runner, enviado como artefato |
 | VM: `.deploy/history.log` | Histórico de deploys e rollbacks |
 | VM: `backups/` | Dumps antes do deploy (produção sempre). Não há limpeza automática: mova para fora da VM periodicamente |
 
@@ -238,7 +263,7 @@ O rollback troca só as imagens; o clone Git do servidor continua no commit mais
 - Nenhuma senha no repositório: segredos só em GitHub Environments; o `.env` gerado tem permissão 600 e não é exibido nos logs (o GitHub mascara os Secrets).
 - Jobs self-hosted só rodam em `push` para `staging`/`master` e em `workflow_dispatch`, nunca em `pull_request`.
 - O usuário do runner no grupo `docker` equivale a root na VM: não instale outros serviços sob esse usuário se a VM for compartilhada.
-- Valores com aspas simples ou quebra de linha não são aceitos nos Secrets (o deploy recusa com mensagem clara).
+- Os scripts nunca exibem segredos: mensagens mostram só nome e tamanho, e log e resumo passam por um filtro que troca qualquer ocorrência de `POSTGRES_PASSWORD`, `SECRET_KEY` ou do token do GHCR por `***`. Senha e token vão por stdin, nunca como argumento de processo.
 
 ## Alternativa futura: deploy por SSH (EC2)
 
@@ -259,7 +284,7 @@ Os mesmos checks do CI, em containers descartáveis (PowerShell, na raiz do repo
 ```powershell
 $root = $PWD.Path
 docker run --rm -v "${root}:/repo" -w /repo rhysd/actionlint:1.7.12 -no-color
-docker run --rm -v "${root}:/mnt" -w /mnt koalaman/shellcheck:stable -x deploy/scripts/common.sh deploy/scripts/deploy.sh deploy/scripts/rollback.sh deploy/scripts/healthcheck.sh
+docker run --rm -v "${root}:/mnt" -w /mnt koalaman/shellcheck:stable -x deploy/scripts/common.sh deploy/scripts/deploy.sh deploy/scripts/rollback.sh deploy/scripts/healthcheck.sh deploy/scripts/ghcr.sh
 docker run --rm -e PYTHONPYCACHEPREFIX=/tmp/pycache -v "${root}:/src" -w /src python:3.12-slim sh -c "pip install -q -r requirements.txt ruff==0.8.4 && ruff check --no-cache . && python scripts/ci/check_frontend.py && python -m pytest -q -p no:cacheprovider"
 docker compose -p warehouseflow-staging --env-file .env.staging.example -f docker-compose.prod.yml config -q
 ```
@@ -268,11 +293,21 @@ docker compose -p warehouseflow-staging --env-file .env.staging.example -f docke
 
 | Sintoma | Causa provável |
 |---------|----------------|
-| Job de deploy fica em *Queued* | Runner offline ou sem o label `warehouseflow` |
+| Job de deploy fica em *Queued* | Runner offline |
 | `variáveis obrigatórias ausentes` | Secrets/Variables não criados no environment |
+| `... foi salvo com aspas em volta` | Secret salvo como `'senha'` ou `"senha"`: salve só o valor |
+| `AVISO: ... quebra de linha no fim removida` | Secret colado com Enter no fim; o deploy segue, mas vale salvar de novo sem a quebra |
+| `não foi possível confirmar POSTGRES_PASSWORD: o PostgreSQL recusou a senha` | Secret diferente da senha atual (confira o Secret do **environment**, que tem prioridade, e se a senha não foi copiada codificada da `DATABASE_URL`) |
+| `não foi possível confirmar POSTGRES_PASSWORD: falha de rede` / `tempo esgotado` | Container db sem rede ou travado; nada foi alterado. Verifique `docker ps` e rode de novo |
+| `banco parado com dados existentes` | Container db parado: suba só o banco (`docker compose ... up -d db`) e rode o deploy de novo |
+| `login em ghcr.io: tentativa N/5 falhou (timeout/erro de rede)` | Instabilidade de rede; repetido automaticamente. Se esgotar, rode o job de novo |
+| `o GHCR recusou a credencial ou a permissão` | Permissão do job (`packages`) ou acesso do repositório ao pacote (item 6 da configuração) |
+| `a imagem/tag não existe no registry` | A tag não foi publicada (confira o job "Publicar no GHCR" do mesmo commit) |
+| `NÃO tratado como imagem ausente` (job de publicação) | A consulta da tag falhou por rede, permissão ou erro desconhecido; rode o job de novo ou corrija a permissão |
+| `o Docker do runner não está acessível` | Usuário do runner sem acesso ao `docker.sock` ou Docker parado na VM |
 | `Ambiente ... ainda não criado` | `DEPLOY_PATH` não existe no servidor |
 | `não foi possível avançar ... fast-forward` | Commits ou alterações locais no clone do servidor |
 | `denied` no `docker pull` | Repositório sem acesso ao pacote no GHCR (item 6 da configuração) |
-| `/ready` falha e há rollback | `POSTGRES_PASSWORD` do Secret diferente da senha real do banco |
+| `/ready` falha e há rollback | API sem acesso ao banco após a troca (ver logs no artefato ou em `.deploy/logs/`) |
 | API reinicia com `SECRET_KEY fraca ou placeholder` | `SECRET_KEY` com menos de 32 caracteres ou valor de exemplo |
 | `permission denied ... docker.sock` | Usuário do runner fora do grupo `docker` |
