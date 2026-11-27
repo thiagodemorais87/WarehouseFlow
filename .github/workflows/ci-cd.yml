@@ -304,39 +304,90 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      TAG: ${{ needs.build.outputs.tag }}
+      API_IMAGE: ${{ needs.build.outputs.api_image }}
+      NGINX_IMAGE: ${{ needs.build.outputs.nginx_image }}
+      BRANCH: ${{ github.ref_name }}
     steps:
+      - uses: actions/checkout@v4
+
+      # Novas tentativas em timeout de rede; credencial recusada falha na hora.
+      - name: Login no GHCR
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash deploy/scripts/ghcr.sh login
+
+      # Re-execuções do mesmo commit reaproveitam a imagem já publicada (e já validada).
+      - name: Verificar tags já publicadas
+        id: published
+        run: |
+          missing=false
+          for name in api nginx; do
+            if [ "$name" = api ]; then image="$API_IMAGE"; else image="$NGINX_IMAGE"; fi
+            # 0 = existe, 2 = manifest inexistente; qualquer outro código é erro (auth, rede, docker)
+            # e interrompe o job: erro nunca é tratado como imagem ausente.
+            rc=0
+            bash deploy/scripts/ghcr.sh exists "${image}:${TAG}" || rc=$?
+            case "$rc" in
+              0) echo "${name}=true" >> "$GITHUB_OUTPUT" ;;
+              2)
+                echo "${name}=false" >> "$GITHUB_OUTPUT"
+                missing=true
+                ;;
+              *)
+                echo "::error::não foi possível confirmar se ${image}:${TAG} existe (código ${rc}); veja o log acima"
+                exit 1
+                ;;
+            esac
+          done
+          echo "missing=${missing}" >> "$GITHUB_OUTPUT"
+
       - name: Baixar imagens validadas
+        if: steps.published.outputs.missing == 'true'
         uses: actions/download-artifact@v4
         with:
           name: images
 
       - name: Carregar imagens
+        if: steps.published.outputs.missing == 'true'
         run: gunzip -c warehouseflow-images.tar.gz | docker load
 
-      - name: Login no GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push das tags sha e do branch
+      - name: Push das tags sha ausentes
+        if: steps.published.outputs.missing == 'true'
         env:
-          TAG: ${{ needs.build.outputs.tag }}
-          API_IMAGE: ${{ needs.build.outputs.api_image }}
-          NGINX_IMAGE: ${{ needs.build.outputs.nginx_image }}
-          BRANCH: ${{ github.ref_name }}
+          API_PUBLISHED: ${{ steps.published.outputs.api }}
+          NGINX_PUBLISHED: ${{ steps.published.outputs.nginx }}
+        run: |
+          if [ "$API_PUBLISHED" != true ]; then
+            bash deploy/scripts/ghcr.sh retry "push ${API_IMAGE}:${TAG}" docker push "${API_IMAGE}:${TAG}"
+          fi
+          if [ "$NGINX_PUBLISHED" != true ]; then
+            bash deploy/scripts/ghcr.sh retry "push ${NGINX_IMAGE}:${TAG}" docker push "${NGINX_IMAGE}:${TAG}"
+          fi
+
+      # Aponta a tag do branch para a imagem sha no próprio registry (sem reenviar camadas).
+      - name: Tag do branch
         run: |
           for image in "$API_IMAGE" "$NGINX_IMAGE"; do
-            docker tag "${image}:${TAG}" "${image}:${BRANCH}"
-            docker push "${image}:${TAG}"
-            docker push "${image}:${BRANCH}"
+            bash deploy/scripts/ghcr.sh retry "tag ${image}:${BRANCH}" \
+              docker buildx imagetools create --tag "${image}:${BRANCH}" "${image}:${TAG}"
           done
+
+      - name: Resumo
+        env:
+          REUSED: ${{ steps.published.outputs.missing == 'false' }}
+        run: |
           {
             echo "### Imagens publicadas"
             echo ""
             echo "- \`${API_IMAGE}:${TAG}\` (e \`:${BRANCH}\`)"
             echo "- \`${NGINX_IMAGE}:${TAG}\` (e \`:${BRANCH}\`)"
+            if [ "$REUSED" = true ]; then
+              echo ""
+              echo "As tags \`${TAG}\` já existiam no GHCR: nada foi reenviado."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
   deploy-staging:
@@ -356,15 +407,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Novas tentativas em timeout de rede; credencial recusada falha na hora.
       - name: Login no GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash deploy/scripts/ghcr.sh login
 
       - name: Deploy
         env:
+          DEPLOY_LOG: ${{ runner.temp }}/deploy-staging.log
           DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
           DEPLOY_SHA: ${{ github.sha }}
           DEPLOY_BRANCH: staging
@@ -381,8 +433,12 @@ jobs:
           BACKUP_DB: ${{ vars.BACKUP_DB }}
         run: bash deploy/scripts/deploy.sh staging "${{ needs.build.outputs.tag }}"
 
-      - name: Publicar log do deploy
+      # Falha no upload não esconde nem substitui o resultado do deploy (o log também fica
+      # em DEPLOY_PATH/.deploy/logs na VM).
+      - name: Enviar log como artefato
         if: always()
+        continue-on-error: true
+        timeout-minutes: 5
         uses: actions/upload-artifact@v4
         with:
           name: deploy-staging-log
@@ -413,14 +469,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Login no GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash deploy/scripts/ghcr.sh login
 
       - name: Deploy (com backup do banco)
         env:
+          DEPLOY_LOG: ${{ runner.temp }}/deploy-production.log
           DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
           DEPLOY_SHA: ${{ github.sha }}
           DEPLOY_BRANCH: master
@@ -437,8 +493,10 @@ jobs:
           BACKUP_DB: "true"
         run: bash deploy/scripts/deploy.sh production "${{ needs.build.outputs.tag }}"
 
-      - name: Publicar log do deploy
+      - name: Enviar log como artefato
         if: always()
+        continue-on-error: true
+        timeout-minutes: 5
         uses: actions/upload-artifact@v4
         with:
           name: deploy-production-log
