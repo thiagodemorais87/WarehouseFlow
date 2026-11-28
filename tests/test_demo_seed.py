@@ -90,9 +90,10 @@ def test_schema_e_seed_aplicam_no_postgres_e_podem_rodar_duas_vezes():
             conn.exec_driver_sql(SEED)
             segunda = dict(conn.execute(text(contar)).all())
             assert primeira == segunda
-            assert primeira == {"roles": 3, "users": 3, "warehouses": 1, "locations": 5, "products": 3,
-                                "stock": 3, "orders": 2, "order_items": 3, "tasks": 1,
-                                "optimization_results": 1}
+            # contagens do seed final (Sprint 12) — mesmas de test_seed_final.CONTAGENS
+            assert primeira == {"roles": 3, "users": 3, "warehouses": 1, "locations": 5, "products": 5,
+                                "stock": 5, "orders": 6, "order_items": 9, "tasks": 4,
+                                "optimization_results": 1, "optimization_runs": 3}
             # sequências ajustadas: o próximo INSERT não pode colidir com o seed
             conn.exec_driver_sql("INSERT INTO products (sku, name) VALUES ('NOVO', 'Novo')")
             conn.exec_driver_sql("INSERT INTO order_items (order_id, product_id, quantity) VALUES (1, 1, 1)")
