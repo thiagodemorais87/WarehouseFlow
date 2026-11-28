@@ -11,7 +11,10 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.exc import IntegrityError
+import time
+
+from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from . import models
@@ -31,10 +34,27 @@ from .routers import (
 from .routers.optimization_engine import router as optimization_engine_router
 from .security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, verify_password
 
-# Inicializa as tabelas no PostgreSQL
-Base.metadata.create_all(bind=engine)
-
 logger = logging.getLogger(__name__)
+
+
+def _init_db(tentativas: int = 15, espera_s: float = 2.0) -> None:
+    """Cria as tabelas que faltarem (ex.: optimization_runs) esperando o banco subir.
+
+    Sem o retry, rodar a API no host logo após `docker compose up -d db`
+    derrubava o import com OperationalError (banco ainda em initdb/seed).
+    """
+    for tentativa in range(1, tentativas + 1):
+        try:
+            Base.metadata.create_all(bind=engine)
+            return
+        except OperationalError:
+            if tentativa == tentativas:
+                raise
+            logger.warning("Banco indisponível (tentativa %s/%s); aguardando %.0fs…", tentativa, tentativas, espera_s)
+            time.sleep(espera_s)
+
+
+_init_db()
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 FRONTEND_DIR = Path(os.getenv("FRONTEND_DIR", str(ROOT_DIR / "frontend"))).resolve()
@@ -438,9 +458,22 @@ def root():
     return RedirectResponse(url="/login", status_code=302)
 
 
-@app.get("/health", tags=["Healthcheck"])
-def health() -> dict[str, str]:
-    return {"status": "ok", "version": APP_VERSION}
+@app.get(
+    "/health",
+    tags=["Healthcheck"],
+    responses={503: {"description": "API no ar, mas o banco de dados não respondeu."}},
+)
+def health(db: Session = Depends(get_db)):
+    """Liveness + readiness: confirma que a API responde E que o banco aceita consultas."""
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception:  # noqa: BLE001 - qualquer falha de conexão vira 503
+        logger.exception("Healthcheck: banco indisponível")
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "degraded", "database": "unavailable", "version": APP_VERSION},
+        )
+    return {"status": "ok", "database": "ok", "version": APP_VERSION}
 
 
 def custom_openapi() -> dict:
