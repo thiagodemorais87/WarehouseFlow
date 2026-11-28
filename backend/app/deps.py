@@ -10,7 +10,8 @@ from .models import User
 from .models.user import UserRole
 from .security import ALGORITHM, SECRET_KEY
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
+# /auth/token aceita form-data (padrão OAuth2) — é o que o botão Authorize do Swagger envia
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token", auto_error=False)
 
 # Compatibilidade com nomes antigos do seed (OPERATOR/MANAGER)
 _ROLE_ALIASES = {

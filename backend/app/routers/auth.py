@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session, joinedload
 
 from ..database import get_db
@@ -11,23 +12,19 @@ from ..security import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, verify_
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-@router.post("/login", response_model=TokenResponse, summary="Autenticar usuário")
-def login(login_data: LoginRequest, response: Response, db: Session = Depends(get_db)):
-    """
-    Realiza o login do usuário validando e-mail e senha.
-    Retorna o Token JWT caso as credenciais estejam corretas.
-    """
+def _authenticate(db: Session, email: str, password: str, response: Response) -> dict:
+    """Valida credenciais, grava o cookie e devolve o token (compartilhado por /login e /token)."""
     user = (
         db.query(User)
         .options(joinedload(User.role))
-        .filter(User.email == login_data.email)
+        .filter(User.email == email)
         .first()
     )
 
     password_is_valid = False
     if user:
         try:
-            password_is_valid = verify_password(login_data.password, user.password_hash)
+            password_is_valid = verify_password(password, user.password_hash)
         except (TypeError, ValueError):
             password_is_valid = False
 
@@ -65,6 +62,32 @@ def login(login_data: LoginRequest, response: Response, db: Session = Depends(ge
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/login", response_model=TokenResponse, summary="Autenticar usuário")
+def login(login_data: LoginRequest, response: Response, db: Session = Depends(get_db)):
+    """
+    Realiza o login do usuário validando e-mail e senha (JSON).
+    Retorna o Token JWT caso as credenciais estejam corretas.
+    """
+    return _authenticate(db, login_data.email, login_data.password, response)
+
+
+@router.post(
+    "/token",
+    response_model=TokenResponse,
+    summary="Token OAuth2 (botão Authorize do Swagger)",
+)
+def token(
+    response: Response,
+    form: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+):
+    """Mesmo login de `/auth/login`, mas no formato form-data do OAuth2.
+
+    No Swagger, clique em **Authorize** e use o e-mail no campo *username*.
+    """
+    return _authenticate(db, form.username.strip(), form.password, response)
 
 
 @router.get("/me", response_model=AuthUserResponse, summary="Usuário autenticado")
