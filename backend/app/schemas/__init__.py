@@ -24,8 +24,9 @@ class ProductBase(BaseModel):
     sku: str = Field(..., max_length=50, examples=["PROD-001"])
     name: str = Field(..., max_length=150, examples=["Monitor LED 24\""])
     description: Optional[str] = None
-    weight: Optional[Decimal] = Field(None, ge=0, description="Peso em kg")
-    volume: Optional[Decimal] = Field(None, ge=0, description="Volume em m³")
+    # Mesma precisão das colunas NUMERIC(10,2)/NUMERIC(10,4): evita arredondamento silencioso
+    weight: Optional[Decimal] = Field(None, ge=0, max_digits=10, decimal_places=2, description="Peso em kg")
+    volume: Optional[Decimal] = Field(None, ge=0, max_digits=10, decimal_places=4, description="Volume em m³")
 
 class ProductCreate(ProductBase):
     model_config = ConfigDict(str_strip_whitespace=True)
@@ -37,8 +38,8 @@ class ProductUpdate(BaseModel):
     sku: Optional[str] = Field(None, min_length=1, max_length=50)
     name: Optional[str] = Field(None, min_length=1, max_length=150)
     description: Optional[str] = None
-    weight: Optional[Decimal] = Field(None, ge=0)
-    volume: Optional[Decimal] = Field(None, ge=0)
+    weight: Optional[Decimal] = Field(None, ge=0, max_digits=10, decimal_places=2)
+    volume: Optional[Decimal] = Field(None, ge=0, max_digits=10, decimal_places=4)
     _no_nulls = _reject_null("sku", "name")
 
 class ProductResponse(ProductBase):

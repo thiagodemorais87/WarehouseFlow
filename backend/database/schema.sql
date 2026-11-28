@@ -22,7 +22,7 @@ CREATE TABLE products (
     name VARCHAR(150) NOT NULL,
     description TEXT,
     weight DECIMAL(10,2), -- em kg
-    volume DECIMAL(10,2), -- em m3 ou cm3
+    volume DECIMAL(10,4), -- em m3 (4 casas: itens pequenos como 0.0008)
     CONSTRAINT ck_products_weight_non_negative CHECK (weight IS NULL OR weight >= 0),
     CONSTRAINT ck_products_volume_non_negative CHECK (volume IS NULL OR volume >= 0)
 );

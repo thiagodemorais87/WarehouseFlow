@@ -49,7 +49,7 @@ class Product(Base):
     name = Column(String(150), nullable=False)
     description = Column(Text, nullable=True)
     weight = Column(Numeric(10, 2), nullable=True)  # em kg
-    volume = Column(Numeric(10, 2), nullable=True)  # em m3 ou cm3
+    volume = Column(Numeric(10, 4), nullable=True)  # em m3 (4 casas decimais)
 
     stocks = relationship("Stock", back_populates="product", cascade="all, delete-orphan")
     order_items = relationship("OrderItem", back_populates="product")
