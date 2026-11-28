@@ -20,6 +20,29 @@ services:
       timeout: 5s
       retries: 10
 
+  # Aplica as migrations idempotentes (001, 002, 003…) a cada `up`.
+  # Banco novo: no-op. Volume antigo: alinha ao schema.sql atual sem `down -v`.
+  migrate:
+    image: postgres:16-alpine
+    container_name: warehouseflow-migrate
+    restart: "no"
+    environment:
+      PGPASSWORD: warehouse
+    volumes:
+      - ./backend/database/migrations:/migrations:ro
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        set -e
+        for f in /migrations/*.sql; do
+          echo "aplicando $$f"
+          psql -h db -U warehouse -d warehouseflow -v ON_ERROR_STOP=1 -q -f "$$f"
+        done
+        echo "migrations ok"
+    depends_on:
+      db:
+        condition: service_healthy
+
   api:
     image: warehouseflow-api:${APP_VERSION:-dev}
     build:
@@ -30,8 +53,10 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+    # .env é opcional: num clone limpo o Compose sobe só com os defaults abaixo
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       # Override host URL from .env: inside the network the DB is always `db:5432`
       DATABASE_URL: postgresql+psycopg2://warehouse:warehouse@db:5432/warehouseflow
@@ -47,6 +72,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   frontend:
     image: nginx:alpine
