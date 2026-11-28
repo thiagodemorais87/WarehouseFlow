@@ -16,6 +16,7 @@ from app.database import get_db
 from app.main import app
 
 ROOT = Path(__file__).resolve().parents[1]
+COMPOSE = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
 SCHEMA = (ROOT / "backend/database/schema.sql").read_text(encoding="utf-8")
 SEED = (ROOT / "backend/database/seed.sql").read_text(encoding="utf-8")
 MIG_003 = (ROOT / "backend/database/migrations/003_volume_precisao.sql").read_text(encoding="utf-8")
@@ -23,6 +24,16 @@ PG_URL = os.getenv("TEST_DATABASE_URL", "")
 
 
 # Seed
+
+
+def test_compose_sobe_sem_arquivo_env():
+    """Clone limpo não tem .env: o env_file precisa ser opcional."""
+    assert "required: false" in COMPOSE
+
+
+def test_compose_aplica_migrations_antes_da_api():
+    assert "migrate:" in COMPOSE
+    assert "service_completed_successfully" in COMPOSE
 
 
 def test_seed_volumes_cabem_na_coluna():
